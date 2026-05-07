@@ -3,31 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KPS Jumper — Prep Level</title>
+  <title>Ezra's KPS Jumper</title>
   <style>
     :root {
-      --sky: #8ed0ff;
-      --sky2: #cdeeff;
-      --ground: #7dcf7d;
+      --sky-top: #8ed0ff;
+      --sky-bottom: #d6efff;
       --court: #6f7f93;
-      --court-line: #dfe9f6;
-      --ui: #1c2a3a;
-      --card: rgba(255, 255, 255, 0.9);
+      --court-line: rgba(255, 255, 255, 0.7);
+      --grass: #7dcf7d;
+      --hill: #91d98e;
+      --ink: #1c2a3a;
+      --card: rgba(255, 255, 255, 0.92);
       --accent: #ffcc33;
       --danger: #ff5f6d;
       --ok: #41c17d;
+      --button: #2f6df3;
     }
 
     html, body {
       margin: 0;
       height: 100%;
       font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
-      background: linear-gradient(var(--sky), var(--sky2));
+      background: linear-gradient(var(--sky-top), var(--sky-bottom));
       overflow: hidden;
       touch-action: manipulation;
     }
 
-    #gameWrap {
+    #stage {
       position: relative;
       width: min(100vw, 1100px);
       height: min(100vh, 680px);
@@ -35,7 +37,7 @@
       border-radius: 18px;
       overflow: hidden;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-      background: linear-gradient(var(--sky), var(--sky2));
+      background: linear-gradient(var(--sky-top), var(--sky-bottom));
     }
 
     canvas {
@@ -52,13 +54,13 @@
       display: flex;
       gap: 10px;
       align-items: center;
-      z-index: 5;
       flex-wrap: wrap;
+      z-index: 5;
     }
 
     .pill {
       background: var(--card);
-      color: var(--ui);
+      color: var(--ink);
       border-radius: 999px;
       padding: 8px 14px;
       font-weight: bold;
@@ -76,7 +78,7 @@
       border: 2px solid rgba(28, 42, 58, 0.1);
     }
 
-    .progressBar {
+    .progressFill {
       width: 0%;
       height: 100%;
       background: linear-gradient(90deg, #50d890, #35a7ff);
@@ -99,7 +101,7 @@
       border-radius: 20px;
       padding: clamp(16px, 3vw, 28px);
       text-align: center;
-      color: var(--ui);
+      color: var(--ink);
       border: 3px solid rgba(28, 42, 58, 0.1);
     }
 
@@ -116,7 +118,7 @@
       font-size: clamp(15px, 2vw, 20px);
       font-weight: bold;
       color: white;
-      background: #2f6df3;
+      background: var(--button);
       cursor: pointer;
     }
 
@@ -125,13 +127,13 @@
   </style>
 </head>
 <body>
-  <div id="gameWrap">
+  <div id="stage">
     <canvas id="game"></canvas>
 
     <div class="hud">
-      <div class="pill" id="scoreText">Score: 0</div>
-      <div class="pill">Prep Level — Top Court</div>
-      <div class="progress"><div class="progressBar" id="progressBar"></div></div>
+      <div class="pill" id="scorePill">Score: 0</div>
+      <div class="pill">Ezra — Top Court</div>
+      <div class="progress"><div class="progressFill" id="progressFill"></div></div>
     </div>
 
     <div class="overlay" id="overlay">
@@ -140,40 +142,42 @@
   </div>
 
   <script>
-    // KPS Jumper (single-file beginner version)
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     const overlay = document.getElementById('overlay');
     const overlayCard = document.getElementById('overlayCard');
-    const scoreText = document.getElementById('scoreText');
-    const progressBar = document.getElementById('progressBar');
+    const scorePill = document.getElementById('scorePill');
+    const progressFill = document.getElementById('progressFill');
 
-    const obstacleTypes = [
-      { emoji: '🎒', name: 'School Bag', w: 42, h: 42 },
-      { emoji: '🧴', name: 'Drink Bottle', w: 28, h: 50 },
-      { emoji: '⚽', name: 'Soccer Ball', w: 38, h: 38 },
-      { emoji: '🚧', name: 'Cone', w: 34, h: 40 },
-      { emoji: '💧', name: 'Puddle', w: 56, h: 20 },
-      { emoji: '🍱', name: 'Lunchbox', w: 46, h: 30 }
+    const OBSTACLES = [
+      { emoji: '🎒', name: 'School Bag',    w: 42, h: 42 },
+      { emoji: '🧴', name: 'Drink Bottle',  w: 28, h: 50 },
+      { emoji: '⚽', name: 'Soccer Ball',   w: 38, h: 38 },
+      { emoji: '🚧', name: 'Witches Hat',   w: 34, h: 40 },
+      { emoji: '💧', name: 'Puddle',        w: 56, h: 20 },
+      { emoji: '🍱', name: 'Lunchbox',      w: 46, h: 30 },
     ];
 
+    const FINISH_DISTANCE = 2800;
+    const BASE_SPEED = 280;
+    const MAX_SPEED = 460;
+    const GRAVITY = 1700;
+    const JUMP_SPEED = 680;
+
     const game = {
-      state: 'title', // title, playing, gameover, complete
-      w: 0, h: 0,
+      state: 'title',
+      width: 0,
+      height: 0,
       groundY: 0,
-      speed: 280,
-      gravity: 1700,
-      jumpPower: 680,
+      speed: BASE_SPEED,
       distance: 0,
-      levelDistance: 2800,
       score: 0,
-      lastTime: 0,
-      obstacleTimer: 0,
-      obstacleGap: [0.9, 1.6],
+      lastFrame: 0,
+      spawnIn: 0.8,
       obstacles: [],
-      messageTimer: 0,
-      message: '',
-      player: { x: 130, y: 0, vy: 0, w: 52, h: 72, onGround: true }
+      flashText: '',
+      flashTimer: 0,
+      player: { x: 130, y: 0, vy: 0, w: 52, h: 72, onGround: true },
     };
 
     function resize() {
@@ -181,10 +185,10 @@
       canvas.width = Math.floor(canvas.clientWidth * dpr);
       canvas.height = Math.floor(canvas.clientHeight * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      game.w = canvas.clientWidth;
-      game.h = canvas.clientHeight;
-      game.groundY = game.h * 0.78;
-      if (game.player.y === 0 || game.player.onGround) {
+      game.width = canvas.clientWidth;
+      game.height = canvas.clientHeight;
+      game.groundY = game.height * 0.78;
+      if (game.player.onGround) {
         game.player.y = game.groundY - game.player.h;
       }
     }
@@ -194,53 +198,59 @@
       overlayCard.innerHTML = html;
     }
 
-    function hideOverlay() { overlay.classList.add('hidden'); }
-
-    function startGame() {
-      game.state = 'playing';
-      game.distance = 0;
-      game.score = 0;
-      game.obstacles = [];
-      game.obstacleTimer = 0.8;
-      game.player.vy = 0;
-      game.player.onGround = true;
-      game.player.y = game.groundY - game.player.h;
-      game.message = '';
-      game.messageTimer = 0;
-      hideOverlay();
-      beep(680, 0.06, 'square');
+    function hideOverlay() {
+      overlay.classList.add('hidden');
     }
 
     function showTitle() {
       game.state = 'title';
       setOverlay(`
-        <h1>🏃 KPS Jumper</h1>
-        <p><b>Prep Level — Top Court</b></p>
-        <p>Tap, click, or press <b>Space</b> to jump!</p>
-        <p class="small">Run to <b>The Silver Slide</b> and avoid school obstacles.</p>
-        <button onclick="startGame()">Start Game</button>
+        <h1>🏃 Ezra's KPS Jumper</h1>
+        <p><b>Top Court Run</b></p>
+        <p>Tap, click, or press <b>Space</b> to jump.</p>
+        <p class="small">Run to <b>The Silver Slide</b> and dodge the school-yard mess!</p>
+        <button id="startBtn">Start Game</button>
       `);
+      document.getElementById('startBtn').addEventListener('click', startGame);
     }
 
-    function gameOver() {
+    function startGame() {
+      game.state = 'playing';
+      game.distance = 0;
+      game.score = 0;
+      game.speed = BASE_SPEED;
+      game.obstacles = [];
+      game.spawnIn = 0.8;
+      game.flashText = '';
+      game.flashTimer = 0;
+      game.player.vy = 0;
+      game.player.onGround = true;
+      game.player.y = game.groundY - game.player.h;
+      hideOverlay();
+      beep(680, 0.06, 'square');
+    }
+
+    function endGame() {
       game.state = 'gameover';
       setOverlay(`
         <h2 style="color:var(--danger)">Game Over</h2>
-        <p>You hit an obstacle.</p>
+        <p>Ezra hit something!</p>
         <p><b>Score:</b> ${Math.floor(game.score)}</p>
-        <button onclick="startGame()">Restart</button>
+        <button id="restartBtn">Try Again</button>
       `);
+      document.getElementById('restartBtn').addEventListener('click', startGame);
       beep(180, 0.18, 'sawtooth');
     }
 
-    function levelComplete() {
+    function winLevel() {
       game.state = 'complete';
       setOverlay(`
         <h2 style="color:var(--ok)">Level Complete! 🎉</h2>
-        <p>You reached <b>The Silver Slide</b>!</p>
+        <p>Ezra made it to <b>The Silver Slide</b>!</p>
         <p><b>Score:</b> ${Math.floor(game.score)}</p>
-        <button onclick="startGame()">Play Again</button>
+        <button id="againBtn">Play Again</button>
       `);
+      document.getElementById('againBtn').addEventListener('click', startGame);
       beep(520, 0.09, 'triangle');
       setTimeout(() => beep(700, 0.09, 'triangle'), 120);
     }
@@ -249,97 +259,106 @@
       if (game.state === 'title') return startGame();
       if (game.state !== 'playing') return;
       if (game.player.onGround) {
-        game.player.vy = -game.jumpPower;
+        game.player.vy = -JUMP_SPEED;
         game.player.onGround = false;
         beep(420, 0.06, 'triangle');
       }
     }
 
     function spawnObstacle() {
-      const t = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
-      const y = game.groundY - t.h;
-      game.obstacles.push({ x: game.w + 20, y, ...t });
-      game.message = t.name + '!';
-      game.messageTimer = 0.9;
+      const choice = OBSTACLES[Math.floor(Math.random() * OBSTACLES.length)];
+      game.obstacles.push({
+        ...choice,
+        x: game.width + 20,
+        y: game.groundY - choice.h,
+      });
+      game.flashText = choice.name + '!';
+      game.flashTimer = 0.9;
     }
 
-    function update(dt) {
+    function step(dt) {
       if (game.state !== 'playing') return;
+
+      const progress = Math.min(game.distance / FINISH_DISTANCE, 1);
+      game.speed = BASE_SPEED + (MAX_SPEED - BASE_SPEED) * progress;
 
       game.distance += game.speed * dt;
       game.score += 10 * dt;
 
-      game.player.vy += game.gravity * dt;
-      game.player.y += game.player.vy * dt;
-      const floorY = game.groundY - game.player.h;
-      if (game.player.y >= floorY) {
-        game.player.y = floorY;
-        game.player.vy = 0;
-        game.player.onGround = true;
+      const p = game.player;
+      p.vy += GRAVITY * dt;
+      p.y += p.vy * dt;
+      const floor = game.groundY - p.h;
+      if (p.y >= floor) {
+        p.y = floor;
+        p.vy = 0;
+        p.onGround = true;
       }
 
-      game.obstacleTimer -= dt;
-      if (game.obstacleTimer <= 0) {
+      game.spawnIn -= dt;
+      if (game.spawnIn <= 0) {
         spawnObstacle();
-        const [min, max] = game.obstacleGap;
-        game.obstacleTimer = min + Math.random() * (max - min);
+        const minGap = 0.9 - 0.25 * progress;
+        const maxGap = 1.6 - 0.4 * progress;
+        game.spawnIn = minGap + Math.random() * (maxGap - minGap);
       }
 
       for (const o of game.obstacles) o.x -= game.speed * dt;
       game.obstacles = game.obstacles.filter(o => o.x + o.w > -40);
 
-      const p = game.player;
-      const px = p.x + 8, py = p.y + 8, pw = p.w - 16, ph = p.h - 8;
+      const hx = p.x + 8, hy = p.y + 8, hw = p.w - 16, hh = p.h - 8;
       for (const o of game.obstacles) {
-        const hit = px < o.x + o.w && px + pw > o.x && py < o.y + o.h && py + ph > o.y;
-        if (hit) return gameOver();
+        if (hx < o.x + o.w && hx + hw > o.x && hy < o.y + o.h && hy + hh > o.y) {
+          return endGame();
+        }
       }
 
-      if (game.messageTimer > 0) game.messageTimer -= dt;
-
-      if (game.distance >= game.levelDistance) levelComplete();
+      if (game.flashTimer > 0) game.flashTimer -= dt;
+      if (game.distance >= FINISH_DISTANCE) winLevel();
     }
 
     function drawBackground() {
       ctx.fillStyle = '#8ed0ff';
-      ctx.fillRect(0, 0, game.w, game.h);
+      ctx.fillRect(0, 0, game.width, game.height);
 
-      // Distant oval hill
       ctx.fillStyle = '#91d98e';
       ctx.beginPath();
-      ctx.ellipse(game.w * 0.7, game.h * 0.58, game.w * 0.34, game.h * 0.12, 0, 0, Math.PI * 2);
+      ctx.ellipse(game.width * 0.7, game.height * 0.58, game.width * 0.34, game.height * 0.12, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Court ground
       ctx.fillStyle = '#71859c';
-      ctx.fillRect(0, game.groundY, game.w, game.h - game.groundY);
+      ctx.fillRect(0, game.groundY, game.width, game.height - game.groundY);
 
-      // Court lines
       ctx.strokeStyle = 'rgba(255,255,255,0.65)';
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(0, game.groundY + 22);
-      ctx.lineTo(game.w, game.groundY + 22);
-      ctx.moveTo(game.w * 0.16, game.groundY);
-      ctx.lineTo(game.w * 0.16, game.h);
-      ctx.moveTo(game.w * 0.84, game.groundY);
-      ctx.lineTo(game.w * 0.84, game.h);
+      ctx.lineTo(game.width, game.groundY + 22);
+      ctx.moveTo(game.width * 0.16, game.groundY);
+      ctx.lineTo(game.width * 0.16, game.height);
+      ctx.moveTo(game.width * 0.84, game.groundY);
+      ctx.lineTo(game.width * 0.84, game.height);
       ctx.stroke();
     }
 
     function drawPlayer() {
       const p = game.player;
-      // Kid made of simple shapes + emoji backpack
       ctx.fillStyle = '#ffc98f';
-      ctx.beginPath(); ctx.arc(p.x + 28, p.y + 12, 10, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      ctx.arc(p.x + 28, p.y + 12, 10, 0, Math.PI * 2);
+      ctx.fill();
+
       ctx.fillStyle = '#224b8f';
       ctx.fillRect(p.x + 16, p.y + 24, 24, 24);
-      ctx.fillStyle = '#2e2e2e';
-      ctx.fillRect(p.x + 18, p.y + 48, 8, 20);
-      ctx.fillRect(p.x + 30, p.y + 48, 8, 20);
+
       ctx.fillStyle = '#ffc98f';
       ctx.fillRect(p.x + 10, p.y + 26, 8, 20);
       ctx.fillRect(p.x + 40, p.y + 26, 8, 20);
+
+      ctx.fillStyle = '#2e2e2e';
+      ctx.fillRect(p.x + 18, p.y + 48, 8, 20);
+      ctx.fillRect(p.x + 30, p.y + 48, 8, 20);
+
       ctx.font = '18px sans-serif';
       ctx.fillText('🎒', p.x + 2, p.y + 42);
     }
@@ -349,47 +368,46 @@
       ctx.fillText(o.emoji, o.x, o.y + o.h);
     }
 
-    function drawFinishLine() {
-      const progress = Math.min(game.distance / game.levelDistance, 1);
-      const lineX = game.w - 80 + (1 - progress) * 260;
+    function drawFinish() {
+      const progress = Math.min(game.distance / FINISH_DISTANCE, 1);
+      const x = game.width - 80 + (1 - progress) * 260;
       ctx.fillStyle = '#d9d9d9';
-      ctx.fillRect(lineX, game.groundY - 110, 10, 110);
+      ctx.fillRect(x, game.groundY - 110, 10, 110);
       ctx.fillStyle = '#a5a5a5';
-      ctx.fillRect(lineX + 10, game.groundY - 80, 42, 12);
-      ctx.fillRect(lineX + 10, game.groundY - 48, 42, 12);
+      ctx.fillRect(x + 10, game.groundY - 80, 42, 12);
+      ctx.fillRect(x + 10, game.groundY - 48, 42, 12);
       ctx.font = 'bold 14px Trebuchet MS';
       ctx.fillStyle = '#334';
-      ctx.fillText('Silver Slide', lineX - 22, game.groundY - 118);
+      ctx.fillText('Silver Slide', x - 22, game.groundY - 118);
     }
 
-    function drawUI() {
-      scoreText.textContent = 'Score: ' + Math.floor(game.score);
-      const pct = Math.min(100, (game.distance / game.levelDistance) * 100);
-      progressBar.style.width = pct + '%';
+    function drawHud() {
+      scorePill.textContent = 'Score: ' + Math.floor(game.score);
+      const pct = Math.min(100, (game.distance / FINISH_DISTANCE) * 100);
+      progressFill.style.width = pct + '%';
 
-      if (game.messageTimer > 0) {
+      if (game.flashTimer > 0) {
         ctx.font = 'bold 26px Trebuchet MS';
         ctx.fillStyle = '#16314f';
-        ctx.fillText(game.message, game.w * 0.5 - 70, 84);
+        ctx.fillText(game.flashText, game.width * 0.5 - 70, 84);
       }
     }
 
-    function loop(ts) {
-      if (!game.lastTime) game.lastTime = ts;
-      const dt = Math.min((ts - game.lastTime) / 1000, 0.033);
-      game.lastTime = ts;
+    function frame(ts) {
+      if (!game.lastFrame) game.lastFrame = ts;
+      const dt = Math.min((ts - game.lastFrame) / 1000, 0.033);
+      game.lastFrame = ts;
 
-      update(dt);
+      step(dt);
       drawBackground();
-      drawFinishLine();
+      drawFinish();
       for (const o of game.obstacles) drawObstacle(o);
       drawPlayer();
-      drawUI();
+      drawHud();
 
-      requestAnimationFrame(loop);
+      requestAnimationFrame(frame);
     }
 
-    // Very tiny built-in sound helper (no external files)
     let audioCtx;
     function beep(freq, duration, type = 'sine') {
       try {
@@ -406,7 +424,6 @@
       } catch (_) {}
     }
 
-    // Controls: keyboard + click + tap
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Space') {
         e.preventDefault();
@@ -418,10 +435,7 @@
     window.addEventListener('resize', resize);
     resize();
     showTitle();
-    requestAnimationFrame(loop);
-
-    // Let overlay buttons call these functions
-    window.startGame = startGame;
+    requestAnimationFrame(frame);
   </script>
 </body>
 </html>
