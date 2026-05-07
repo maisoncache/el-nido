@@ -1,15 +1,16 @@
 # Ezra's KPS Jumper
 
-A tiny browser game made for Ezra. Run across the top court, jump over the school-yard mess, and reach the Silver Slide.
+A tiny browser game made for Ezra. Run across three courts, jump over the school-yard mess, grab stars, and finish at the cubby house.
 
 Play it: https://maisoncache.github.io/el-nido/
 
 ## How to play
 
-- **Tap**, **click**, or press **Space** to jump.
-- Avoid every obstacle (school bag, drink bottle, soccer ball, witches hat, puddle, lunchbox).
-- Reach the Silver Slide at the end of the run to finish the level.
-- Hit anything and it's game over — try again from the overlay.
+- **Tap**, **click**, or press **Space / ↑** to jump.
+- Press jump again in the air for a **double jump**.
+- Grab ⭐ stars for **+50 bonus points** each.
+- Three levels: Top Court → Lower Court → Night Oval. Each finish line is different.
+- Best score is saved on this device — try to beat it!
 
 ## Running locally
 
