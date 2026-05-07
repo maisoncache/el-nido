@@ -61,7 +61,6 @@
       font-size: clamp(13px, 1.8vw, 18px);
       border: 2px solid rgba(28, 42, 58, 0.1);
     }
-
     .pill.gold { background: #fff3c4; border-color: var(--gold); }
 
     .progress {
@@ -92,7 +91,9 @@
     }
 
     .card {
-      width: min(92%, 560px);
+      width: min(94%, 640px);
+      max-height: 92%;
+      overflow-y: auto;
       background: var(--card);
       border-radius: 20px;
       padding: clamp(16px, 3vw, 28px);
@@ -104,7 +105,7 @@
     h1, h2, p { margin: 8px 0; }
     h1 { font-size: clamp(28px, 5vw, 46px); }
     h2 { font-size: clamp(22px, 4vw, 34px); }
-    p { font-size: clamp(14px, 2.2vw, 20px); }
+    p  { font-size: clamp(14px, 2.2vw, 20px); }
 
     button {
       margin-top: 14px;
@@ -118,7 +119,45 @@
       cursor: pointer;
     }
 
+    button.secondary {
+      background: #e2e8f0;
+      color: var(--ink);
+    }
+
     .small { opacity: 0.85; font-size: clamp(12px, 1.7vw, 16px); }
+
+    .lvl-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin: 14px 0 6px;
+    }
+
+    .lvl-btn {
+      margin: 0;
+      padding: 12px 10px;
+      background: #fffbe6;
+      color: var(--ink);
+      border: 3px solid var(--gold);
+      border-radius: 14px;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 0.06s ease;
+    }
+
+    .lvl-btn:hover { transform: translateY(-2px); }
+    .lvl-btn b { display: block; margin-bottom: 2px; font-size: clamp(15px, 2vw, 18px); }
+    .lvl-btn .lvl-sub { font-weight: normal; font-size: clamp(12px, 1.6vw, 14px); opacity: 0.8; }
+    .lvl-btn .lvl-best { font-size: clamp(11px, 1.4vw, 13px); opacity: 0.85; margin-top: 4px; display: block; }
+
+    .lvl-btn.locked {
+      background: #e9eef5;
+      border-color: #c4cdd9;
+      color: #93a0b0;
+      cursor: not-allowed;
+    }
+    .lvl-btn.locked:hover { transform: none; }
+
     .new-best {
       display: inline-block;
       margin-top: 6px;
@@ -129,11 +168,13 @@
       font-weight: bold;
       animation: pop 0.6s ease-out;
     }
+
     @keyframes pop {
       0%   { transform: scale(0.4); opacity: 0; }
       60%  { transform: scale(1.15); opacity: 1; }
       100% { transform: scale(1); }
     }
+
     .hidden { display: none; }
   </style>
 </head>
@@ -144,7 +185,7 @@
     <div class="hud">
       <div class="pill" id="scorePill">Score: 0</div>
       <div class="pill gold" id="starPill">⭐ 0</div>
-      <div class="pill" id="levelPill">Level 1</div>
+      <div class="pill" id="levelPill">Prep</div>
       <div class="progress"><div class="progressFill" id="progressFill"></div></div>
     </div>
 
@@ -163,65 +204,151 @@
     const levelPill = document.getElementById('levelPill');
     const progressFill = document.getElementById('progressFill');
 
-    const BEST_KEY = 'ezra-kps-best';
+    const PROGRESS_KEY = 'ezra-kps-progress-v2';
     const STAR_VALUE = 50;
-    const LEVEL_DISTANCE = 2400;
     const BASE_SPEED = 280;
-    const SPEED_RAMP = 180;
     const GRAVITY = 1700;
     const JUMP_SPEED = 680;
     const MAX_JUMPS = 2;
 
+    const OBSTACLES = {
+      bag:    { emoji: '🎒', name: 'School Bag',   w: 42, h: 42 },
+      cone:   { emoji: '🚧', name: 'Witches Hat',  w: 34, h: 40 },
+      bottle: { emoji: '🧴', name: 'Drink Bottle', w: 28, h: 50 },
+      ball:   { emoji: '⚽', name: 'Soccer Ball',  w: 38, h: 38 },
+      puddle: { emoji: '💧', name: 'Puddle',       w: 56, h: 20 },
+      stick:  { emoji: '🦴', name: 'Stick',        w: 60, h: 18 },
+      lunch:  { emoji: '🍱', name: 'Lunchbox',     w: 46, h: 30 },
+      hoop:   { emoji: '⭕', name: 'Hoop',         w: 44, h: 44 },
+      block:  { emoji: '🧱', name: 'Toy Block',    w: 40, h: 40 },
+      bucket: { emoji: '🪣', name: 'Bucket',       w: 38, h: 42 },
+      bench:  { emoji: '🪑', name: 'Bench',        w: 60, h: 36 },
+      bball:  { emoji: '🏀', name: 'Basketball',   w: 40, h: 40 },
+      books:  { emoji: '📚', name: 'Books',        w: 44, h: 36 },
+      skate:  { emoji: '🛹', name: 'Skateboard',   w: 50, h: 24 },
+      rock:   { emoji: '🪨', name: 'Rock',         w: 44, h: 30 },
+      ghost:  { emoji: '👻', name: 'Ghost',        w: 38, h: 44 },
+    };
+
     const LEVELS = [
       {
+        title: 'Prep',
         name: 'Top Court',
         finish: 'Silver Slide',
-        sky:    ['#8ed0ff', '#d6efff'],
-        hill:   '#91d98e',
+        speedMul: 1.00,
+        distance: 2200,
+        spawnGap: [1.05, 1.75],
+        sky: ['#8ed0ff', '#d6efff'],
+        hill: '#91d98e',
         ground: '#71859c',
-        line:   'rgba(255,255,255,0.65)',
-        obstacles: [
-          { emoji: '🎒', name: 'School Bag',   w: 42, h: 42 },
-          { emoji: '🧴', name: 'Drink Bottle', w: 28, h: 50 },
-          { emoji: '⚽', name: 'Soccer Ball',  w: 38, h: 38 },
-          { emoji: '🚧', name: 'Witches Hat',  w: 34, h: 40 },
-          { emoji: '💧', name: 'Puddle',       w: 56, h: 20 },
-          { emoji: '🍱', name: 'Lunchbox',     w: 46, h: 30 },
-        ],
+        line: 'rgba(255,255,255,0.65)',
+        textOnDark: false,
+        obstacles: ['bag', 'cone', 'bottle'],
       },
       {
-        name: 'Lower Court',
-        finish: 'Monkey Bars',
-        sky:    ['#ffb778', '#ffe2c1'],
-        hill:   '#f59169',
-        ground: '#5e4a3a',
-        line:   'rgba(255,255,255,0.55)',
-        obstacles: [
-          { emoji: '🛹', name: 'Skateboard',   w: 50, h: 24 },
-          { emoji: '🏀', name: 'Basketball',   w: 40, h: 40 },
-          { emoji: '📚', name: 'Books',        w: 44, h: 36 },
-          { emoji: '🪣', name: 'Bucket',       w: 38, h: 42 },
-          { emoji: '🎨', name: 'Paint Set',    w: 46, h: 30 },
-          { emoji: '🦴', name: 'Stick',        w: 60, h: 18 },
-        ],
+        title: 'Grade 1',
+        name: 'The Oval',
+        finish: 'Far Goalpost',
+        speedMul: 1.08,
+        distance: 2500,
+        spawnGap: [0.95, 1.6],
+        sky: ['#bbe7a3', '#ecf9d8'],
+        hill: '#7dbf6f',
+        ground: '#5fa253',
+        line: 'rgba(255,255,255,0.55)',
+        textOnDark: false,
+        obstacles: ['ball', 'puddle', 'stick', 'lunch'],
       },
       {
-        name: 'Night Oval',
-        finish: 'Cubby House',
-        sky:    ['#1d2a52', '#5b4a87'],
-        hill:   '#3b3066',
+        title: 'Grade 2',
+        name: 'The Long Silver Slide',
+        finish: 'End of the Slide',
+        speedMul: 1.16,
+        distance: 2800,
+        spawnGap: [0.9, 1.5],
+        sky: ['#7cc1ff', '#d3ecff'],
+        hill: '#b5c5d4',
+        ground: '#7989a0',
+        line: 'rgba(255,255,255,0.65)',
+        textOnDark: false,
+        obstacles: ['bag', 'ball', 'cone', 'puddle'],
+        slideAt: 0.65, // last 35% is the slide
+      },
+      {
+        title: 'Grade 3',
+        name: 'Bottom Playground',
+        finish: 'Sandpit',
+        speedMul: 1.24,
+        distance: 2700,
+        spawnGap: [0.85, 1.45],
+        sky: ['#f9c98a', '#ffe7c2'],
+        hill: '#d99c64',
+        ground: '#8a6a44',
+        line: 'rgba(255,255,255,0.55)',
+        textOnDark: false,
+        obstacles: ['hoop', 'block', 'bucket', 'bench'],
+      },
+      {
+        title: 'Grade 4',
+        name: 'Bottom Courts',
+        finish: 'Centre Line',
+        speedMul: 1.32,
+        distance: 2900,
+        spawnGap: [0.8, 1.4],
+        sky: ['#a0c4e8', '#dceaf6'],
+        hill: '#7fa2c9',
+        ground: '#5b6c80',
+        line: 'rgba(255,255,255,0.7)',
+        textOnDark: false,
+        obstacles: ['cone', 'bball', 'bottle', 'lunch'],
+      },
+      {
+        title: 'Grade 5',
+        name: 'Whole School Run',
+        finish: 'Front Gate',
+        speedMul: 1.40,
+        distance: 3800,
+        spawnGap: [0.7, 1.25],
+        sky: ['#ffb778', '#ffe2c1'],
+        hill: '#f59169',
+        ground: '#6e553f',
+        line: 'rgba(255,255,255,0.55)',
+        textOnDark: false,
+        obstacles: ['bag', 'ball', 'puddle', 'cone', 'lunch', 'bench', 'bball', 'bucket', 'skate', 'books'],
+      },
+      {
+        title: 'Grade 6',
+        name: 'KPS Champion Level',
+        finish: 'KPS Trophy',
+        speedMul: 1.50,
+        distance: 3400,
+        spawnGap: [0.6, 1.05],
+        sky: ['#1d2a52', '#5b4a87'],
+        hill: '#3b3066',
         ground: '#2a2540',
-        line:   'rgba(255,255,255,0.45)',
-        obstacles: [
-          { emoji: '🦇', name: 'Bat',          w: 42, h: 30 },
-          { emoji: '🌙', name: 'Crescent',     w: 38, h: 38 },
-          { emoji: '🎃', name: 'Pumpkin',      w: 40, h: 42 },
-          { emoji: '👻', name: 'Ghost',        w: 38, h: 44 },
-          { emoji: '⭐', name: 'Falling Star', w: 36, h: 36 },
-          { emoji: '🪨', name: 'Rock',         w: 44, h: 30 },
-        ],
+        line: 'rgba(255,255,255,0.45)',
+        textOnDark: true,
+        obstacles: ['bag', 'ball', 'cone', 'lunch', 'bball', 'rock', 'ghost', 'skate', 'books', 'bench'],
+        isFinal: true,
       },
     ];
+
+    function loadProgress() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(PROGRESS_KEY));
+        if (raw && typeof raw === 'object') {
+          return {
+            unlocked: Math.max(0, Math.min(LEVELS.length - 1, raw.unlocked || 0)),
+            best: raw.best && typeof raw.best === 'object' ? raw.best : {},
+          };
+        }
+      } catch (_) {}
+      return { unlocked: 0, best: {} };
+    }
+    function saveProgress() {
+      try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch (_) {}
+    }
+    const progress = loadProgress();
 
     const state = {
       mode: 'title',
@@ -232,8 +359,6 @@
       distance: 0,
       score: 0,
       stars: 0,
-      best: Number(localStorage.getItem(BEST_KEY) || 0),
-      newBest: false,
       levelIndex: 0,
       lastFrame: 0,
       spawnIn: 0.8,
@@ -243,7 +368,11 @@
       particles: [],
       flashText: '',
       flashTimer: 0,
+      titleTimer: 0,
+      titleText: '',
       stepTimer: 0,
+      onSlide: false,
+      newBestThisRun: false,
       player: { x: 130, y: 0, vy: 0, w: 52, h: 72, onGround: true, jumps: 0 },
     };
 
@@ -268,39 +397,69 @@
     }
     function hideOverlay() { overlay.classList.add('hidden'); }
 
-    function bestLine() {
-      return state.best > 0
-        ? `<p class="small">Best score: <b>${state.best}</b></p>`
-        : '';
-    }
-
     function showTitle() {
       state.mode = 'title';
-      state.levelIndex = 0;
+      const cleared = progress.unlocked >= LEVELS.length - 1
+        ? `<p class="small">🏆 Champion! Replay any level you like.</p>`
+        : `<p class="small">Beat each level to unlock the next.</p>`;
       setOverlay(`
         <h1>🏃 Ezra's KPS Jumper</h1>
-        <p><b>Three Courts. Three Finishes.</b></p>
+        <p><b>Run from Prep all the way to Grade 6!</b></p>
         <p>Tap, click, or press <b>Space</b> to jump.</p>
-        <p class="small">Press jump again in the air for a <b>double jump</b>!</p>
-        <p class="small">Grab ⭐ stars for bonus points.</p>
-        ${bestLine()}
-        <button id="startBtn">Start</button>
+        <p class="small">Press jump again in the air for a <b>double jump</b>. Grab ⭐ stars for bonus points.</p>
+        ${cleared}
+        <button id="playBtn">Continue from ${LEVELS[progress.unlocked].title}</button>
+        <button id="selectBtn" class="secondary">Choose a Level</button>
       `);
-      document.getElementById('startBtn').addEventListener('click', () => startLevel(0));
+      document.getElementById('playBtn').addEventListener('click', () => startLevel(progress.unlocked));
+      document.getElementById('selectBtn').addEventListener('click', showLevelSelect);
+    }
+
+    function showLevelSelect() {
+      state.mode = 'menu';
+      const buttons = LEVELS.map((lv, i) => {
+        const unlocked = i <= progress.unlocked;
+        const best = progress.best[i];
+        const lockMark = unlocked ? '' : ' 🔒';
+        const bestLine = best
+          ? `<span class="lvl-best">Best: ${best.score} · ⭐ ${best.stars}</span>`
+          : (unlocked ? '<span class="lvl-best">Not played yet</span>' : '<span class="lvl-best">Locked</span>');
+        return `<button class="lvl-btn${unlocked ? '' : ' locked'}" data-idx="${i}" ${unlocked ? '' : 'disabled'}>
+          <b>${lv.title}${lockMark}</b>
+          <span class="lvl-sub">${lv.name}</span>
+          ${bestLine}
+        </button>`;
+      }).join('');
+      setOverlay(`
+        <h2>Choose a Level</h2>
+        <div class="lvl-grid">${buttons}</div>
+        <button id="backBtn" class="secondary">Back</button>
+      `);
+      document.querySelectorAll('.lvl-btn').forEach(btn => {
+        if (btn.classList.contains('locked')) return;
+        btn.addEventListener('click', () => startLevel(Number(btn.dataset.idx)));
+      });
+      document.getElementById('backBtn').addEventListener('click', showTitle);
     }
 
     function startLevel(idx) {
       state.mode = 'playing';
       state.levelIndex = idx;
       state.distance = 0;
-      state.speed = BASE_SPEED;
+      state.score = 0;
+      state.stars = 0;
+      state.newBestThisRun = false;
+      state.speed = BASE_SPEED * level().speedMul;
       state.obstacles = [];
       state.pickups = [];
       state.particles = [];
-      state.spawnIn = 0.8;
+      state.spawnIn = 0.9;
       state.starSpawnIn = 1.4;
       state.flashText = '';
       state.flashTimer = 0;
+      state.titleText = `${level().title} — ${level().name}`;
+      state.titleTimer = 2.4;
+      state.onSlide = false;
       state.player.vy = 0;
       state.player.onGround = true;
       state.player.jumps = 0;
@@ -309,80 +468,85 @@
       beep(680, 0.06, 'square');
     }
 
+    function bestLine() {
+      const best = progress.best[state.levelIndex];
+      return best ? `<p class="small">Level best: <b>${best.score}</b> · ⭐ ${best.stars}</p>` : '';
+    }
+
+    function recordResult(won) {
+      const final = Math.floor(state.score);
+      const prev = progress.best[state.levelIndex];
+      if (!prev || final > prev.score) {
+        progress.best[state.levelIndex] = { score: final, stars: state.stars };
+        state.newBestThisRun = true;
+      }
+      if (won && state.levelIndex + 1 < LEVELS.length && progress.unlocked < state.levelIndex + 1) {
+        progress.unlocked = state.levelIndex + 1;
+      }
+      saveProgress();
+    }
+
     function endGame() {
       state.mode = 'gameover';
-      saveBest();
-      const bestBadge = state.newBest
-        ? `<div class="new-best">⭐ NEW BEST! ⭐</div>`
-        : bestLine();
+      recordResult(false);
+      const badge = state.newBestThisRun ? `<div class="new-best">⭐ NEW BEST! ⭐</div>` : bestLine();
       setOverlay(`
         <h2 style="color:var(--danger)">Game Over</h2>
-        <p>Ezra hit something!</p>
+        <p>Ezra hit something on <b>${level().title}</b>!</p>
         <p><b>Score:</b> ${Math.floor(state.score)} &nbsp;·&nbsp; ⭐ ${state.stars}</p>
-        ${bestBadge}
-        <button id="restartBtn">Try Again</button>
+        ${badge}
+        <button id="retryBtn">Try Again</button>
+        <button id="menuBtn" class="secondary">Level Select</button>
       `);
-      document.getElementById('restartBtn').addEventListener('click', () => {
-        state.score = 0;
-        state.stars = 0;
-        state.newBest = false;
-        startLevel(0);
-      });
+      document.getElementById('retryBtn').addEventListener('click', () => startLevel(state.levelIndex));
+      document.getElementById('menuBtn').addEventListener('click', showLevelSelect);
       beep(180, 0.18, 'sawtooth');
     }
 
-    function nextLevelOrWin() {
-      const nextIdx = state.levelIndex + 1;
-      if (nextIdx < LEVELS.length) {
-        state.mode = 'between';
-        const nl = LEVELS[nextIdx];
-        setOverlay(`
-          <h2 style="color:var(--ok)">${level().finish}! 🎉</h2>
-          <p>Level ${state.levelIndex + 1} cleared!</p>
-          <p><b>Score:</b> ${Math.floor(state.score)} &nbsp;·&nbsp; ⭐ ${state.stars}</p>
-          <p class="small">Up next: <b>${nl.name}</b> — finish at the <b>${nl.finish}</b>.</p>
-          <button id="nextBtn">Go!</button>
-        `);
-        document.getElementById('nextBtn').addEventListener('click', () => startLevel(nextIdx));
-        beep(520, 0.09, 'triangle');
-        setTimeout(() => beep(700, 0.09, 'triangle'), 120);
-      } else {
+    function levelComplete() {
+      recordResult(true);
+      const isFinal = level().isFinal;
+      const badge = state.newBestThisRun ? `<div class="new-best">⭐ NEW BEST! ⭐</div>` : '';
+
+      if (isFinal) {
         state.mode = 'win';
-        saveBest();
-        const bestBadge = state.newBest
-          ? `<div class="new-best">⭐ NEW BEST! ⭐</div>`
-          : bestLine();
         setOverlay(`
-          <h2 style="color:var(--ok)">You Beat the Game! 🏆</h2>
-          <p>Ezra cleared every court!</p>
-          <p><b>Score:</b> ${Math.floor(state.score)} &nbsp;·&nbsp; ⭐ ${state.stars}</p>
-          ${bestBadge}
+          <h1 style="color:var(--ok)">🏆 KPS Champion! 🏆</h1>
+          <p>Ezra beat every level!</p>
+          <p><b>Final Score:</b> ${Math.floor(state.score)} &nbsp;·&nbsp; ⭐ ${state.stars}</p>
+          ${badge}
           <button id="againBtn">Play Again</button>
+          <button id="menuBtn" class="secondary">Level Select</button>
         `);
-        document.getElementById('againBtn').addEventListener('click', () => {
-          state.score = 0;
-          state.stars = 0;
-          state.newBest = false;
-          startLevel(0);
-        });
+        document.getElementById('againBtn').addEventListener('click', () => startLevel(0));
+        document.getElementById('menuBtn').addEventListener('click', showLevelSelect);
         beep(640, 0.12, 'triangle');
         setTimeout(() => beep(820, 0.14, 'triangle'), 130);
         setTimeout(() => beep(980, 0.18, 'triangle'), 280);
+        return;
       }
-    }
 
-    function saveBest() {
-      const final = Math.floor(state.score);
-      if (final > state.best) {
-        state.best = final;
-        state.newBest = true;
-        try { localStorage.setItem(BEST_KEY, String(final)); } catch (_) {}
-      }
+      state.mode = 'between';
+      const next = LEVELS[state.levelIndex + 1];
+      setOverlay(`
+        <h2 style="color:var(--ok)">${level().finish}! 🎉</h2>
+        <p><b>${level().title}</b> complete!</p>
+        <p><b>Score:</b> ${Math.floor(state.score)} &nbsp;·&nbsp; ⭐ ${state.stars}</p>
+        ${badge}
+        <p class="small">Up next: <b>${next.title} — ${next.name}</b></p>
+        <button id="nextBtn">Continue</button>
+        <button id="menuBtn" class="secondary">Level Select</button>
+      `);
+      document.getElementById('nextBtn').addEventListener('click', () => startLevel(state.levelIndex + 1));
+      document.getElementById('menuBtn').addEventListener('click', showLevelSelect);
+      beep(520, 0.09, 'triangle');
+      setTimeout(() => beep(700, 0.09, 'triangle'), 120);
     }
 
     function jump() {
-      if (state.mode === 'title') return startLevel(0);
+      if (state.mode === 'title') return showLevelSelect();
       if (state.mode !== 'playing') return;
+      if (state.onSlide) return; // no jumping on the slide — auto-ride
       const p = state.player;
       if (p.jumps < MAX_JUMPS) {
         p.vy = -JUMP_SPEED;
@@ -394,15 +558,15 @@
     }
 
     function spawnObstacle() {
-      const opts = level().obstacles;
-      const choice = opts[Math.floor(Math.random() * opts.length)];
+      const keys = level().obstacles;
+      const choice = OBSTACLES[keys[Math.floor(Math.random() * keys.length)]];
       state.obstacles.push({
         ...choice,
         x: state.width + 20,
         y: state.groundY - choice.h,
       });
       state.flashText = choice.name + '!';
-      state.flashTimer = 0.9;
+      state.flashTimer = 0.85;
     }
 
     function spawnStar() {
@@ -429,48 +593,89 @@
       }
     }
 
+    function slideOffset(rel) {
+      // rel: 0..1 across the slide section. Returns extra y offset (positive = lower on screen).
+      // Quick ramp down then a flat finish.
+      if (rel < 0.85) return 80 * (rel / 0.85);
+      return 80;
+    }
+
     function step(dt) {
       if (state.mode !== 'playing') return;
 
-      const progress = Math.min(state.distance / LEVEL_DISTANCE, 1);
-      state.speed = BASE_SPEED + SPEED_RAMP * progress;
+      const lv = level();
+      const totalProg = Math.min(state.distance / lv.distance, 1);
+
+      if (lv.slideAt && totalProg >= lv.slideAt && !state.onSlide) {
+        state.onSlide = true;
+        state.flashText = 'Wheeeee!';
+        state.flashTimer = 1.4;
+        state.obstacles = [];
+        beep(620, 0.18, 'sine');
+        setTimeout(() => beep(740, 0.18, 'sine'), 140);
+      }
+
+      const speedBoost = state.onSlide ? 1.4 : 1.0;
+      const baseSpeed = BASE_SPEED * lv.speedMul;
+      state.speed = (baseSpeed + 120 * totalProg) * speedBoost;
 
       state.distance += state.speed * dt;
-      state.score += 10 * dt;
+      state.score += 10 * dt * (state.onSlide ? 1.5 : 1);
 
       const p = state.player;
-      const wasAir = !p.onGround;
-      p.vy += GRAVITY * dt;
-      p.y += p.vy * dt;
-      const floor = state.groundY - p.h;
-      if (p.y >= floor) {
-        if (wasAir) puff(p.x + p.w / 2, state.groundY, 5);
-        p.y = floor;
+
+      if (state.onSlide) {
+        const slideRel = Math.min(1, (totalProg - lv.slideAt) / (1 - lv.slideAt));
+        const baseFloor = state.groundY - p.h;
+        p.y = baseFloor + slideOffset(slideRel);
         p.vy = 0;
         p.onGround = true;
         p.jumps = 0;
-      }
+        if (Math.random() < 0.6) {
+          state.particles.push({
+            x: p.x + 6 + Math.random() * 20,
+            y: p.y + p.h - 4,
+            vx: -120 - Math.random() * 80,
+            vy: -20 - Math.random() * 40,
+            life: 0.4,
+            size: 2 + Math.random() * 2,
+          });
+        }
+      } else {
+        const wasAir = !p.onGround;
+        p.vy += GRAVITY * dt;
+        p.y += p.vy * dt;
+        const floor = state.groundY - p.h;
+        if (p.y >= floor) {
+          if (wasAir) puff(p.x + p.w / 2, state.groundY, 5);
+          p.y = floor;
+          p.vy = 0;
+          p.onGround = true;
+          p.jumps = 0;
+        }
 
-      if (p.onGround) {
-        state.stepTimer -= dt;
-        if (state.stepTimer <= 0) {
-          puff(p.x + 8, state.groundY, 1);
-          state.stepTimer = 0.12;
+        if (p.onGround) {
+          state.stepTimer -= dt;
+          if (state.stepTimer <= 0) {
+            puff(p.x + 8, state.groundY, 1);
+            state.stepTimer = 0.12;
+          }
         }
       }
 
-      state.spawnIn -= dt;
-      if (state.spawnIn <= 0) {
-        spawnObstacle();
-        const minGap = 0.95 - 0.3 * progress;
-        const maxGap = 1.6 - 0.45 * progress;
-        state.spawnIn = minGap + Math.random() * (maxGap - minGap);
+      if (!state.onSlide) {
+        state.spawnIn -= dt;
+        if (state.spawnIn <= 0) {
+          spawnObstacle();
+          const [minGap, maxGap] = lv.spawnGap;
+          state.spawnIn = minGap + Math.random() * (maxGap - minGap);
+        }
       }
 
       state.starSpawnIn -= dt;
       if (state.starSpawnIn <= 0) {
         spawnStar();
-        state.starSpawnIn = 1.6 + Math.random() * 1.4;
+        state.starSpawnIn = 1.5 + Math.random() * 1.4;
       }
 
       for (const o of state.obstacles) o.x -= state.speed * dt;
@@ -500,21 +705,24 @@
           state.stars += 1;
           state.score += STAR_VALUE;
           state.flashText = `+${STAR_VALUE}!`;
-          state.flashTimer = 0.6;
+          state.flashTimer = 0.55;
           beep(880, 0.08, 'triangle');
           puff(s.x + s.w / 2, sy + s.h / 2, 4);
         }
       }
 
-      for (const o of state.obstacles) {
-        if (hx < o.x + o.w && hx + hw > o.x && hy < o.y + o.h && hy + hh > o.y) {
-          puff(p.x + p.w / 2, p.y + p.h / 2, 14);
-          return endGame();
+      if (!state.onSlide) {
+        for (const o of state.obstacles) {
+          if (hx < o.x + o.w && hx + hw > o.x && hy < o.y + o.h && hy + hh > o.y) {
+            puff(p.x + p.w / 2, p.y + p.h / 2, 14);
+            return endGame();
+          }
         }
       }
 
       if (state.flashTimer > 0) state.flashTimer -= dt;
-      if (state.distance >= LEVEL_DISTANCE) nextLevelOrWin();
+      if (state.titleTimer > 0) state.titleTimer -= dt;
+      if (state.distance >= lv.distance) levelComplete();
     }
 
     function drawBackground() {
@@ -544,9 +752,9 @@
       ctx.lineTo(state.width * 0.84, state.height);
       ctx.stroke();
 
-      if (state.levelIndex === 2) {
+      if (lv.isFinal) {
         ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        for (let i = 0; i < 18; i++) {
+        for (let i = 0; i < 22; i++) {
           const sx = (i * 137) % state.width;
           const sy = (i * 91) % (state.groundY * 0.7);
           ctx.fillRect(sx, sy, 2, 2);
@@ -554,8 +762,39 @@
       }
     }
 
+    function drawSlide() {
+      if (!state.onSlide) return;
+      const p = state.player;
+      const slideTop = p.y + p.h - 6;
+      const grad = ctx.createLinearGradient(0, slideTop, 0, state.height);
+      grad.addColorStop(0, '#f3f6fa');
+      grad.addColorStop(0.5, '#c4ced9');
+      grad.addColorStop(1, '#8a96a4');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(0, slideTop);
+      ctx.lineTo(state.width, slideTop);
+      ctx.lineTo(state.width, state.height);
+      ctx.lineTo(0, state.height);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, slideTop + 4);
+      ctx.lineTo(state.width, slideTop + 4);
+      ctx.stroke();
+    }
+
     function drawPlayer() {
       const p = state.player;
+      ctx.save();
+      if (state.onSlide) {
+        ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
+        ctx.rotate(0.18);
+        ctx.translate(-(p.x + p.w / 2), -(p.y + p.h / 2));
+      }
       ctx.fillStyle = '#ffc98f';
       ctx.beginPath();
       ctx.arc(p.x + 28, p.y + 12, 10, 0, Math.PI * 2);
@@ -574,6 +813,7 @@
 
       ctx.font = '18px sans-serif';
       ctx.fillText('🎒', p.x + 2, p.y + 42);
+      ctx.restore();
     }
 
     function drawObstacle(o) {
@@ -597,28 +837,47 @@
 
     function drawFinish() {
       const lv = level();
-      const progress = Math.min(state.distance / LEVEL_DISTANCE, 1);
-      const x = state.width - 80 + (1 - progress) * 260;
+      const totalProg = Math.min(state.distance / lv.distance, 1);
+      const x = state.width - 80 + (1 - totalProg) * 260;
       ctx.fillStyle = '#d9d9d9';
       ctx.fillRect(x, state.groundY - 110, 10, 110);
       ctx.fillStyle = '#a5a5a5';
       ctx.fillRect(x + 10, state.groundY - 80, 42, 12);
       ctx.fillRect(x + 10, state.groundY - 48, 42, 12);
       ctx.font = 'bold 14px Trebuchet MS';
-      ctx.fillStyle = state.levelIndex === 2 ? '#ffeebb' : '#334';
+      ctx.fillStyle = lv.textOnDark ? '#ffeebb' : '#334';
       ctx.fillText(lv.finish, x - 22, state.groundY - 118);
     }
 
+    function drawTitleBanner() {
+      if (state.titleTimer <= 0) return;
+      const lv = level();
+      const t = state.titleTimer;
+      const fade = t > 1.8 ? (2.4 - t) / 0.6 : (t < 0.6 ? t / 0.6 : 1);
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, fade));
+      ctx.font = 'bold 42px Trebuchet MS';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = lv.textOnDark ? '#fff7d6' : '#16314f';
+      ctx.fillText(lv.title, state.width / 2, state.height / 2 - 18);
+      ctx.font = 'bold 24px Trebuchet MS';
+      ctx.fillStyle = lv.textOnDark ? '#ffeebb' : '#2f4660';
+      ctx.fillText(lv.name, state.width / 2, state.height / 2 + 18);
+      ctx.restore();
+      ctx.textAlign = 'start';
+    }
+
     function drawHud() {
+      const lv = level();
       scorePill.textContent = 'Score: ' + Math.floor(state.score);
       starPill.textContent = '⭐ ' + state.stars;
-      levelPill.textContent = `Lv ${state.levelIndex + 1} — ${level().name}`;
-      const pct = Math.min(100, (state.distance / LEVEL_DISTANCE) * 100);
+      levelPill.textContent = `${lv.title} — ${lv.name}`;
+      const pct = Math.min(100, (state.distance / lv.distance) * 100);
       progressFill.style.width = pct + '%';
 
       if (state.flashTimer > 0) {
         ctx.font = 'bold 26px Trebuchet MS';
-        ctx.fillStyle = state.levelIndex === 2 ? '#ffeebb' : '#16314f';
+        ctx.fillStyle = lv.textOnDark ? '#ffeebb' : '#16314f';
         ctx.fillText(state.flashText, state.width * 0.5 - 70, 84);
       }
     }
@@ -630,11 +889,13 @@
 
       step(dt);
       drawBackground();
+      drawSlide();
       drawFinish();
       for (const s of state.pickups) drawPickup(s);
       for (const o of state.obstacles) drawObstacle(o);
       drawPlayer();
       drawParticles();
+      drawTitleBanner();
       drawHud();
 
       requestAnimationFrame(frame);

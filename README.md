@@ -1,6 +1,6 @@
 # Ezra's KPS Jumper
 
-A tiny browser game made for Ezra. Run across three courts, jump over the school-yard mess, grab stars, and finish at the cubby house.
+A tiny browser game made for Ezra. Run from Prep all the way to Grade 6, jump school-yard obstacles, grab stars, and become the KPS Champion.
 
 Play it: https://maisoncache.github.io/el-nido/
 
@@ -9,20 +9,30 @@ Play it: https://maisoncache.github.io/el-nido/
 - **Tap**, **click**, or press **Space / ↑** to jump.
 - Press jump again in the air for a **double jump**.
 - Grab ⭐ stars for **+50 bonus points** each.
-- Three levels: Top Court → Lower Court → Night Oval. Each finish line is different.
-- Best score is saved on this device — try to beat it!
+- Beat each level to unlock the next. Use **Choose a Level** on the title screen to replay any unlocked level.
+- Best score is saved per level on this device.
+
+## Levels
+
+1. **Prep — Top Court**: bags, witches hats, drink bottles. Easy warm-up.
+2. **Grade 1 — The Oval**: soccer balls, puddles, sticks, lunchboxes on grass.
+3. **Grade 2 — The Long Silver Slide**: school-yard obstacles, then auto-ride the silver slide near the end.
+4. **Grade 3 — Bottom Playground**: hoops, toy blocks, buckets, benches.
+5. **Grade 4 — Bottom Courts**: cones, basketballs, drink bottles, lunchboxes.
+6. **Grade 5 — Whole School Run**: a longer run that mixes everything together.
+7. **Grade 6 — KPS Champion Level**: the hardest course. Win it to be crowned KPS Champion.
 
 ## Running locally
 
 It's a single HTML file with no build step or dependencies.
 
 ```sh
-# from the repo root, any static server works, e.g.
+# from the repo root
 python3 -m http.server 8000
 # then open http://localhost:8000
 ```
 
-Or just open `index.html` directly in a browser.
+Or open `index.html` directly in a browser.
 
 ## Deployment
 
