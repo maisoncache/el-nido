@@ -480,51 +480,75 @@
 
     // ---------- Audio (Web Audio API) ----------
     let audioCtx = null;
+    let masterGain = null;
     function ensureAudio() {
       if (!audioCtx) {
         try {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          if (Ctx) {
+            audioCtx = new Ctx();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 1.0;
+            masterGain.connect(audioCtx.destination);
+            // iOS unlock: play a silent tick during the user gesture so the
+            // audio context goes into 'running' state and stays there.
+            try {
+              const unlockOsc = audioCtx.createOscillator();
+              const unlockGain = audioCtx.createGain();
+              unlockGain.gain.value = 0.0001;
+              unlockOsc.connect(unlockGain);
+              unlockGain.connect(masterGain);
+              unlockOsc.start();
+              unlockOsc.stop(audioCtx.currentTime + 0.02);
+            } catch (_) {}
+          }
         } catch (_) {}
       }
       if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
+        try { audioCtx.resume(); } catch (_) {}
       }
     }
 
     // Single tone helper. Volume is gentle by default.
-    function tone(freq, duration, type = 'sine', vol = 0.06, when = 0) {
-      if (!progress.soundOn || !audioCtx) return;
-      const start = audioCtx.currentTime + when;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = type;
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.linearRampToValueAtTime(vol, start + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(start);
-      osc.stop(start + duration + 0.02);
+    function tone(freq, duration, type = 'sine', vol = 0.08, when = 0) {
+      if (!progress.soundOn) return;
+      ensureAudio();
+      if (!audioCtx || !masterGain) return;
+      try {
+        const startTime = audioCtx.currentTime + when;
+        const stopTime = startTime + duration;
+        const fadeStart = Math.max(startTime, stopTime - 0.03);
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.value = vol;
+        gain.gain.setValueAtTime(vol, fadeStart);
+        gain.gain.linearRampToValueAtTime(0.0001, stopTime);
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start(startTime);
+        osc.stop(stopTime + 0.02);
+      } catch (_) {}
     }
 
     // Cheerful, kid-friendly named effects.
     const sfx = {
-      jump:       () => tone(420, 0.07, 'triangle'),
-      doubleJump: () => tone(620, 0.08, 'triangle'),
-      land:       () => tone(220, 0.05, 'sine', 0.04),
-      star:       () => { tone(880, 0.06, 'triangle'); tone(1180, 0.08, 'triangle', 0.06, 0.06); },
-      hit:        () => { tone(210, 0.18, 'sawtooth', 0.07); tone(140, 0.22, 'sawtooth', 0.06, 0.04); },
-      complete:   () => { tone(520, 0.10, 'triangle'); tone(700, 0.12, 'triangle', 0.06, 0.12); tone(900, 0.14, 'triangle', 0.06, 0.26); },
+      jump:       () => tone(420, 0.08, 'triangle', 0.10),
+      doubleJump: () => tone(620, 0.09, 'triangle', 0.10),
+      land:       () => tone(220, 0.06, 'sine',     0.06),
+      star:       () => { tone(880, 0.07, 'triangle', 0.10); tone(1180, 0.09, 'triangle', 0.10, 0.06); },
+      hit:        () => { tone(210, 0.20, 'sawtooth', 0.10); tone(140, 0.24, 'sawtooth', 0.09, 0.05); },
+      complete:   () => { tone(520, 0.12, 'triangle', 0.10); tone(700, 0.13, 'triangle', 0.10, 0.13); tone(900, 0.16, 'triangle', 0.10, 0.27); },
       champion:   () => {
-        tone(640, 0.12, 'triangle');
-        tone(820, 0.14, 'triangle', 0.06, 0.13);
-        tone(980, 0.18, 'triangle', 0.06, 0.28);
-        tone(1180, 0.22, 'triangle', 0.07, 0.46);
-        tone(1480, 0.30, 'triangle', 0.07, 0.66);
+        tone(640,  0.14, 'triangle', 0.10, 0.00);
+        tone(820,  0.16, 'triangle', 0.10, 0.14);
+        tone(980,  0.20, 'triangle', 0.11, 0.30);
+        tone(1180, 0.24, 'triangle', 0.11, 0.50);
+        tone(1480, 0.32, 'triangle', 0.11, 0.74);
       },
-      whee:       () => { tone(620, 0.18, 'sine'); tone(740, 0.18, 'sine', 0.05, 0.14); tone(860, 0.22, 'sine', 0.05, 0.30); },
-      click:      () => tone(720, 0.04, 'square', 0.05),
+      whee:       () => { tone(620, 0.20, 'sine', 0.08); tone(740, 0.20, 'sine', 0.08, 0.15); tone(860, 0.24, 'sine', 0.08, 0.32); },
+      click:      () => tone(720, 0.05, 'square', 0.07),
     };
 
     function playSfx(name) {
