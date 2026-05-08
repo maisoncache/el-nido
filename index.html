@@ -7,7 +7,7 @@
   <style>
     :root {
       --ink: #1c2a3a;
-      --card: rgba(255, 255, 255, 0.92);
+      --card: rgba(255, 255, 255, 0.94);
       --danger: #ff5f6d;
       --ok: #41c17d;
       --button: #2f6df3;
@@ -91,7 +91,8 @@
     }
 
     .card {
-      width: min(94%, 640px);
+      position: relative;
+      width: min(94%, 680px);
       max-height: 92%;
       overflow-y: auto;
       background: var(--card);
@@ -110,13 +111,15 @@
     button {
       margin-top: 14px;
       border: none;
-      border-radius: 12px;
-      padding: 12px 18px;
-      font-size: clamp(15px, 2vw, 20px);
+      border-radius: 14px;
+      padding: 14px 22px;
+      font-size: clamp(16px, 2vw, 20px);
       font-weight: bold;
       color: white;
       background: var(--button);
       cursor: pointer;
+      min-height: 48px;
+      min-width: 120px;
     }
 
     button.secondary {
@@ -124,11 +127,24 @@
       color: var(--ink);
     }
 
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
     .small { opacity: 0.85; font-size: clamp(12px, 1.7vw, 16px); }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
 
     .lvl-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 10px;
       margin: 14px 0 6px;
     }
@@ -143,6 +159,7 @@
       text-align: left;
       cursor: pointer;
       transition: transform 0.06s ease;
+      min-height: 64px;
     }
 
     .lvl-btn:hover { transform: translateY(-2px); }
@@ -157,6 +174,43 @@
       cursor: not-allowed;
     }
     .lvl-btn.locked:hover { transform: none; }
+    .lvl-btn.teacher { border-color: #ff7eb0; background: #fff0f8; }
+
+    .char-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin: 14px 0 6px;
+    }
+
+    .char-card {
+      background: #fffaf2;
+      border: 3px solid #ffd791;
+      border-radius: 16px;
+      padding: 12px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .char-card.selected {
+      border-color: var(--ok);
+      box-shadow: 0 0 0 3px rgba(65, 193, 125, 0.25);
+    }
+
+    .char-card canvas {
+      width: 96px;
+      height: 110px;
+      background: #ecf6ff;
+      border-radius: 12px;
+    }
+
+    .char-card .char-name { font-weight: bold; font-size: clamp(14px, 1.9vw, 18px); }
+    .char-card .char-desc { font-size: clamp(11px, 1.5vw, 13px); opacity: 0.85; min-height: 38px; }
+
+    .char-card button { margin-top: 4px; padding: 10px 16px; font-size: 15px; min-height: 40px; }
 
     .new-best {
       display: inline-block;
@@ -175,6 +229,37 @@
       100% { transform: scale(1); }
     }
 
+    .result-char {
+      width: 110px;
+      height: 130px;
+      margin: 4px auto;
+      display: block;
+      background: #ecf6ff;
+      border-radius: 14px;
+    }
+
+    .confetti-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      border-radius: 20px;
+    }
+
+    .confetto {
+      position: absolute;
+      top: -24px;
+      width: 10px;
+      height: 14px;
+      opacity: 0.95;
+      animation: confetti-fall 3s linear infinite;
+    }
+
+    @keyframes confetti-fall {
+      0%   { transform: translate3d(0, -10vh, 0) rotate(0deg); opacity: 1; }
+      100% { transform: translate3d(0, 110vh, 0) rotate(720deg); opacity: 0.4; }
+    }
+
     .hidden { display: none; }
   </style>
 </head>
@@ -186,6 +271,7 @@
       <div class="pill" id="scorePill">Score: 0</div>
       <div class="pill gold" id="starPill">⭐ 0</div>
       <div class="pill" id="levelPill">Prep</div>
+      <div class="pill" id="charPill">Player</div>
       <div class="progress"><div class="progressFill" id="progressFill"></div></div>
     </div>
 
@@ -202,9 +288,10 @@
     const scorePill = document.getElementById('scorePill');
     const starPill = document.getElementById('starPill');
     const levelPill = document.getElementById('levelPill');
+    const charPill = document.getElementById('charPill');
     const progressFill = document.getElementById('progressFill');
 
-    const PROGRESS_KEY = 'ezra-kps-progress-v2';
+    const PROGRESS_KEY = 'ezra-kps-progress-v3';
     const STAR_VALUE = 50;
     const BASE_SPEED = 280;
     const GRAVITY = 1700;
@@ -229,6 +316,61 @@
       rock:   { emoji: '🪨', name: 'Rock',         w: 44, h: 30 },
       ghost:  { emoji: '👻', name: 'Ghost',        w: 38, h: 44 },
     };
+
+    const CHARACTERS = [
+      {
+        id: 'red',
+        name: 'Red Hat Runner',
+        desc: 'A cheerful kid with a red hat who loves racing across the top court.',
+        skin: '#ffc98f',
+        shirt: '#ffe55c',
+        pants: '#2e2e2e',
+        hat: { type: 'cap', color: '#e23b3b' },
+        backpack: '🎒',
+      },
+      {
+        id: 'blue',
+        name: 'Blue Backpack Kid',
+        desc: 'A school kid with a big blue backpack, ready for every level.',
+        skin: '#ffc98f',
+        shirt: '#3a82ff',
+        pants: '#1a2e54',
+        hat: null,
+        backpack: '🎒',
+        bigBackpack: true,
+      },
+      {
+        id: 'star',
+        name: 'Star Shoes Kid',
+        desc: 'A jumper with bright star shoes who loves big jumps.',
+        skin: '#ffc98f',
+        shirt: '#7c52ff',
+        pants: '#241a4a',
+        hat: null,
+        backpack: '🎒',
+        shoeAccent: '⭐',
+      },
+      {
+        id: 'sport',
+        name: 'Sporty Kid',
+        desc: 'A sporty jumper ready for the oval, courts, and playground.',
+        skin: '#ffc98f',
+        shirt: '#22b673',
+        pants: '#1a3a26',
+        hat: { type: 'band', color: '#ffffff' },
+        backpack: null,
+      },
+      {
+        id: 'rainbow',
+        name: 'Rainbow Hoodie Kid',
+        desc: 'A colourful kid in a rainbow hoodie who brings fun energy to the game.',
+        skin: '#ffc98f',
+        shirt: 'rainbow',
+        pants: '#3a2c4a',
+        hat: { type: 'hood' },
+        backpack: '🎒',
+      },
+    ];
 
     const LEVELS = [
       {
@@ -272,7 +414,7 @@
         line: 'rgba(255,255,255,0.65)',
         textOnDark: false,
         obstacles: ['bag', 'ball', 'cone', 'puddle'],
-        slideAt: 0.65, // last 35% is the slide
+        slideAt: 0.65,
       },
       {
         title: 'Grade 3',
@@ -329,7 +471,22 @@
         line: 'rgba(255,255,255,0.45)',
         textOnDark: true,
         obstacles: ['bag', 'ball', 'cone', 'lunch', 'bball', 'rock', 'ghost', 'skate', 'books', 'bench'],
+      },
+      {
+        title: "Teacher's Challenge",
+        name: 'School Obstacle Course',
+        finish: 'Coach Teacher',
+        speedMul: 1.55,
+        distance: 3600,
+        spawnGap: [0.6, 1.0],
+        sky: ['#ffd87a', '#fff2cf'],
+        hill: '#9bd47a',
+        ground: '#c8a76b',
+        line: 'rgba(255,255,255,0.6)',
+        textOnDark: false,
+        obstacles: ['cone', 'ball', 'hoop', 'bag', 'puddle', 'bottle', 'lunch'],
         isFinal: true,
+        isTeacher: true,
       },
     ];
 
@@ -340,15 +497,20 @@
           return {
             unlocked: Math.max(0, Math.min(LEVELS.length - 1, raw.unlocked || 0)),
             best: raw.best && typeof raw.best === 'object' ? raw.best : {},
+            character: typeof raw.character === 'string' ? raw.character : null,
           };
         }
       } catch (_) {}
-      return { unlocked: 0, best: {} };
+      return { unlocked: 0, best: {}, character: null };
     }
     function saveProgress() {
       try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch (_) {}
     }
     const progress = loadProgress();
+
+    function getCharacter() {
+      return CHARACTERS.find(c => c.id === progress.character) || CHARACTERS[0];
+    }
 
     const state = {
       mode: 'title',
@@ -369,10 +531,10 @@
       flashText: '',
       flashTimer: 0,
       titleTimer: 0,
-      titleText: '',
       stepTimer: 0,
       onSlide: false,
       newBestThisRun: false,
+      crowdT: 0,
       player: { x: 130, y: 0, vy: 0, w: 52, h: 72, onGround: true, jumps: 0 },
     };
 
@@ -391,28 +553,120 @@
       }
     }
 
-    function setOverlay(html) {
+    function setOverlay(html, opts = {}) {
       overlay.classList.remove('hidden');
       overlayCard.innerHTML = html;
+      if (opts.confetti) addConfetti(overlayCard);
+      drawCharacterPreviews();
     }
     function hideOverlay() { overlay.classList.add('hidden'); }
+
+    function addConfetti(card) {
+      const layer = document.createElement('div');
+      layer.className = 'confetti-layer';
+      const colors = ['#ff5e5e', '#ffb84d', '#ffe55c', '#5cd6a3', '#5c9bff', '#c46cff', '#ff7eb0'];
+      for (let i = 0; i < 60; i++) {
+        const c = document.createElement('div');
+        c.className = 'confetto';
+        c.style.left = (Math.random() * 100) + '%';
+        c.style.background = colors[i % colors.length];
+        c.style.animationDelay = (Math.random() * 2) + 's';
+        c.style.animationDuration = (2.4 + Math.random() * 1.6) + 's';
+        c.style.transform = `rotate(${Math.random() * 360}deg)`;
+        layer.appendChild(c);
+      }
+      card.appendChild(layer);
+    }
 
     function showTitle() {
       state.mode = 'title';
       const cleared = progress.unlocked >= LEVELS.length - 1
-        ? `<p class="small">🏆 Champion! Replay any level you like.</p>`
+        ? `<p class="small">🏆 You finished Teacher's Challenge! Replay any level you like.</p>`
         : `<p class="small">Beat each level to unlock the next.</p>`;
+      const continueLabel = progress.character
+        ? `Continue from ${LEVELS[progress.unlocked].title}`
+        : 'Play';
       setOverlay(`
         <h1>🏃 Ezra's KPS Jumper</h1>
-        <p><b>Run from Prep all the way to Grade 6!</b></p>
+        <p><b>Run from Prep all the way to Teacher's Challenge!</b></p>
         <p>Tap, click, or press <b>Space</b> to jump.</p>
         <p class="small">Press jump again in the air for a <b>double jump</b>. Grab ⭐ stars for bonus points.</p>
         ${cleared}
-        <button id="playBtn">Continue from ${LEVELS[progress.unlocked].title}</button>
-        <button id="selectBtn" class="secondary">Choose a Level</button>
+        <div class="row">
+          <button id="playBtn">${continueLabel}</button>
+          <button id="charBtn" class="secondary">Choose Your Jumper</button>
+          <button id="selectBtn" class="secondary">Choose a Level</button>
+        </div>
       `);
-      document.getElementById('playBtn').addEventListener('click', () => startLevel(progress.unlocked));
-      document.getElementById('selectBtn').addEventListener('click', showLevelSelect);
+      document.getElementById('playBtn').addEventListener('click', () => {
+        if (!progress.character) return showCharacterSelect();
+        startLevel(progress.unlocked);
+      });
+      document.getElementById('charBtn').addEventListener('click', showCharacterSelect);
+      document.getElementById('selectBtn').addEventListener('click', () => {
+        if (!progress.character) return showCharacterSelect();
+        showLevelSelect();
+      });
+    }
+
+    function showCharacterSelect() {
+      state.mode = 'menu';
+      const cards = CHARACTERS.map(c => `
+        <div class="char-card${progress.character === c.id ? ' selected' : ''}">
+          <canvas class="char-preview" width="96" height="110" data-char="${c.id}"></canvas>
+          <div class="char-name">${c.name}</div>
+          <div class="char-desc">${c.desc}</div>
+          <button data-pick="${c.id}">${progress.character === c.id ? 'Selected' : 'Choose'}</button>
+        </div>
+      `).join('');
+      setOverlay(`
+        <h2>Choose Your Jumper</h2>
+        <p class="small">Pick a character to play with. You can change any time.</p>
+        <div class="char-grid">${cards}</div>
+        <div class="row">
+          <button id="charDoneBtn">${progress.character ? 'Continue' : 'Choose to continue'}</button>
+          <button id="charBackBtn" class="secondary">Back</button>
+        </div>
+      `);
+      document.querySelectorAll('[data-pick]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          progress.character = btn.dataset.pick;
+          saveProgress();
+          beep(720, 0.06, 'triangle');
+          showCharacterSelect();
+        });
+      });
+      const doneBtn = document.getElementById('charDoneBtn');
+      doneBtn.disabled = !progress.character;
+      doneBtn.addEventListener('click', () => {
+        if (progress.character) showLevelSelect();
+      });
+      document.getElementById('charBackBtn').addEventListener('click', showTitle);
+    }
+
+    function drawCharacterPreviews() {
+      document.querySelectorAll('canvas[data-char]').forEach(c => {
+        const ch = CHARACTERS.find(x => x.id === c.dataset.char);
+        if (!ch) return;
+        const cx = c.getContext('2d');
+        cx.clearRect(0, 0, c.width, c.height);
+        cx.fillStyle = '#ecf6ff';
+        cx.fillRect(0, 0, c.width, c.height);
+        cx.fillStyle = '#cfe6c8';
+        cx.fillRect(0, c.height - 16, c.width, 16);
+        drawCharacter(cx, { x: 22, y: 16, w: 52, h: 72 }, ch);
+      });
+      document.querySelectorAll('canvas[data-result]').forEach(c => {
+        const ch = CHARACTERS.find(x => x.id === c.dataset.result);
+        if (!ch) return;
+        const cx = c.getContext('2d');
+        cx.clearRect(0, 0, c.width, c.height);
+        cx.fillStyle = '#ecf6ff';
+        cx.fillRect(0, 0, c.width, c.height);
+        cx.fillStyle = '#cfe6c8';
+        cx.fillRect(0, c.height - 18, c.width, 18);
+        drawCharacter(cx, { x: 28, y: 24, w: 52, h: 72 }, ch);
+      });
     }
 
     function showLevelSelect() {
@@ -421,28 +675,36 @@
         const unlocked = i <= progress.unlocked;
         const best = progress.best[i];
         const lockMark = unlocked ? '' : ' 🔒';
+        const isTeacher = lv.isTeacher ? ' teacher' : '';
         const bestLine = best
           ? `<span class="lvl-best">Best: ${best.score} · ⭐ ${best.stars}</span>`
           : (unlocked ? '<span class="lvl-best">Not played yet</span>' : '<span class="lvl-best">Locked</span>');
-        return `<button class="lvl-btn${unlocked ? '' : ' locked'}" data-idx="${i}" ${unlocked ? '' : 'disabled'}>
+        return `<button class="lvl-btn${unlocked ? '' : ' locked'}${isTeacher}" data-idx="${i}" ${unlocked ? '' : 'disabled'}>
           <b>${lv.title}${lockMark}</b>
           <span class="lvl-sub">${lv.name}</span>
           ${bestLine}
         </button>`;
       }).join('');
+      const charName = getCharacter().name;
       setOverlay(`
         <h2>Choose a Level</h2>
+        <p class="small">Playing as <b>${charName}</b></p>
         <div class="lvl-grid">${buttons}</div>
-        <button id="backBtn" class="secondary">Back</button>
+        <div class="row">
+          <button id="charBtn" class="secondary">Change Character</button>
+          <button id="backBtn" class="secondary">Back</button>
+        </div>
       `);
       document.querySelectorAll('.lvl-btn').forEach(btn => {
         if (btn.classList.contains('locked')) return;
         btn.addEventListener('click', () => startLevel(Number(btn.dataset.idx)));
       });
+      document.getElementById('charBtn').addEventListener('click', showCharacterSelect);
       document.getElementById('backBtn').addEventListener('click', showTitle);
     }
 
     function startLevel(idx) {
+      if (!progress.character) return showCharacterSelect();
       state.mode = 'playing';
       state.levelIndex = idx;
       state.distance = 0;
@@ -457,7 +719,6 @@
       state.starSpawnIn = 1.4;
       state.flashText = '';
       state.flashTimer = 0;
-      state.titleText = `${level().title} — ${level().name}`;
       state.titleTimer = 2.4;
       state.onSlide = false;
       state.player.vy = 0;
@@ -486,17 +747,26 @@
       saveProgress();
     }
 
+    function characterPanel() {
+      const ch = getCharacter();
+      return `<canvas class="result-char" width="110" height="130" data-result="${ch.id}"></canvas>
+              <p class="small">Playing as <b>${ch.name}</b></p>`;
+    }
+
     function endGame() {
       state.mode = 'gameover';
       recordResult(false);
       const badge = state.newBestThisRun ? `<div class="new-best">⭐ NEW BEST! ⭐</div>` : bestLine();
       setOverlay(`
         <h2 style="color:var(--danger)">Game Over</h2>
-        <p>Ezra hit something on <b>${level().title}</b>!</p>
+        ${characterPanel()}
+        <p>Hit something on <b>${level().title}</b>!</p>
         <p><b>Score:</b> ${Math.floor(state.score)} &nbsp;·&nbsp; ⭐ ${state.stars}</p>
         ${badge}
-        <button id="retryBtn">Try Again</button>
-        <button id="menuBtn" class="secondary">Level Select</button>
+        <div class="row">
+          <button id="retryBtn">Try Again</button>
+          <button id="menuBtn" class="secondary">Level Select</button>
+        </div>
       `);
       document.getElementById('retryBtn').addEventListener('click', () => startLevel(state.levelIndex));
       document.getElementById('menuBtn').addEventListener('click', showLevelSelect);
@@ -505,37 +775,48 @@
 
     function levelComplete() {
       recordResult(true);
-      const isFinal = level().isFinal;
+      const lv = level();
       const badge = state.newBestThisRun ? `<div class="new-best">⭐ NEW BEST! ⭐</div>` : '';
 
-      if (isFinal) {
+      if (lv.isFinal) {
         state.mode = 'win';
         setOverlay(`
-          <h1 style="color:var(--ok)">🏆 KPS Champion! 🏆</h1>
-          <p>Ezra beat every level!</p>
+          <h1 style="color:var(--ok)">🏆 You completed Teacher's Challenge! 🏆</h1>
+          ${characterPanel()}
+          <h2 style="color:var(--ok)">You are the KPS Champion!</h2>
+          <p>The teacher and students are cheering for you!</p>
           <p><b>Final Score:</b> ${Math.floor(state.score)} &nbsp;·&nbsp; ⭐ ${state.stars}</p>
           ${badge}
-          <button id="againBtn">Play Again</button>
-          <button id="menuBtn" class="secondary">Level Select</button>
-        `);
+          <div class="row">
+            <button id="againBtn">Play Again</button>
+            <button id="menuBtn" class="secondary">Level Select</button>
+          </div>
+        `, { confetti: true });
         document.getElementById('againBtn').addEventListener('click', () => startLevel(0));
         document.getElementById('menuBtn').addEventListener('click', showLevelSelect);
         beep(640, 0.12, 'triangle');
         setTimeout(() => beep(820, 0.14, 'triangle'), 130);
         setTimeout(() => beep(980, 0.18, 'triangle'), 280);
+        setTimeout(() => beep(1180, 0.22, 'triangle'), 460);
         return;
       }
 
       state.mode = 'between';
       const next = LEVELS[state.levelIndex + 1];
+      const unlockedHint = (state.levelIndex + 1 === LEVELS.length - 1)
+        ? `<p class="small">🎉 Teacher's Challenge unlocked!</p>`
+        : `<p class="small">Up next: <b>${next.title} — ${next.name}</b></p>`;
       setOverlay(`
-        <h2 style="color:var(--ok)">${level().finish}! 🎉</h2>
-        <p><b>${level().title}</b> complete!</p>
+        <h2 style="color:var(--ok)">${lv.finish}! 🎉</h2>
+        ${characterPanel()}
+        <p><b>${lv.title}</b> complete!</p>
         <p><b>Score:</b> ${Math.floor(state.score)} &nbsp;·&nbsp; ⭐ ${state.stars}</p>
         ${badge}
-        <p class="small">Up next: <b>${next.title} — ${next.name}</b></p>
-        <button id="nextBtn">Continue</button>
-        <button id="menuBtn" class="secondary">Level Select</button>
+        ${unlockedHint}
+        <div class="row">
+          <button id="nextBtn">Next Level</button>
+          <button id="menuBtn" class="secondary">Level Select</button>
+        </div>
       `);
       document.getElementById('nextBtn').addEventListener('click', () => startLevel(state.levelIndex + 1));
       document.getElementById('menuBtn').addEventListener('click', showLevelSelect);
@@ -544,9 +825,12 @@
     }
 
     function jump() {
-      if (state.mode === 'title') return showLevelSelect();
+      if (state.mode === 'title') {
+        if (!progress.character) return showCharacterSelect();
+        return showLevelSelect();
+      }
       if (state.mode !== 'playing') return;
-      if (state.onSlide) return; // no jumping on the slide — auto-ride
+      if (state.onSlide) return;
       const p = state.player;
       if (p.jumps < MAX_JUMPS) {
         p.vy = -JUMP_SPEED;
@@ -594,8 +878,6 @@
     }
 
     function slideOffset(rel) {
-      // rel: 0..1 across the slide section. Returns extra y offset (positive = lower on screen).
-      // Quick ramp down then a flat finish.
       if (rel < 0.85) return 80 * (rel / 0.85);
       return 80;
     }
@@ -604,6 +886,7 @@
       if (state.mode !== 'playing') return;
 
       const lv = level();
+      state.crowdT += dt;
       const totalProg = Math.min(state.distance / lv.distance, 1);
 
       if (lv.slideAt && totalProg >= lv.slideAt && !state.onSlide) {
@@ -653,7 +936,6 @@
           p.onGround = true;
           p.jumps = 0;
         }
-
         if (p.onGround) {
           state.stepTimer -= dt;
           if (state.stepTimer <= 0) {
@@ -752,7 +1034,7 @@
       ctx.lineTo(state.width * 0.84, state.height);
       ctx.stroke();
 
-      if (lv.isFinal) {
+      if (lv.title === 'Grade 6') {
         ctx.fillStyle = 'rgba(255,255,255,0.85)';
         for (let i = 0; i < 22; i++) {
           const sx = (i * 137) % state.width;
@@ -760,6 +1042,24 @@
           ctx.fillRect(sx, sy, 2, 2);
         }
       }
+    }
+
+    function drawCheeringCrowd() {
+      if (!level().isTeacher) return;
+      const baseY = state.groundY - 6;
+      const emojis = ['🧒', '👧', '🧑', '👦', '🧒'];
+      ctx.font = '22px sans-serif';
+      const count = 7;
+      for (let i = 0; i < count; i++) {
+        const px = ((i * (state.width / count)) + 40) % state.width;
+        const bob = Math.sin(state.crowdT * 4 + i * 1.3) * 4;
+        ctx.fillText(emojis[i % emojis.length], px, baseY + bob);
+      }
+      // Cheer text floating up occasionally
+      ctx.font = 'bold 14px Trebuchet MS';
+      ctx.fillStyle = 'rgba(60, 40, 20, 0.55)';
+      ctx.fillText('Go go go!', state.width * 0.18, state.groundY - 40);
+      ctx.fillText('You can do it!', state.width * 0.55, state.groundY - 50);
     }
 
     function drawSlide() {
@@ -787,6 +1087,88 @@
       ctx.stroke();
     }
 
+    function drawCharacter(targetCtx, p, char) {
+      targetCtx.save();
+      // Backpack drawn behind body
+      if (char.backpack) {
+        targetCtx.font = char.bigBackpack ? '26px sans-serif' : '18px sans-serif';
+        targetCtx.fillText(char.backpack, p.x - (char.bigBackpack ? 4 : 2), p.y + (char.bigBackpack ? 50 : 42));
+      }
+
+      // Shirt / hoodie
+      if (char.shirt === 'rainbow') {
+        const grad = targetCtx.createLinearGradient(p.x + 16, p.y + 24, p.x + 40, p.y + 48);
+        grad.addColorStop(0,    '#ff5e5e');
+        grad.addColorStop(0.25, '#ffb84d');
+        grad.addColorStop(0.5,  '#ffe55c');
+        grad.addColorStop(0.75, '#5cd6a3');
+        grad.addColorStop(1,    '#5c9bff');
+        targetCtx.fillStyle = grad;
+      } else {
+        targetCtx.fillStyle = char.shirt;
+      }
+      targetCtx.fillRect(p.x + 16, p.y + 24, 24, 24);
+
+      // Head
+      targetCtx.fillStyle = char.skin;
+      targetCtx.beginPath();
+      targetCtx.arc(p.x + 28, p.y + 12, 10, 0, Math.PI * 2);
+      targetCtx.fill();
+
+      // Arms
+      targetCtx.fillStyle = char.skin;
+      targetCtx.fillRect(p.x + 10, p.y + 26, 8, 20);
+      targetCtx.fillRect(p.x + 40, p.y + 26, 8, 20);
+
+      // Legs
+      targetCtx.fillStyle = char.pants;
+      targetCtx.fillRect(p.x + 18, p.y + 48, 8, 20);
+      targetCtx.fillRect(p.x + 30, p.y + 48, 8, 20);
+
+      // Shoes / accent
+      if (char.shoeAccent) {
+        targetCtx.font = '12px sans-serif';
+        targetCtx.fillText(char.shoeAccent, p.x + 14, p.y + 76);
+        targetCtx.fillText(char.shoeAccent, p.x + 27, p.y + 76);
+      } else {
+        targetCtx.fillStyle = '#2e2e2e';
+        targetCtx.fillRect(p.x + 16, p.y + 66, 12, 4);
+        targetCtx.fillRect(p.x + 28, p.y + 66, 12, 4);
+      }
+
+      // Hat / hood
+      if (char.hat) {
+        if (char.hat.type === 'cap') {
+          targetCtx.fillStyle = char.hat.color;
+          targetCtx.beginPath();
+          targetCtx.arc(p.x + 28, p.y + 8, 11, Math.PI, 0);
+          targetCtx.fill();
+          targetCtx.fillRect(p.x + 28, p.y + 6, 16, 4);
+        } else if (char.hat.type === 'band') {
+          targetCtx.fillStyle = char.hat.color;
+          targetCtx.fillRect(p.x + 18, p.y + 8, 22, 4);
+        } else if (char.hat.type === 'hood') {
+          const grad = targetCtx.createLinearGradient(p.x + 14, p.y, p.x + 42, p.y + 14);
+          grad.addColorStop(0,    '#ff5e5e');
+          grad.addColorStop(0.5,  '#ffe55c');
+          grad.addColorStop(1,    '#5c9bff');
+          targetCtx.fillStyle = grad;
+          targetCtx.beginPath();
+          targetCtx.arc(p.x + 28, p.y + 8, 14, Math.PI, 0);
+          targetCtx.fill();
+        }
+      }
+
+      // Smile
+      targetCtx.strokeStyle = '#3a2615';
+      targetCtx.lineWidth = 1.5;
+      targetCtx.beginPath();
+      targetCtx.arc(p.x + 28, p.y + 14, 3, 0.1 * Math.PI, 0.9 * Math.PI);
+      targetCtx.stroke();
+
+      targetCtx.restore();
+    }
+
     function drawPlayer() {
       const p = state.player;
       ctx.save();
@@ -795,24 +1177,7 @@
         ctx.rotate(0.18);
         ctx.translate(-(p.x + p.w / 2), -(p.y + p.h / 2));
       }
-      ctx.fillStyle = '#ffc98f';
-      ctx.beginPath();
-      ctx.arc(p.x + 28, p.y + 12, 10, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#224b8f';
-      ctx.fillRect(p.x + 16, p.y + 24, 24, 24);
-
-      ctx.fillStyle = '#ffc98f';
-      ctx.fillRect(p.x + 10, p.y + 26, 8, 20);
-      ctx.fillRect(p.x + 40, p.y + 26, 8, 20);
-
-      ctx.fillStyle = '#2e2e2e';
-      ctx.fillRect(p.x + 18, p.y + 48, 8, 20);
-      ctx.fillRect(p.x + 30, p.y + 48, 8, 20);
-
-      ctx.font = '18px sans-serif';
-      ctx.fillText('🎒', p.x + 2, p.y + 42);
+      drawCharacter(ctx, p, getCharacter());
       ctx.restore();
     }
 
@@ -839,14 +1204,30 @@
       const lv = level();
       const totalProg = Math.min(state.distance / lv.distance, 1);
       const x = state.width - 80 + (1 - totalProg) * 260;
-      ctx.fillStyle = '#d9d9d9';
-      ctx.fillRect(x, state.groundY - 110, 10, 110);
-      ctx.fillStyle = '#a5a5a5';
-      ctx.fillRect(x + 10, state.groundY - 80, 42, 12);
-      ctx.fillRect(x + 10, state.groundY - 48, 42, 12);
-      ctx.font = 'bold 14px Trebuchet MS';
-      ctx.fillStyle = lv.textOnDark ? '#ffeebb' : '#334';
-      ctx.fillText(lv.finish, x - 22, state.groundY - 118);
+
+      if (lv.isTeacher) {
+        // Friendly teacher cheering at the finish
+        ctx.fillStyle = '#fff3c4';
+        ctx.fillRect(x - 6, state.groundY - 110, 56, 110);
+        ctx.fillStyle = '#ffcc33';
+        ctx.fillRect(x - 6, state.groundY - 110, 56, 8);
+        ctx.font = '46px sans-serif';
+        const bob = Math.sin(state.crowdT * 5) * 3;
+        ctx.fillText('🧑‍🏫', x - 4, state.groundY - 24 + bob);
+        ctx.font = 'bold 14px Trebuchet MS';
+        ctx.fillStyle = '#3a2615';
+        ctx.fillText('Coach', x - 6, state.groundY - 118);
+        ctx.fillText('Teacher', x - 12, state.groundY - 102);
+      } else {
+        ctx.fillStyle = '#d9d9d9';
+        ctx.fillRect(x, state.groundY - 110, 10, 110);
+        ctx.fillStyle = '#a5a5a5';
+        ctx.fillRect(x + 10, state.groundY - 80, 42, 12);
+        ctx.fillRect(x + 10, state.groundY - 48, 42, 12);
+        ctx.font = 'bold 14px Trebuchet MS';
+        ctx.fillStyle = lv.textOnDark ? '#ffeebb' : '#334';
+        ctx.fillText(lv.finish, x - 22, state.groundY - 118);
+      }
     }
 
     function drawTitleBanner() {
@@ -872,6 +1253,7 @@
       scorePill.textContent = 'Score: ' + Math.floor(state.score);
       starPill.textContent = '⭐ ' + state.stars;
       levelPill.textContent = `${lv.title} — ${lv.name}`;
+      charPill.textContent = '👤 ' + getCharacter().name;
       const pct = Math.min(100, (state.distance / lv.distance) * 100);
       progressFill.style.width = pct + '%';
 
@@ -889,6 +1271,7 @@
 
       step(dt);
       drawBackground();
+      drawCheeringCrowd();
       drawSlide();
       drawFinish();
       for (const s of state.pickups) drawPickup(s);
