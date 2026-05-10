@@ -1,10 +1,18 @@
-# Ezra's KPS Jumper
+# Ezra's Game Hub
 
-A tiny browser game made for Ezra. Run from Prep all the way to Grade 6, jump school-yard obstacles, grab stars, and become the KPS Champion.
+Ezra now has a mini game collection with a shared landing page:
+
+- **KPS Jumper** (original action platformer)
+- **Brain Quest** (new quiz challenge)
 
 Play it: https://maisoncache.github.io/el-nido/
 
-## How to play
+## Games
+
+### 1) KPS Jumper
+Run from Prep all the way to Grade 6, jump school-yard obstacles, grab stars, and become the KPS Champion.
+
+#### How to play
 
 - **Tap**, **click**, or press **Space / ↑** to jump.
 - Press jump again in the air for a **double jump**.
@@ -14,7 +22,7 @@ Play it: https://maisoncache.github.io/el-nido/
 - Best score is saved per level on this device.
 - Tap the 🔊 pill (or use the Sound button on the title) to toggle sound on/off.
 
-## Characters
+#### Characters
 
 - **Red Hat Runner** — cheerful kid with a red cap.
 - **Blue Backpack Kid** — big blue backpack, ready for every level.
@@ -22,7 +30,7 @@ Play it: https://maisoncache.github.io/el-nido/
 - **Sporty Kid** — sweatband, made for the oval and the courts.
 - **Rainbow Hoodie Kid** — colourful rainbow hoodie, fun energy.
 
-## Levels
+#### Levels
 
 1. **Prep — Top Court**: bags, witches hats, drink bottles. Easy warm-up.
 2. **Grade 1 — The Oval**: soccer balls, puddles, sticks, lunchboxes on grass.
@@ -35,13 +43,21 @@ Play it: https://maisoncache.github.io/el-nido/
 9. **Principal's Challenge**: a longer school-wide course with a big "KPS CHALLENGE" banner, the principal at the finish line, and the whole school cheering.
 10. **World Challenge**: the longest, hardest level. Bands of court / grass / playground / rainbow ground, world-themed obstacles (mountains, clouds, suitcases, globes, rainbow gates), and a big trophy finish — beat it to become **KPS Champion of the World**.
 
-## Sound
+#### Sound
 
 Sound effects are made with the Web Audio API (no audio files): jump, land, star pickup, hit, level complete, champion celebration, and button clicks. The sound default is on; tap the 🔊 / 🔇 pill in the HUD or the Sound button on the title screen to toggle. Audio only starts after the first tap/click/key press because browsers block audio until the user interacts.
 
+### 2) Brain Quest
+Brain Quest is a fast multiple-choice quiz game with 8 questions across science, math, vocabulary, and logic.
+
+- Large touch-friendly answer buttons.
+- Instant right/wrong feedback.
+- Running score updates each round.
+- End-of-quiz badge feedback with quick restart.
+
 ## Running locally
 
-It's a single HTML file with no build step or dependencies.
+Plain HTML/CSS/JavaScript only (no build step or dependencies).
 
 ```sh
 # from the repo root
@@ -49,7 +65,11 @@ python3 -m http.server 8000
 # then open http://localhost:8000
 ```
 
-Or open `index.html` directly in a browser.
+Pages:
+
+- `index.html` → Ezra's Game Hub (landing page)
+- `kps-jumper.html` → KPS Jumper
+- `brain-quest.html` → Brain Quest
 
 ## Deployment
 
