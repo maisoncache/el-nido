@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brain Quest</title>
+  <style>
+    :root { --ink: #1f2a3d; --bg: #eef5ff; --card: #fff; --accent: #5a4bff; --ok: #12a150; --bad: #cc3344; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      background: radial-gradient(circle at top, #d9e9ff, var(--bg));
+      color: var(--ink);
+      padding: 14px;
+      display: grid;
+      place-items: center;
+    }
+    .quiz {
+      width: min(760px, 100%);
+      background: var(--card);
+      border-radius: 20px;
+      box-shadow: 0 14px 36px rgba(20, 40, 80, 0.15);
+      padding: clamp(16px, 4vw, 28px);
+    }
+    h1 { margin: 0; font-size: clamp(1.6rem, 4.5vw, 2.4rem); }
+    .top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .pill { background: #edf2ff; border-radius: 999px; padding: 7px 12px; font-weight: bold; }
+    .question { margin-top: 18px; font-size: clamp(1.12rem, 3.4vw, 1.5rem); line-height: 1.35; }
+    .answers { display: grid; gap: 10px; margin-top: 16px; }
+    button {
+      border: 2px solid #d7def8;
+      background: #f8faff;
+      color: var(--ink);
+      border-radius: 12px;
+      padding: 12px;
+      min-height: 48px;
+      text-align: left;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover { border-color: #9db2ff; }
+    .controls { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .primary { background: var(--accent); color: white; border-color: var(--accent); }
+    .hidden { display: none; }
+    .status { min-height: 24px; margin-top: 10px; font-weight: bold; }
+    .ok { color: var(--ok); }
+    .bad { color: var(--bad); }
+    a { color: #264fd8; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <main class="quiz">
+    <div class="top">
+      <h1>🧠 Brain Quest</h1>
+      <div class="pill" id="score">Score: 0</div>
+    </div>
+    <div class="pill" id="progress" style="margin-top: 12px;">Question 1 / 8</div>
+    <p class="question" id="question"></p>
+    <section class="answers" id="answers"></section>
+    <p id="status" class="status" aria-live="polite"></p>
+
+    <div class="controls">
+      <button id="nextBtn" class="primary hidden">Next Question</button>
+      <button id="restartBtn" class="hidden">Play Again</button>
+      <a href="index.html">← Back to Game Hub</a>
+    </div>
+  </main>
+
+  <script>
+    const quizData = [
+      { q: "What planet is known as the Red Planet?", choices: ["Mars", "Venus", "Jupiter", "Mercury"], answer: 0 },
+      { q: "What is 9 × 6?", choices: ["56", "54", "63", "46"], answer: 1 },
+      { q: "Which shape has 8 sides?", choices: ["Hexagon", "Pentagon", "Octagon", "Nonagon"], answer: 2 },
+      { q: "How many minutes are in 2 hours?", choices: ["120", "90", "180", "60"], answer: 0 },
+      { q: "Which is the largest ocean on Earth?", choices: ["Atlantic", "Indian", "Arctic", "Pacific"], answer: 3 },
+      { q: "What do bees collect from flowers?", choices: ["Pollen", "Pebbles", "Snow", "Sand"], answer: 0 },
+      { q: "If a triangle has equal sides, it is called...", choices: ["Scalene", "Isosceles", "Equilateral", "Right"], answer: 2 },
+      { q: "Which word is a synonym for 'quick'?", choices: ["Slow", "Rapid", "Quiet", "Heavy"], answer: 1 }
+    ];
+
+    const questionEl = document.getElementById('question');
+    const answersEl = document.getElementById('answers');
+    const statusEl = document.getElementById('status');
+    const scoreEl = document.getElementById('score');
+    const progressEl = document.getElementById('progress');
+    const nextBtn = document.getElementById('nextBtn');
+    const restartBtn = document.getElementById('restartBtn');
+
+    let current = 0;
+    let score = 0;
+    let locked = false;
+
+    function renderQuestion() {
+      const item = quizData[current];
+      questionEl.textContent = item.q;
+      progressEl.textContent = `Question ${current + 1} / ${quizData.length}`;
+      answersEl.innerHTML = '';
+      statusEl.textContent = '';
+      statusEl.className = 'status';
+      locked = false;
+      nextBtn.classList.add('hidden');
+
+      item.choices.forEach((choice, idx) => {
+        const btn = document.createElement('button');
+        btn.textContent = choice;
+        btn.addEventListener('click', () => submitAnswer(idx));
+        answersEl.appendChild(btn);
+      });
+    }
+
+    function submitAnswer(index) {
+      if (locked) return;
+      locked = true;
+      const correct = quizData[current].answer;
+      const buttons = answersEl.querySelectorAll('button');
+      buttons.forEach((btn, idx) => {
+        btn.disabled = true;
+        if (idx === correct) btn.style.borderColor = '#12a150';
+        if (idx === index && idx !== correct) btn.style.borderColor = '#cc3344';
+      });
+
+      if (index === correct) {
+        score += 10;
+        statusEl.textContent = '✅ Correct! Great thinking.';
+        statusEl.classList.add('ok');
+      } else {
+        statusEl.textContent = `❌ Not quite. Correct answer: ${quizData[current].choices[correct]}.`;
+        statusEl.classList.add('bad');
+      }
+
+      scoreEl.textContent = `Score: ${score}`;
+      nextBtn.textContent = current === quizData.length - 1 ? 'See Results' : 'Next Question';
+      nextBtn.classList.remove('hidden');
+    }
+
+    function nextQuestion() {
+      if (current < quizData.length - 1) {
+        current += 1;
+        renderQuestion();
+      } else {
+        showResults();
+      }
+    }
+
+    function showResults() {
+      questionEl.textContent = score >= 70
+        ? `🏆 Amazing! You scored ${score}/${quizData.length * 10}.`
+        : `You scored ${score}/${quizData.length * 10}. Keep practicing and try again!`;
+      progressEl.textContent = 'Quiz Complete';
+      answersEl.innerHTML = '';
+      statusEl.textContent = score >= 70 ? 'Gold Badge earned!' : 'Silver Badge earned!';
+      statusEl.className = `status ${score >= 70 ? 'ok' : ''}`;
+      nextBtn.classList.add('hidden');
+      restartBtn.classList.remove('hidden');
+    }
+
+    function restartQuiz() {
+      current = 0;
+      score = 0;
+      scoreEl.textContent = 'Score: 0';
+      restartBtn.classList.add('hidden');
+      renderQuestion();
+    }
+
+    nextBtn.addEventListener('click', nextQuestion);
+    restartBtn.addEventListener('click', restartQuiz);
+    renderQuestion();
+  </script>
+</body>
+</html>
