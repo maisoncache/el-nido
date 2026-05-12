@@ -3,9 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Brain Quest</title>
+  <title>Ezra's Brain Quest: Planet Flag Academy</title>
   <style>
-    :root { --ink: #1f2a3d; --bg: #eef5ff; --card: #fff; --accent: #5a4bff; --ok: #12a150; --bad: #cc3344; }
+    :root {
+      --ink: #1f2a3d;
+      --bg: #eef5ff;
+      --card: #ffffff;
+      --accent: #5a4bff;
+      --accent2: #ff5aa0;
+      --ok: #12a150;
+      --bad: #cc3344;
+      --gold: #f5b400;
+      --silver: #9aa3b2;
+      --bronze: #cd7f32;
+    }
     * { box-sizing: border-box; }
     body {
       margin: 0;
@@ -18,156 +29,768 @@
       place-items: center;
     }
     .quiz {
-      width: min(760px, 100%);
+      width: min(820px, 100%);
       background: var(--card);
-      border-radius: 20px;
+      border-radius: 22px;
       box-shadow: 0 14px 36px rgba(20, 40, 80, 0.15);
       padding: clamp(16px, 4vw, 28px);
     }
-    h1 { margin: 0; font-size: clamp(1.6rem, 4.5vw, 2.4rem); }
-    .top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; }
-    .pill { background: #edf2ff; border-radius: 999px; padding: 7px 12px; font-weight: bold; }
-    .question { margin-top: 18px; font-size: clamp(1.12rem, 3.4vw, 1.5rem); line-height: 1.35; }
-    .answers { display: grid; gap: 10px; margin-top: 16px; }
+    h1 { margin: 0; font-size: clamp(1.5rem, 4.5vw, 2.2rem); }
+    h2 { margin: 0 0 8px; font-size: clamp(1.2rem, 3.6vw, 1.6rem); }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .pill {
+      background: #edf2ff;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin-top: 16px;
+    }
+    .tile {
+      background: linear-gradient(140deg, #f8faff, #eef2ff);
+      border: 2px solid #d7def8;
+      border-radius: 16px;
+      padding: 16px;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 110px;
+      transition: transform 0.1s ease, border-color 0.1s ease;
+    }
+    .tile:hover { border-color: #9db2ff; transform: translateY(-2px); }
+    .tile .emoji { font-size: 2rem; }
+    .tile .title { font-weight: bold; font-size: 1.15rem; }
+    .tile .meta { font-size: 0.85rem; color: #4a5572; }
+    .tile.locked { opacity: 0.55; cursor: not-allowed; }
+    .tile.locked:hover { transform: none; border-color: #d7def8; }
+    .badge-mark { font-size: 1.2rem; }
+
+    .question {
+      margin-top: 18px;
+      font-size: clamp(1.1rem, 3.3vw, 1.45rem);
+      line-height: 1.35;
+      min-height: 60px;
+    }
+    .answers { display: grid; gap: 10px; margin-top: 14px; }
     button {
       border: 2px solid #d7def8;
       background: #f8faff;
       color: var(--ink);
       border-radius: 12px;
-      padding: 12px;
-      min-height: 48px;
+      padding: 12px 14px;
+      min-height: 50px;
       text-align: left;
       font-size: 1rem;
       font-weight: bold;
       cursor: pointer;
+      font-family: inherit;
     }
     button:hover { border-color: #9db2ff; }
-    .controls { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; }
+    button:disabled { cursor: default; }
+    .controls { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
     .primary { background: var(--accent); color: white; border-color: var(--accent); }
-    .hidden { display: none; }
-    .status { min-height: 24px; margin-top: 10px; font-weight: bold; }
+    .primary:hover { background: #4a3de0; border-color: #4a3de0; }
+    .secondary { background: #fff; }
+    .hint-btn { background: #fff5e0; border-color: #f5b400; color: #6b4f00; }
+    .status { min-height: 24px; margin-top: 10px; font-weight: bold; font-size: 1rem; }
     .ok { color: var(--ok); }
     .bad { color: var(--bad); }
-    a { color: #264fd8; font-weight: bold; }
+    .hint-text {
+      background: #fff5e0;
+      border-left: 4px solid #f5b400;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-top: 10px;
+      font-weight: bold;
+      color: #6b4f00;
+    }
+    .hidden { display: none !important; }
+    .back-link {
+      display: inline-block;
+      margin-top: 14px;
+      color: #264fd8;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .back-link:hover { text-decoration: underline; }
+    .end-badge {
+      font-size: 4rem;
+      text-align: center;
+      margin: 8px 0;
+    }
+    .end-score {
+      text-align: center;
+      font-size: 1.3rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .answer-correct { border-color: var(--ok) !important; background: #e6f7ec !important; }
+    .answer-wrong { border-color: var(--bad) !important; background: #fde8eb !important; }
+    .progress-bar {
+      height: 8px;
+      background: #e3e9f7;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .muted { color: #6a7390; font-size: 0.9rem; }
+    .sound-toggle {
+      background: transparent;
+      border: 2px solid #d7def8;
+      padding: 6px 10px;
+      min-height: 0;
+      font-size: 0.9rem;
+    }
   </style>
 </head>
 <body>
   <main class="quiz">
     <div class="top">
-      <h1>🧠 Brain Quest</h1>
-      <div class="pill" id="score">Score: 0</div>
+      <h1 id="title">🧠 Brain Quest</h1>
+      <div class="row">
+        <div class="pill" id="score">Score: 0</div>
+        <button class="sound-toggle" id="soundToggle" type="button">🔊 Sound</button>
+      </div>
     </div>
-    <div class="pill" id="progress" style="margin-top: 12px;">Question 1 / 8</div>
-    <p class="question" id="question"></p>
-    <section class="answers" id="answers"></section>
-    <p id="status" class="status" aria-live="polite"></p>
+    <div id="subtitle" class="muted" style="margin-top: 6px;">Pick a world to explore!</div>
 
-    <div class="controls">
-      <button id="nextBtn" class="primary hidden">Next Question</button>
-      <button id="restartBtn" class="hidden">Play Again</button>
-      <a href="index.html">← Back to Game Hub</a>
-    </div>
+    <!-- HOME (category select) -->
+    <section id="home">
+      <div class="grid" id="categoryGrid"></div>
+      <div class="grid" id="unlockGrid" style="margin-top: 14px;"></div>
+      <a class="back-link" href="index.html">← Back to Game Hub</a>
+    </section>
+
+    <!-- LEVEL SELECT -->
+    <section id="levelSelect" class="hidden">
+      <h2 id="levelHeading"></h2>
+      <div class="grid" id="levelGrid"></div>
+      <button class="secondary" id="backToHome" type="button" style="margin-top: 14px;">← Back to Worlds</button>
+    </section>
+
+    <!-- QUIZ -->
+    <section id="quizPanel" class="hidden">
+      <div class="row" style="justify-content: space-between;">
+        <div class="pill" id="categoryPill"></div>
+        <div class="pill" id="progress">Question 1 / 5</div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <p class="question" id="question"></p>
+      <section class="answers" id="answers"></section>
+      <div id="hintBox" class="hint-text hidden"></div>
+      <p id="status" class="status" aria-live="polite"></p>
+      <div class="controls">
+        <button id="hintBtn" class="hint-btn" type="button">💡 Hint</button>
+        <button id="nextBtn" class="primary hidden" type="button">Next Question</button>
+        <button id="quitBtn" class="secondary" type="button">Quit Level</button>
+      </div>
+    </section>
+
+    <!-- LEVEL COMPLETE -->
+    <section id="endPanel" class="hidden">
+      <h2 id="endTitle">Level Complete!</h2>
+      <div class="end-badge" id="endBadge">🥇</div>
+      <div class="end-score" id="endScore">You scored 0 points</div>
+      <div id="endMessage" class="muted" style="text-align: center;"></div>
+      <div class="controls" style="justify-content: center;">
+        <button id="replayBtn" class="secondary" type="button">🔁 Replay Level</button>
+        <button id="nextLevelBtn" class="primary hidden" type="button">➡️ Next Level</button>
+        <button id="homeBtn" class="secondary" type="button">🏠 Choose World</button>
+      </div>
+    </section>
   </main>
 
   <script>
-    const quizData = [
-      { q: "What planet is known as the Red Planet?", choices: ["Mars", "Venus", "Jupiter", "Mercury"], answer: 0 },
-      { q: "What is 9 × 6?", choices: ["56", "54", "63", "46"], answer: 1 },
-      { q: "Which shape has 8 sides?", choices: ["Hexagon", "Pentagon", "Octagon", "Nonagon"], answer: 2 },
-      { q: "How many minutes are in 2 hours?", choices: ["120", "90", "180", "60"], answer: 0 },
-      { q: "Which is the largest ocean on Earth?", choices: ["Atlantic", "Indian", "Arctic", "Pacific"], answer: 3 },
-      { q: "What do bees collect from flowers?", choices: ["Pollen", "Pebbles", "Snow", "Sand"], answer: 0 },
-      { q: "If a triangle has equal sides, it is called...", choices: ["Scalene", "Isosceles", "Equilateral", "Right"], answer: 2 },
-      { q: "Which word is a synonym for 'quick'?", choices: ["Slow", "Rapid", "Quiet", "Heavy"], answer: 1 }
-    ];
+    // ============ QUESTION BANKS ============
+    const categories = {
+      flag: {
+        name: "Flag Finder",
+        emoji: "🚩",
+        levels: [
+          [
+            { q: "Which country has a maple leaf on its flag?", choices: ["Japan", "Canada", "Brazil"], answer: 1, hint: "A cold North American country famous for ice hockey." },
+            { q: "The flag of Japan shows a big red...", choices: ["Star", "Circle", "Square"], answer: 1, hint: "It stands for the rising sun." },
+            { q: "The flag of the United States has how many stripes?", choices: ["13", "10", "20"], answer: 0, hint: "One for each of the first colonies." },
+            { q: "Which flag is blue with a white cross?", choices: ["Italy", "Finland", "Germany"], answer: 1, hint: "A snowy Nordic country." },
+            { q: "What three colours are on the flag of France?", choices: ["Red, white, blue", "Green, white, red", "Yellow, blue, red"], answer: 0, hint: "Same colours as the USA flag but in stripes." }
+          ],
+          [
+            { q: "Which country's flag has a green dragon?", choices: ["Wales", "China", "Mexico"], answer: 0, hint: "Part of the United Kingdom." },
+            { q: "Which flag is red with a yellow star?", choices: ["China", "Vietnam", "Turkey"], answer: 1, hint: "A country in Southeast Asia." },
+            { q: "The flag of Brazil is mostly what colour?", choices: ["Blue", "Green", "Red"], answer: 1, hint: "Like a rainforest." },
+            { q: "Which country's flag has a kangaroo? Trick! It actually has...", choices: ["The Southern Cross stars", "A boomerang", "A koala"], answer: 0, hint: "Constellations you see down under." },
+            { q: "Which flag has black, yellow, and red stripes?", choices: ["Germany", "Belgium", "Spain"], answer: 0, hint: "A big European country, capital Berlin." }
+          ],
+          [
+            { q: "Which country's flag has a cedar tree?", choices: ["Lebanon", "Cyprus", "Turkey"], answer: 0, hint: "A Middle Eastern country starting with L." },
+            { q: "How many stars are on the flag of the European Union?", choices: ["10", "12", "15"], answer: 1, hint: "Same as the months in a year." },
+            { q: "Which flag has a white maple leaf? Trick!", choices: ["No country – Canada's is red", "Latvia", "Poland"], answer: 0, hint: "Think about the most famous maple leaf flag." },
+            { q: "The flag of South Korea has a circle made of...", choices: ["Stars", "Blue and red swirl", "Stripes"], answer: 1, hint: "It's called the taegeuk symbol." },
+            { q: "Which is the only country with a non-rectangular flag?", choices: ["Nepal", "Switzerland", "Vatican City"], answer: 0, hint: "A small country in the Himalayas." }
+          ]
+        ]
+      },
+      maths: {
+        name: "Maths Mission",
+        emoji: "➕",
+        levels: [
+          [
+            { q: "What is 8 + 7?", choices: ["13", "15", "17"], answer: 1, hint: "Try 8 + 2 first, then add 5 more." },
+            { q: "What is 12 − 5?", choices: ["6", "7", "8"], answer: 1, hint: "Count back from 12: 11, 10, 9..." },
+            { q: "What is 3 × 4?", choices: ["7", "12", "16"], answer: 1, hint: "Three groups of four." },
+            { q: "What is half of 20?", choices: ["5", "10", "15"], answer: 1, hint: "Split it into two equal parts." },
+            { q: "What is 9 + 9?", choices: ["18", "16", "19"], answer: 0, hint: "It's 10 + 10, minus 2." }
+          ],
+          [
+            { q: "What is 6 × 7?", choices: ["42", "36", "48"], answer: 0, hint: "Six sevens — try 5 × 7 + 7." },
+            { q: "What is 100 − 37?", choices: ["73", "67", "63"], answer: 2, hint: "Take 30 away first, then 7 more." },
+            { q: "How many minutes in 2 hours?", choices: ["120", "100", "180"], answer: 0, hint: "60 minutes in one hour." },
+            { q: "What is 25 + 25 + 25 + 25?", choices: ["75", "100", "125"], answer: 1, hint: "Four quarters make a whole dollar." },
+            { q: "What is 56 ÷ 8?", choices: ["6", "7", "8"], answer: 1, hint: "What times 8 equals 56?" }
+          ],
+          [
+            { q: "What is 9 × 12?", choices: ["108", "98", "112"], answer: 0, hint: "9 × 10 + 9 × 2." },
+            { q: "If a pizza is cut into 8 slices and you eat 3, what fraction is left?", choices: ["3/8", "5/8", "1/2"], answer: 1, hint: "Subtract the eaten slices from the total." },
+            { q: "What is the next number in the pattern: 3, 6, 12, 24, __?", choices: ["36", "48", "30"], answer: 1, hint: "Each number doubles." },
+            { q: "A bag has 4 red, 3 blue, and 3 green marbles. How many in total?", choices: ["10", "9", "11"], answer: 0, hint: "Add all three groups." },
+            { q: "What is 144 ÷ 12?", choices: ["10", "12", "14"], answer: 1, hint: "12 times what equals 144?" }
+          ]
+        ]
+      },
+      planet: {
+        name: "Planet Patrol",
+        emoji: "🪐",
+        levels: [
+          [
+            { q: "Which planet is called the Red Planet?", choices: ["Mars", "Venus", "Jupiter"], answer: 0, hint: "It's named after the Roman god of war." },
+            { q: "Which planet do we live on?", choices: ["Mars", "Earth", "Saturn"], answer: 1, hint: "The blue and green one." },
+            { q: "Which is the biggest planet in our solar system?", choices: ["Saturn", "Jupiter", "Neptune"], answer: 1, hint: "It has a Great Red Spot." },
+            { q: "What do we call Earth's natural satellite?", choices: ["The Sun", "The Moon", "Mars"], answer: 1, hint: "We see it glowing at night." },
+            { q: "The Sun is a...", choices: ["Planet", "Star", "Moon"], answer: 1, hint: "It's the closest one to us." }
+          ],
+          [
+            { q: "Which planet has the most rings?", choices: ["Saturn", "Mars", "Mercury"], answer: 0, hint: "Famous for its icy rings." },
+            { q: "Which planet is closest to the Sun?", choices: ["Venus", "Mercury", "Earth"], answer: 1, hint: "Named after a Roman messenger god." },
+            { q: "How many planets are in our solar system?", choices: ["7", "8", "9"], answer: 1, hint: "Pluto is now a dwarf planet." },
+            { q: "Which planet spins on its side?", choices: ["Uranus", "Neptune", "Saturn"], answer: 0, hint: "It starts with U." },
+            { q: "Astronauts who landed on the Moon came from...", choices: ["Russia", "USA", "China"], answer: 1, hint: "The Apollo missions." }
+          ],
+          [
+            { q: "Which planet has a day longer than its year?", choices: ["Mercury", "Venus", "Mars"], answer: 1, hint: "It spins very, very slowly." },
+            { q: "What is the name of our galaxy?", choices: ["Andromeda", "Milky Way", "Orion"], answer: 1, hint: "Sounds like a chocolate bar." },
+            { q: "Which planet has the biggest volcano in the solar system?", choices: ["Mars", "Venus", "Earth"], answer: 0, hint: "It's called Olympus Mons." },
+            { q: "How long does light take to travel from the Sun to Earth?", choices: ["8 seconds", "8 minutes", "8 hours"], answer: 1, hint: "Less than the time for a TV episode." },
+            { q: "What are the rings of Saturn mostly made of?", choices: ["Rock", "Ice and dust", "Gas"], answer: 1, hint: "It's cold and sparkly." }
+          ]
+        ]
+      },
+      science: {
+        name: "Science Sparks",
+        emoji: "🔬",
+        levels: [
+          [
+            { q: "What do plants need to grow?", choices: ["Sunlight and water", "Shoes and socks", "A television"], answer: 0, hint: "Look outside on a sunny day." },
+            { q: "How many legs does a spider have?", choices: ["6", "8", "10"], answer: 1, hint: "More than an insect." },
+            { q: "What gas do we breathe in to stay alive?", choices: ["Oxygen", "Helium", "Nitrogen"], answer: 0, hint: "Starts with O." },
+            { q: "Which animal is a mammal?", choices: ["Shark", "Snake", "Dog"], answer: 2, hint: "It has fur and gives birth to live babies." },
+            { q: "What do bees collect from flowers?", choices: ["Pebbles", "Pollen", "Sand"], answer: 1, hint: "It's a yellow powder." }
+          ],
+          [
+            { q: "Water freezes into ice at what temperature (Celsius)?", choices: ["0°C", "10°C", "100°C"], answer: 0, hint: "It's the smallest whole number." },
+            { q: "Which part of the plant takes in water from the soil?", choices: ["Leaves", "Roots", "Flowers"], answer: 1, hint: "They grow downward." },
+            { q: "What do caterpillars turn into?", choices: ["Bees", "Butterflies", "Birds"], answer: 1, hint: "They come out with colourful wings." },
+            { q: "Which sense uses your tongue?", choices: ["Smell", "Taste", "Touch"], answer: 1, hint: "Yum or yuck!" },
+            { q: "What is the hardest part of your body?", choices: ["Teeth (enamel)", "Bones", "Hair"], answer: 0, hint: "You use them to chew." }
+          ],
+          [
+            { q: "Which planet's force keeps us on the ground?", choices: ["Magnetism", "Gravity", "Friction"], answer: 1, hint: "Apples fall because of it." },
+            { q: "What is photosynthesis?", choices: ["Plants making food from light", "A type of camera", "A weather pattern"], answer: 0, hint: "It happens in leaves." },
+            { q: "Sound travels fastest through...", choices: ["Air", "Water", "Solid metal"], answer: 2, hint: "The denser the material, the faster sound moves." },
+            { q: "Which blood vessel carries blood AWAY from the heart?", choices: ["Vein", "Artery", "Capillary"], answer: 1, hint: "Starts with A." },
+            { q: "What do we call animals that eat only plants?", choices: ["Carnivores", "Herbivores", "Omnivores"], answer: 1, hint: "Like a cow or a rabbit." }
+          ]
+        ]
+      },
+      puzzle: {
+        name: "Puzzle Lab",
+        emoji: "🧩",
+        levels: [
+          [
+            { q: "What comes next? 2, 4, 6, __", choices: ["7", "8", "10"], answer: 1, hint: "Add 2 each time." },
+            { q: "Which word rhymes with 'cat'?", choices: ["Dog", "Hat", "Pen"], answer: 1, hint: "It goes on your head." },
+            { q: "What comes next? A, B, C, D, __", choices: ["E", "F", "G"], answer: 0, hint: "The very next letter." },
+            { q: "If today is Monday, what is tomorrow?", choices: ["Sunday", "Tuesday", "Wednesday"], answer: 1, hint: "It comes right after Monday." },
+            { q: "Which one is the odd one out: apple, banana, carrot, grape?", choices: ["Apple", "Carrot", "Grape"], answer: 1, hint: "The others are all fruits." }
+          ],
+          [
+            { q: "What comes next? 1, 3, 5, 7, __", choices: ["8", "9", "10"], answer: 1, hint: "Odd numbers, going up by 2." },
+            { q: "I'm thinking of a shape with 3 sides. What is it?", choices: ["Square", "Triangle", "Circle"], answer: 1, hint: "Tri- means three." },
+            { q: "What comes next? 100, 90, 80, __", choices: ["75", "70", "60"], answer: 1, hint: "Counting down by 10." },
+            { q: "Mum is older than Sam. Sam is older than Lila. Who is youngest?", choices: ["Mum", "Sam", "Lila"], answer: 2, hint: "Sam is in the middle." },
+            { q: "Which letter is missing? M, N, __, P, Q", choices: ["L", "O", "R"], answer: 1, hint: "It goes between N and P." }
+          ],
+          [
+            { q: "What comes next? 2, 4, 8, 16, __", choices: ["20", "24", "32"], answer: 2, hint: "Each number doubles." },
+            { q: "If 5 cats catch 5 mice in 5 minutes, how long for 1 cat to catch 1 mouse?", choices: ["1 minute", "5 minutes", "25 minutes"], answer: 1, hint: "All cats work at the same time." },
+            { q: "I am a 3-digit number. My digits add to 6. I am even. I could be...", choices: ["123", "204", "321"], answer: 1, hint: "Even numbers end in 0, 2, 4, 6, or 8." },
+            { q: "Which word doesn't belong? Run, Jump, Swim, Tree", choices: ["Run", "Swim", "Tree"], answer: 2, hint: "Three are actions." },
+            { q: "What comes next? Z, Y, X, W, __", choices: ["U", "V", "T"], answer: 1, hint: "The alphabet, but backwards." }
+          ]
+        ]
+      }
+    };
 
-    const questionEl = document.getElementById('question');
-    const answersEl = document.getElementById('answers');
-    const statusEl = document.getElementById('status');
-    const scoreEl = document.getElementById('score');
-    const progressEl = document.getElementById('progress');
-    const nextBtn = document.getElementById('nextBtn');
-    const restartBtn = document.getElementById('restartBtn');
+    const unlockables = {
+      principal: {
+        name: "Principal Brain Challenge",
+        emoji: "🎓",
+        unlockMsg: "Earn at least Silver on every Level 3 to unlock!",
+        questions: [
+          { q: "Which country has the most people living in it?", choices: ["USA", "India", "Russia"], answer: 1, hint: "Over 1.4 billion people!" },
+          { q: "What is 13 × 7?", choices: ["91", "84", "98"], answer: 0, hint: "13 × 7 = 10 × 7 + 3 × 7." },
+          { q: "Which planet has the strongest winds?", choices: ["Jupiter", "Neptune", "Mars"], answer: 1, hint: "It's far from the Sun and very blue." },
+          { q: "What is the chemical symbol for water?", choices: ["H2O", "O2", "CO2"], answer: 0, hint: "Two hydrogen, one oxygen." },
+          { q: "How many continents are there?", choices: ["5", "6", "7"], answer: 2, hint: "Europe, Asia, Africa, North America, South America, Australia, and one more icy one." },
+          { q: "What comes next? 1, 1, 2, 3, 5, 8, __", choices: ["11", "13", "12"], answer: 1, hint: "Add the last two numbers together." },
+          { q: "Which animal is the fastest on land?", choices: ["Lion", "Cheetah", "Horse"], answer: 1, hint: "Big cat with spots." },
+          { q: "What is half of 250?", choices: ["100", "125", "150"], answer: 1, hint: "Split it into two equal parts." },
+          { q: "Which flag is white with a red dot?", choices: ["Japan", "Bangladesh", "Both have a red dot"], answer: 2, hint: "Bangladesh's is on green though; Japan's is on white." },
+          { q: "What is 1000 − 256?", choices: ["744", "754", "844"], answer: 0, hint: "Try 1000 − 300 + 44." }
+        ]
+      },
+      champion: {
+        name: "World Champion Quiz",
+        emoji: "🏆",
+        unlockMsg: "Beat the Principal Challenge to unlock!",
+        questions: [
+          { q: "What is the longest river in the world?", choices: ["Amazon", "Nile", "Mississippi"], answer: 1, hint: "It flows through Egypt." },
+          { q: "What is 15 × 15?", choices: ["205", "225", "245"], answer: 1, hint: "15 × 10 + 15 × 5." },
+          { q: "How many bones does an adult human have?", choices: ["106", "206", "306"], answer: 1, hint: "It's just over 200." },
+          { q: "Which planet was reclassified as a dwarf planet?", choices: ["Pluto", "Ceres", "Eris"], answer: 0, hint: "A famous Disney dog shares its name." },
+          { q: "What is the capital of Australia?", choices: ["Sydney", "Melbourne", "Canberra"], answer: 2, hint: "It's not the biggest city, but it's the capital." },
+          { q: "What gas do plants release when they photosynthesise?", choices: ["Carbon dioxide", "Oxygen", "Hydrogen"], answer: 1, hint: "It's the gas we breathe in." },
+          { q: "Which is the smallest country in the world?", choices: ["Monaco", "Vatican City", "San Marino"], answer: 1, hint: "It's inside Rome." },
+          { q: "What number is represented by the Roman numeral XL?", choices: ["40", "60", "90"], answer: 0, hint: "X is 10, L is 50, X before L means subtract." },
+          { q: "Which mammal lays eggs?", choices: ["Bat", "Platypus", "Dolphin"], answer: 1, hint: "Lives in Australia, has a duck-like bill." },
+          { q: "What comes next? 1, 4, 9, 16, 25, __", choices: ["30", "36", "49"], answer: 1, hint: "These are square numbers." }
+        ]
+      }
+    };
 
-    let current = 0;
-    let score = 0;
+    // ============ STATE & STORAGE ============
+    const STORAGE_KEY = "ezraBrainQuestProgress_v1";
+    const progress = loadProgress();
+    let soundOn = progress.soundOn !== false;
+
+    function loadProgress() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return { badges: {}, soundOn: true };
+    }
+    function saveProgress() {
+      progress.soundOn = soundOn;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); } catch (e) {}
+    }
+    function badgeKey(catId, levelIdx) { return `${catId}-${levelIdx}`; }
+    function getBadge(catId, levelIdx) { return progress.badges[badgeKey(catId, levelIdx)] || null; }
+    function setBadge(catId, levelIdx, badge) {
+      const key = badgeKey(catId, levelIdx);
+      const existing = progress.badges[key];
+      const order = { bronze: 1, silver: 2, gold: 3 };
+      if (!existing || order[badge] > order[existing]) {
+        progress.badges[key] = badge;
+        saveProgress();
+      }
+    }
+    function badgeEmoji(b) {
+      if (b === "gold") return "🥇";
+      if (b === "silver") return "🥈";
+      if (b === "bronze") return "🥉";
+      return "";
+    }
+    function isPrincipalUnlocked() {
+      return Object.keys(categories).every(cat => {
+        const b = getBadge(cat, 2);
+        return b === "silver" || b === "gold";
+      });
+    }
+    function isChampionUnlocked() {
+      const b = progress.badges["principal-0"];
+      return b === "silver" || b === "gold";
+    }
+
+    // ============ SOUND ============
+    let audioCtx = null;
+    function ensureAudio() {
+      if (!audioCtx) {
+        try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        catch (e) { audioCtx = null; }
+      }
+      return audioCtx;
+    }
+    function tone(freq, dur, type, vol, delay) {
+      if (!soundOn) return;
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      const start = ctx.currentTime + (delay || 0);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(vol || 0.15, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + dur + 0.05);
+    }
+    const sfx = {
+      tap: () => tone(600, 0.08, "square", 0.08, 0),
+      correct: () => { tone(660, 0.12, "sine", 0.18, 0); tone(880, 0.18, "sine", 0.18, 0.1); },
+      wrong: () => tone(180, 0.25, "sine", 0.15, 0),
+      hint: () => { tone(900, 0.1, "triangle", 0.12, 0); tone(1200, 0.1, "triangle", 0.12, 0.08); },
+      fanfare: () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.18, "triangle", 0.16, i * 0.1)); },
+      sparkle: () => { [1318, 1568, 1976].forEach((f, i) => tone(f, 0.1, "sine", 0.14, i * 0.06)); },
+      whoosh: () => tone(300, 0.2, "sawtooth", 0.08, 0)
+    };
+
+    // ============ DOM ============
+    const titleEl = document.getElementById("title");
+    const subtitleEl = document.getElementById("subtitle");
+    const scoreEl = document.getElementById("score");
+    const homeEl = document.getElementById("home");
+    const levelSelectEl = document.getElementById("levelSelect");
+    const levelHeadingEl = document.getElementById("levelHeading");
+    const levelGridEl = document.getElementById("levelGrid");
+    const categoryGridEl = document.getElementById("categoryGrid");
+    const unlockGridEl = document.getElementById("unlockGrid");
+    const quizPanel = document.getElementById("quizPanel");
+    const categoryPill = document.getElementById("categoryPill");
+    const progressEl = document.getElementById("progress");
+    const progressFill = document.getElementById("progressFill");
+    const questionEl = document.getElementById("question");
+    const answersEl = document.getElementById("answers");
+    const hintBox = document.getElementById("hintBox");
+    const statusEl = document.getElementById("status");
+    const hintBtn = document.getElementById("hintBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const quitBtn = document.getElementById("quitBtn");
+    const endPanel = document.getElementById("endPanel");
+    const endTitle = document.getElementById("endTitle");
+    const endBadge = document.getElementById("endBadge");
+    const endScore = document.getElementById("endScore");
+    const endMessage = document.getElementById("endMessage");
+    const replayBtn = document.getElementById("replayBtn");
+    const nextLevelBtn = document.getElementById("nextLevelBtn");
+    const homeBtn = document.getElementById("homeBtn");
+    const backToHomeBtn = document.getElementById("backToHome");
+    const soundToggleBtn = document.getElementById("soundToggle");
+
+    // ============ QUIZ STATE ============
+    let currentSet = null;
+    let currentQs = [];
+    let currentIdx = 0;
+    let totalScore = 0;
+    let correctCount = 0;
+    let hintUsedThis = false;
     let locked = false;
 
-    function renderQuestion() {
-      const item = quizData[current];
-      questionEl.textContent = item.q;
-      progressEl.textContent = `Question ${current + 1} / ${quizData.length}`;
-      answersEl.innerHTML = '';
-      statusEl.textContent = '';
-      statusEl.className = 'status';
-      locked = false;
-      nextBtn.classList.add('hidden');
+    // ============ NAV ============
+    function showOnly(el) {
+      [homeEl, levelSelectEl, quizPanel, endPanel].forEach(s => s.classList.add("hidden"));
+      el.classList.remove("hidden");
+    }
+    function goHome() {
+      currentSet = null;
+      titleEl.textContent = "🧠 Brain Quest";
+      subtitleEl.textContent = "Pick a world to explore!";
+      scoreEl.textContent = "Score: 0";
+      renderHome();
+      showOnly(homeEl);
+    }
+    function goLevelSelect(catId) {
+      const cat = categories[catId];
+      titleEl.textContent = `${cat.emoji} ${cat.name}`;
+      subtitleEl.textContent = "Choose a level — each one gets trickier!";
+      levelHeadingEl.textContent = `${cat.emoji} ${cat.name} – Pick a Level`;
+      levelGridEl.innerHTML = "";
+      const labels = ["Level 1 · Easy", "Level 2 · Medium", "Level 3 · Challenge"];
+      cat.levels.forEach((qs, i) => {
+        const tile = document.createElement("button");
+        tile.className = "tile";
+        const badge = getBadge(catId, i);
+        tile.innerHTML = `
+          <span class="emoji">${["🌱", "🚀", "⭐"][i]}</span>
+          <span class="title">${labels[i]}</span>
+          <span class="meta">${qs.length} questions ${badge ? "· " + badgeEmoji(badge) : ""}</span>
+        `;
+        tile.addEventListener("click", () => { sfx.tap(); startLevel({ kind: "category", catId, levelIdx: i }); });
+        levelGridEl.appendChild(tile);
+      });
+      showOnly(levelSelectEl);
+    }
 
+    function renderHome() {
+      categoryGridEl.innerHTML = "";
+      Object.entries(categories).forEach(([id, cat]) => {
+        const tile = document.createElement("button");
+        tile.className = "tile";
+        const badges = cat.levels.map((_, i) => badgeEmoji(getBadge(id, i)) || "·").join(" ");
+        tile.innerHTML = `
+          <span class="emoji">${cat.emoji}</span>
+          <span class="title">${cat.name}</span>
+          <span class="meta">3 levels · ${badges}</span>
+        `;
+        tile.addEventListener("click", () => { sfx.tap(); goLevelSelect(id); });
+        categoryGridEl.appendChild(tile);
+      });
+
+      unlockGridEl.innerHTML = "";
+      const principalUnlocked = isPrincipalUnlocked();
+      const championUnlocked = isChampionUnlocked();
+      const pBadge = progress.badges["principal-0"];
+      const cBadge = progress.badges["champion-0"];
+
+      const p = unlockables.principal;
+      const pTile = document.createElement("button");
+      pTile.className = "tile" + (principalUnlocked ? "" : " locked");
+      pTile.disabled = !principalUnlocked;
+      pTile.innerHTML = `
+        <span class="emoji">${p.emoji}</span>
+        <span class="title">${p.name}</span>
+        <span class="meta">${principalUnlocked ? `${p.questions.length} questions ${pBadge ? "· " + badgeEmoji(pBadge) : ""}` : "🔒 " + p.unlockMsg}</span>
+      `;
+      if (principalUnlocked) {
+        pTile.addEventListener("click", () => { sfx.tap(); startLevel({ kind: "unlock", which: "principal" }); });
+      }
+      unlockGridEl.appendChild(pTile);
+
+      const c = unlockables.champion;
+      const cTile = document.createElement("button");
+      cTile.className = "tile" + (championUnlocked ? "" : " locked");
+      cTile.disabled = !championUnlocked;
+      cTile.innerHTML = `
+        <span class="emoji">${c.emoji}</span>
+        <span class="title">${c.name}</span>
+        <span class="meta">${championUnlocked ? `${c.questions.length} questions ${cBadge ? "· " + badgeEmoji(cBadge) : ""}` : "🔒 " + c.unlockMsg}</span>
+      `;
+      if (championUnlocked) {
+        cTile.addEventListener("click", () => { sfx.tap(); startLevel({ kind: "unlock", which: "champion" }); });
+      }
+      unlockGridEl.appendChild(cTile);
+    }
+
+    // ============ QUIZ LOGIC ============
+    function startLevel(set) {
+      sfx.whoosh();
+      currentSet = set;
+      if (set.kind === "category") {
+        const cat = categories[set.catId];
+        currentQs = cat.levels[set.levelIdx];
+        const lvl = ["Easy", "Medium", "Challenge"][set.levelIdx];
+        categoryPill.textContent = `${cat.emoji} ${cat.name} · ${lvl}`;
+        titleEl.textContent = `${cat.emoji} ${cat.name}`;
+        subtitleEl.textContent = `Level ${set.levelIdx + 1} – ${lvl}`;
+      } else {
+        const u = unlockables[set.which];
+        currentQs = u.questions;
+        categoryPill.textContent = `${u.emoji} ${u.name}`;
+        titleEl.textContent = `${u.emoji} ${u.name}`;
+        subtitleEl.textContent = "Top-tier challenge!";
+      }
+      currentIdx = 0;
+      totalScore = 0;
+      correctCount = 0;
+      scoreEl.textContent = "Score: 0";
+      showOnly(quizPanel);
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      const item = currentQs[currentIdx];
+      hintUsedThis = false;
+      locked = false;
+      progressEl.textContent = `Question ${currentIdx + 1} / ${currentQs.length}`;
+      progressFill.style.width = `${(currentIdx / currentQs.length) * 100}%`;
+      questionEl.textContent = item.q;
+      answersEl.innerHTML = "";
+      statusEl.textContent = "";
+      statusEl.className = "status";
+      hintBox.classList.add("hidden");
+      hintBox.textContent = "";
+      hintBtn.disabled = false;
+      hintBtn.classList.remove("hidden");
+      nextBtn.classList.add("hidden");
       item.choices.forEach((choice, idx) => {
-        const btn = document.createElement('button');
+        const btn = document.createElement("button");
         btn.textContent = choice;
-        btn.addEventListener('click', () => submitAnswer(idx));
+        btn.addEventListener("click", () => submitAnswer(idx, btn));
         answersEl.appendChild(btn);
       });
     }
 
-    function submitAnswer(index) {
+    function submitAnswer(idx, btn) {
       if (locked) return;
       locked = true;
-      const correct = quizData[current].answer;
-      const buttons = answersEl.querySelectorAll('button');
-      buttons.forEach((btn, idx) => {
-        btn.disabled = true;
-        if (idx === correct) btn.style.borderColor = '#12a150';
-        if (idx === index && idx !== correct) btn.style.borderColor = '#cc3344';
+      const item = currentQs[currentIdx];
+      const correct = item.answer;
+      const buttons = answersEl.querySelectorAll("button");
+      buttons.forEach((b, i) => {
+        b.disabled = true;
+        if (i === correct) b.classList.add("answer-correct");
+        else if (i === idx) b.classList.add("answer-wrong");
       });
-
-      if (index === correct) {
-        score += 10;
-        statusEl.textContent = '✅ Correct! Great thinking.';
-        statusEl.classList.add('ok');
+      hintBtn.disabled = true;
+      if (idx === correct) {
+        const earned = hintUsedThis ? 5 : 10;
+        totalScore += earned;
+        correctCount += 1;
+        statusEl.textContent = `✅ Correct! +${earned} points`;
+        statusEl.classList.add("ok");
+        sfx.correct();
       } else {
-        statusEl.textContent = `❌ Not quite. Correct answer: ${quizData[current].choices[correct]}.`;
-        statusEl.classList.add('bad');
+        statusEl.textContent = `❌ Not quite. The answer is "${item.choices[correct]}".`;
+        statusEl.classList.add("bad");
+        sfx.wrong();
       }
+      scoreEl.textContent = `Score: ${totalScore}`;
+      progressFill.style.width = `${((currentIdx + 1) / currentQs.length) * 100}%`;
+      nextBtn.textContent = currentIdx === currentQs.length - 1 ? "See Results 🎉" : "Next Question ➡️";
+      nextBtn.classList.remove("hidden");
+    }
 
-      scoreEl.textContent = `Score: ${score}`;
-      nextBtn.textContent = current === quizData.length - 1 ? 'See Results' : 'Next Question';
-      nextBtn.classList.remove('hidden');
+    function useHint() {
+      if (hintUsedThis || locked) return;
+      const item = currentQs[currentIdx];
+      hintUsedThis = true;
+      hintBox.textContent = `💡 ${item.hint}`;
+      hintBox.classList.remove("hidden");
+      hintBtn.disabled = true;
+      sfx.hint();
     }
 
     function nextQuestion() {
-      if (current < quizData.length - 1) {
-        current += 1;
+      sfx.tap();
+      if (currentIdx < currentQs.length - 1) {
+        currentIdx += 1;
         renderQuestion();
       } else {
-        showResults();
+        finishLevel();
       }
     }
 
-    function showResults() {
-      questionEl.textContent = score >= 70
-        ? `🏆 Amazing! You scored ${score}/${quizData.length * 10}.`
-        : `You scored ${score}/${quizData.length * 10}. Keep practicing and try again!`;
-      progressEl.textContent = 'Quiz Complete';
-      answersEl.innerHTML = '';
-      statusEl.textContent = score >= 70 ? 'Gold Badge earned!' : 'Silver Badge earned!';
-      statusEl.className = `status ${score >= 70 ? 'ok' : ''}`;
-      nextBtn.classList.add('hidden');
-      restartBtn.classList.remove('hidden');
+    function finishLevel() {
+      const bonus = 20;
+      totalScore += bonus;
+      const totalQs = currentQs.length;
+      let badge;
+      if (correctCount === totalQs) badge = "gold";
+      else if (correctCount >= Math.ceil(totalQs * 0.6)) badge = "silver";
+      else if (correctCount >= 1) badge = "bronze";
+      else badge = null;
+
+      if (currentSet.kind === "category") {
+        if (badge) setBadge(currentSet.catId, currentSet.levelIdx, badge);
+      } else if (badge) {
+        const key = currentSet.which + "-0";
+        const order = { bronze: 1, silver: 2, gold: 3 };
+        const existing = progress.badges[key];
+        if (!existing || order[badge] > order[existing]) {
+          progress.badges[key] = badge;
+          saveProgress();
+        }
+      }
+
+      showOnly(endPanel);
+      sfx.fanfare();
+      if (badge) setTimeout(() => sfx.sparkle(), 400);
+      endTitle.textContent = badge === "gold" ? "🌟 Perfect Run!" : "Level Complete!";
+      endBadge.textContent = badge ? badgeEmoji(badge) : "🎯";
+      endScore.textContent = `You scored ${totalScore} points (${correctCount}/${totalQs} correct + ${bonus} bonus)`;
+      endMessage.textContent = badge === "gold"
+        ? "Gold Badge earned — incredible work!"
+        : badge === "silver"
+          ? "Silver Badge earned — great effort!"
+          : badge === "bronze"
+            ? "Bronze Badge earned — keep practising!"
+            : "Give it another try!";
+
+      const isCat = currentSet.kind === "category";
+      const hasNext = isCat && currentSet.levelIdx < 2;
+      nextLevelBtn.classList.toggle("hidden", !hasNext);
+
+      if (!isCat || currentSet.levelIdx === 2) {
+        if (isPrincipalUnlocked() && !progress._notifiedPrincipal) {
+          progress._notifiedPrincipal = true;
+          saveProgress();
+          endMessage.textContent += " · 🎓 Principal Brain Challenge unlocked!";
+        }
+        if (isChampionUnlocked() && !progress._notifiedChampion) {
+          progress._notifiedChampion = true;
+          saveProgress();
+          endMessage.textContent += " · 🏆 World Champion Quiz unlocked!";
+        }
+      }
     }
 
-    function restartQuiz() {
-      current = 0;
-      score = 0;
-      scoreEl.textContent = 'Score: 0';
-      restartBtn.classList.add('hidden');
-      renderQuestion();
+    function replayLevel() {
+      sfx.tap();
+      startLevel(currentSet);
+    }
+    function nextLevel() {
+      sfx.tap();
+      if (currentSet.kind === "category" && currentSet.levelIdx < 2) {
+        startLevel({ kind: "category", catId: currentSet.catId, levelIdx: currentSet.levelIdx + 1 });
+      } else {
+        goHome();
+      }
+    }
+    function quitLevel() {
+      if (confirm("Quit this level? Your progress on this attempt will not be saved.")) {
+        sfx.tap();
+        goHome();
+      }
     }
 
-    nextBtn.addEventListener('click', nextQuestion);
-    restartBtn.addEventListener('click', restartQuiz);
-    renderQuestion();
+    // ============ EVENTS ============
+    hintBtn.addEventListener("click", useHint);
+    nextBtn.addEventListener("click", nextQuestion);
+    quitBtn.addEventListener("click", quitLevel);
+    replayBtn.addEventListener("click", replayLevel);
+    nextLevelBtn.addEventListener("click", nextLevel);
+    homeBtn.addEventListener("click", () => { sfx.tap(); goHome(); });
+    backToHomeBtn.addEventListener("click", () => { sfx.tap(); goHome(); });
+    soundToggleBtn.addEventListener("click", () => {
+      soundOn = !soundOn;
+      soundToggleBtn.textContent = soundOn ? "🔊 Sound" : "🔇 Muted";
+      saveProgress();
+      if (soundOn) sfx.tap();
+    });
+    soundToggleBtn.textContent = soundOn ? "🔊 Sound" : "🔇 Muted";
+
+    goHome();
   </script>
 </body>
 </html>
