@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Melody Maker – Ezra's Game Hub</title>
+  <style>
+    :root {
+      --bg: #f3f8ff;
+      --card: #ffffff;
+      --text: #1f2a3d;
+      --accent: #2f6df3;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at top, #ffe8f5 0%, var(--bg) 55%);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 16px;
+    }
+    .app {
+      width: min(960px, 100%);
+      background: var(--card);
+      border-radius: 24px;
+      box-shadow: 0 12px 36px rgba(24, 37, 69, 0.15);
+      padding: clamp(16px, 3vw, 32px);
+    }
+    h1 {
+      font-size: clamp(1.8rem, 4.5vw, 2.8rem);
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: clamp(0.9rem, 2.2vw, 1.15rem);
+      opacity: 0.8;
+      margin-bottom: 18px;
+    }
+    .scroll-hint {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #aaa;
+      margin-bottom: 8px;
+      display: none;
+    }
+    @media (max-width: 740px) { .scroll-hint { display: block; } }
+
+    /* ── Grid area ─────────────────────────────────────── */
+    .grid-wrapper {
+      display: flex;
+      align-items: flex-start;
+    }
+    .note-col {
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      margin-right: 4px;
+    }
+    .note-label {
+      height: 44px;
+      width: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: bold;
+      color: white;
+      border-radius: 8px;
+      user-select: none;
+      margin-bottom: 3px;
+    }
+    .note-label:last-child { margin-bottom: 0; }
+    .nl-0 { background: #ff5e5e; }
+    .nl-1 { background: #ff9a3c; }
+    .nl-2 { background: #e0c800; color: #443300 !important; }
+    .nl-3 { background: #5bbf67; }
+    .nl-4 { background: #3fc9d0; }
+    .nl-5 { background: #4d96ff; }
+    .nl-6 { background: #9b5ce5; }
+    .nl-7 { background: #e85fa3; }
+
+    .grid-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      flex: 1;
+    }
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(16, 44px);
+      grid-template-rows: repeat(8, 44px);
+      gap: 3px;
+      min-width: calc(16 * 44px + 15 * 3px);
+    }
+    .cell {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      border: 2px solid #dde6ff;
+      background: #f0f4ff;
+      cursor: pointer;
+      transition: background 0.08s, border-color 0.08s, box-shadow 0.08s;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cell:hover { border-color: #aac0ff; background: #e4ecff; }
+
+    /* Active cell colours per row */
+    .cell[data-row="0"].active { background: #ff5e5e; border-color: #ff3030; box-shadow: 0 0 8px #ff5e5e99; }
+    .cell[data-row="1"].active { background: #ff9a3c; border-color: #e07820; box-shadow: 0 0 8px #ff9a3c99; }
+    .cell[data-row="2"].active { background: #e0c800; border-color: #b09800; box-shadow: 0 0 8px #e0c80099; }
+    .cell[data-row="3"].active { background: #5bbf67; border-color: #3a9a45; box-shadow: 0 0 8px #5bbf6799; }
+    .cell[data-row="4"].active { background: #3fc9d0; border-color: #20a0a8; box-shadow: 0 0 8px #3fc9d099; }
+    .cell[data-row="5"].active { background: #4d96ff; border-color: #2060e0; box-shadow: 0 0 8px #4d96ff99; }
+    .cell[data-row="6"].active { background: #9b5ce5; border-color: #7038b8; box-shadow: 0 0 8px #9b5ce599; }
+    .cell[data-row="7"].active { background: #e85fa3; border-color: #c03070; box-shadow: 0 0 8px #e85fa399; }
+
+    /* Playing-column flash */
+    .cell.col-playing { background: #fffbea; border-color: #ffd700; }
+    .cell.active.col-playing { filter: brightness(1.22); border-color: #fff; }
+
+    .beat-nums {
+      display: flex;
+      gap: 3px;
+      margin-top: 5px;
+      min-width: calc(16 * 44px + 15 * 3px);
+    }
+    .beat-num {
+      width: 44px;
+      text-align: center;
+      font-size: 0.65rem;
+      color: #bbb;
+      flex-shrink: 0;
+    }
+    .beat-num.bar-start { color: #888; font-weight: bold; }
+
+    /* ── Controls ──────────────────────────────────────── */
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 18px 0 10px;
+    }
+    button {
+      padding: 10px 22px;
+      border: none;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      min-height: 44px;
+      transition: filter 0.1s, transform 0.08s;
+      touch-action: manipulation;
+    }
+    button:active { transform: scale(0.95); }
+    #btnPlay  { background: #5bbf67; color: white; }
+    #btnPlay:hover  { filter: brightness(1.1); }
+    #btnStop  { background: #ff5e5e; color: white; }
+    #btnStop:hover  { filter: brightness(1.1); }
+    #btnClear { background: #e8edff; color: #334; }
+    #btnClear:hover { background: #d0d8ff; }
+
+    .row-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      justify-content: center;
+      margin: 8px 0;
+      flex-wrap: wrap;
+    }
+    .row-group label { font-weight: bold; font-size: 0.97rem; }
+    #bpmSlider {
+      width: clamp(140px, 38vw, 260px);
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .chip-group { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .chip {
+      padding: 6px 15px;
+      border-radius: 999px;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: bold;
+      cursor: pointer;
+      border: 2px solid transparent;
+      min-height: 36px;
+      background: #e8edff;
+      color: #334;
+      transition: background 0.1s, color 0.1s, border-color 0.1s;
+    }
+    .chip:hover { background: #d0d8ff; }
+    .chip.selected { background: var(--accent); color: white; border-color: #1850c0; }
+
+    .preset-chip {
+      background: #fff3d8;
+      color: #553300;
+      border: 2px solid #ffd080;
+    }
+    .preset-chip:hover { background: #ffe8a0; }
+    .preset-chip.selected { background: #ffb800; color: #442200; border-color: #cc8800; }
+
+    .section-label {
+      font-weight: bold;
+      font-size: 0.92rem;
+      color: #445;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
+    .back-link {
+      text-align: center;
+      margin-top: 22px;
+      font-size: 0.95rem;
+    }
+    .back-link a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .back-link a:hover { text-decoration: underline; }
+
+    hr.divider { border: none; border-top: 1px solid #e8edff; margin: 12px 0; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <h1>🎵 Melody Maker</h1>
+  <p class="subtitle">Tap squares to place notes — each row is a different note, each column a beat. Press <strong>Play</strong>!</p>
+  <p class="scroll-hint">← Scroll left/right to see all 16 beats →</p>
+
+  <div class="grid-wrapper">
+    <div class="note-col" id="noteCol"></div>
+    <div class="grid-scroll">
+      <div id="grid"></div>
+      <div class="beat-nums" id="beatNums"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="btnPlay">▶ Play</button>
+    <button id="btnStop">■ Stop</button>
+    <button id="btnClear">🗑 Clear</button>
+  </div>
+
+  <hr class="divider">
+
+  <div class="row-group">
+    <label>Speed: <strong id="bpmVal">120</strong> BPM</label>
+    <input type="range" id="bpmSlider" min="40" max="200" value="120" step="5">
+  </div>
+
+  <hr class="divider">
+
+  <p class="section-label">Sound</p>
+  <div class="chip-group" id="soundGroup">
+    <button class="chip selected" data-sound="bell">🔔 Bell</button>
+    <button class="chip" data-sound="piano">🎹 Piano</button>
+    <button class="chip" data-sound="flute">🪈 Flute</button>
+    <button class="chip" data-sound="marimba">🥁 Marimba</button>
+  </div>
+
+  <hr class="divider">
+
+  <p class="section-label">Try a song</p>
+  <div class="chip-group" id="presetGroup">
+    <button class="preset-chip chip" data-preset="mary">🐑 Mary's Lamb</button>
+    <button class="preset-chip chip" data-preset="hotcross">🍞 Hot Cross Buns</button>
+    <button class="preset-chip chip" data-preset="twinkle">⭐ Twinkle Twinkle</button>
+    <button class="preset-chip chip" data-preset="ode">🎶 Ode to Joy</button>
+  </div>
+
+  <p class="back-link"><a href="index.html">← Back to Game Hub</a></p>
+</div>
+
+<script>
+  /* ── Constants ─────────────────────────────────────────── */
+  const NOTE_NAMES = ['C5','B4','A4','G4','F4','E4','D4','C4'];
+  const FREQS      = [523.25, 493.88, 440.00, 392.00, 349.23, 329.63, 293.66, 261.63];
+  const BEATS = 16;
+  const ROWS  = 8;
+
+  /* Presets: [row, beat] pairs. Row 0 = C5 (top), Row 7 = C4 (bottom) */
+  const PRESETS = {
+    mary: [
+      [5,0],[6,1],[7,2],[6,3],[5,4],[5,5],[5,6],
+      [6,8],[6,9],[6,10],
+      [5,12],[3,13],[3,14]
+    ],
+    hotcross: [
+      [5,0],[6,1],[7,2],
+      [5,4],[6,5],[7,6],
+      [7,8],[7,9],[7,10],[7,11],
+      [6,12],[6,13],[6,14],[6,15]
+    ],
+    twinkle: [
+      [7,0],[7,1],[3,2],[3,3],[2,4],[2,5],[3,6],
+      [4,8],[4,9],[5,10],[5,11],[6,12],[6,13],[7,14]
+    ],
+    ode: [
+      [5,0],[5,1],[4,2],[3,3],[3,4],[4,5],[5,6],[6,7],
+      [7,8],[7,9],[6,10],[4,11],[5,12],[5,13],[5,14]
+    ]
+  };
+
+  /* ── State ─────────────────────────────────────────────── */
+  let grid = Array.from({length: ROWS}, () => new Array(BEATS).fill(false));
+  let audioCtx    = null;
+  let isPlaying   = false;
+  let currentBeat = 0;
+  let nextBeatTime = 0;
+  let schedulerTimer = null;
+  let currentSound = 'bell';
+  let lastHighlit  = -1;
+
+  /* ── Build DOM ─────────────────────────────────────────── */
+  const noteColEl = document.getElementById('noteCol');
+  NOTE_NAMES.forEach((name, row) => {
+    const lbl = document.createElement('div');
+    lbl.className = `note-label nl-${row}`;
+    lbl.textContent = name;
+    noteColEl.appendChild(lbl);
+  });
+
+  const gridEl = document.getElementById('grid');
+  gridEl.style.cssText = `
+    display: grid;
+    grid-template-columns: repeat(${BEATS}, 44px);
+    grid-template-rows: repeat(${ROWS}, 44px);
+    gap: 3px;
+    min-width: calc(${BEATS} * 44px + ${BEATS - 1} * 3px);
+  `;
+
+  for (let row = 0; row < ROWS; row++) {
+    for (let beat = 0; beat < BEATS; beat++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.row  = row;
+      cell.dataset.beat = beat;
+      cell.addEventListener('mousedown', () => toggleCell(row, beat));
+      cell.addEventListener('touchstart', e => { e.preventDefault(); toggleCell(row, beat); }, { passive: false });
+      gridEl.appendChild(cell);
+    }
+  }
+
+  const beatNumsEl = document.getElementById('beatNums');
+  for (let b = 0; b < BEATS; b++) {
+    const num = document.createElement('div');
+    num.className = 'beat-num' + (b % 4 === 0 ? ' bar-start' : '');
+    num.textContent = b + 1;
+    beatNumsEl.appendChild(num);
+  }
+
+  /* ── Helpers ───────────────────────────────────────────── */
+  function getCell(row, beat) {
+    return gridEl.querySelector(`.cell[data-row="${row}"][data-beat="${beat}"]`);
+  }
+
+  function toggleCell(row, beat) {
+    grid[row][beat] = !grid[row][beat];
+    const cell = getCell(row, beat);
+    if (grid[row][beat]) {
+      cell.classList.add('active');
+      previewNote(FREQS[row]);
+    } else {
+      cell.classList.remove('active');
+    }
+    saveGrid();
+  }
+
+  function highlightBeat(beat) {
+    if (lastHighlit >= 0) {
+      for (let r = 0; r < ROWS; r++) getCell(r, lastHighlit)?.classList.remove('col-playing');
+    }
+    for (let r = 0; r < ROWS; r++) getCell(r, beat)?.classList.add('col-playing');
+    lastHighlit = beat;
+  }
+
+  function clearHighlight() {
+    if (lastHighlit >= 0) {
+      for (let r = 0; r < ROWS; r++) getCell(r, lastHighlit)?.classList.remove('col-playing');
+      lastHighlit = -1;
+    }
+  }
+
+  /* ── Audio ─────────────────────────────────────────────── */
+  function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function playNote(freq, time, stepDur) {
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value = freq;
+
+    switch (currentSound) {
+      case 'bell': {
+        osc.type = 'sine';
+        const endT = time + Math.min(stepDur * 4, 2.0);
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(0.55, time + 0.005);
+        gain.gain.exponentialRampToValueAtTime(0.001, endT);
+        osc.start(time); osc.stop(endT + 0.02);
+        break;
+      }
+      case 'piano': {
+        osc.type = 'triangle';
+        const endT = time + Math.min(stepDur * 2.5, 1.2);
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(0.5, time + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.001, endT);
+        osc.start(time); osc.stop(endT + 0.02);
+        break;
+      }
+      case 'flute': {
+        osc.type = 'sine';
+        const endT = time + stepDur + 0.05;
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(0.38, time + 0.025);
+        gain.gain.linearRampToValueAtTime(0.28, time + stepDur * 0.75);
+        gain.gain.linearRampToValueAtTime(0.001, endT);
+        osc.start(time); osc.stop(endT + 0.02);
+        /* soft second harmonic */
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'sine'; osc2.frequency.value = freq * 2;
+        osc2.connect(gain2); gain2.connect(audioCtx.destination);
+        gain2.gain.setValueAtTime(0, time);
+        gain2.gain.linearRampToValueAtTime(0.07, time + 0.025);
+        gain2.gain.linearRampToValueAtTime(0.001, endT);
+        osc2.start(time); osc2.stop(endT + 0.02);
+        break;
+      }
+      case 'marimba': {
+        osc.type = 'sine';
+        const endT = time + Math.min(stepDur * 2, 0.8);
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(0.6, time + 0.003);
+        gain.gain.exponentialRampToValueAtTime(0.001, endT);
+        osc.start(time); osc.stop(endT + 0.02);
+        /* add 4th harmonic for woody timbre */
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'sine'; osc2.frequency.value = freq * 4;
+        osc2.connect(gain2); gain2.connect(audioCtx.destination);
+        gain2.gain.setValueAtTime(0, time);
+        gain2.gain.linearRampToValueAtTime(0.12, time + 0.002);
+        gain2.gain.exponentialRampToValueAtTime(0.001, time + Math.min(stepDur * 0.6, 0.2));
+        osc2.start(time); osc2.stop(time + Math.min(stepDur * 0.6, 0.2) + 0.02);
+        break;
+      }
+    }
+  }
+
+  function previewNote(freq) {
+    initAudio();
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine'; osc.frequency.value = freq;
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.4, t + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+    osc.start(t); osc.stop(t + 0.27);
+  }
+
+  /* ── Sequencer ─────────────────────────────────────────── */
+  function scheduler() {
+    const bpm = parseInt(bpmSlider.value);
+    const stepDur = (60 / bpm) / 4; /* 16th notes */
+    const lookahead = 0.12;
+
+    while (nextBeatTime < audioCtx.currentTime + lookahead) {
+      const beat = currentBeat;
+      const schedTime = nextBeatTime;
+
+      for (let row = 0; row < ROWS; row++) {
+        if (grid[row][beat]) playNote(FREQS[row], schedTime, stepDur);
+      }
+
+      const delay = Math.max(0, (schedTime - audioCtx.currentTime) * 1000);
+      setTimeout(() => { if (isPlaying) highlightBeat(beat); }, delay);
+
+      nextBeatTime += stepDur;
+      currentBeat = (currentBeat + 1) % BEATS;
+    }
+  }
+
+  /* ── Controls ──────────────────────────────────────────── */
+  const bpmSlider = document.getElementById('bpmSlider');
+  const bpmVal    = document.getElementById('bpmVal');
+
+  bpmSlider.addEventListener('input', () => {
+    bpmVal.textContent = bpmSlider.value;
+    localStorage.setItem('mm-bpm', bpmSlider.value);
+  });
+
+  document.getElementById('btnPlay').addEventListener('click', () => {
+    initAudio();
+    if (isPlaying) clearInterval(schedulerTimer);
+    isPlaying = true;
+    currentBeat = 0;
+    nextBeatTime = audioCtx.currentTime + 0.05;
+    schedulerTimer = setInterval(scheduler, 25);
+  });
+
+  document.getElementById('btnStop').addEventListener('click', () => {
+    isPlaying = false;
+    clearInterval(schedulerTimer);
+    schedulerTimer = null;
+    clearHighlight();
+  });
+
+  document.getElementById('btnClear').addEventListener('click', () => {
+    for (let r = 0; r < ROWS; r++) {
+      for (let b = 0; b < BEATS; b++) {
+        grid[r][b] = false;
+        getCell(r, b)?.classList.remove('active');
+      }
+    }
+    saveGrid();
+  });
+
+  /* Sound chips */
+  document.getElementById('soundGroup').addEventListener('click', e => {
+    const btn = e.target.closest('.chip');
+    if (!btn || !btn.dataset.sound) return;
+    document.querySelectorAll('#soundGroup .chip').forEach(c => c.classList.remove('selected'));
+    btn.classList.add('selected');
+    currentSound = btn.dataset.sound;
+    localStorage.setItem('mm-sound', currentSound);
+  });
+
+  /* Preset chips */
+  document.getElementById('presetGroup').addEventListener('click', e => {
+    const btn = e.target.closest('.chip');
+    if (!btn || !btn.dataset.preset) return;
+    document.querySelectorAll('#presetGroup .chip').forEach(c => c.classList.remove('selected'));
+    btn.classList.add('selected');
+
+    for (let r = 0; r < ROWS; r++)
+      for (let b = 0; b < BEATS; b++) {
+        grid[r][b] = false;
+        getCell(r, b)?.classList.remove('active');
+      }
+
+    const notes = PRESETS[btn.dataset.preset] || [];
+    notes.forEach(([row, beat]) => {
+      grid[row][beat] = true;
+      getCell(row, beat)?.classList.add('active');
+    });
+    saveGrid();
+  });
+
+  /* ── Persistence ───────────────────────────────────────── */
+  function saveGrid() {
+    localStorage.setItem('mm-grid', JSON.stringify(grid));
+  }
+
+  function loadSaved() {
+    try {
+      const raw = localStorage.getItem('mm-grid');
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (Array.isArray(saved) && saved.length === ROWS) {
+          grid = saved;
+          for (let r = 0; r < ROWS; r++)
+            for (let b = 0; b < BEATS; b++)
+              if (grid[r][b]) getCell(r, b)?.classList.add('active');
+        }
+      }
+      const bpm = localStorage.getItem('mm-bpm');
+      if (bpm) { bpmSlider.value = bpm; bpmVal.textContent = bpm; }
+      const sound = localStorage.getItem('mm-sound');
+      if (sound) {
+        currentSound = sound;
+        document.querySelectorAll('#soundGroup .chip').forEach(c => {
+          c.classList.toggle('selected', c.dataset.sound === sound);
+        });
+      }
+    } catch (_) {}
+  }
+
+  loadSaved();
+</script>
+</body>
+</html>
