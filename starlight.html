@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Starlight – Ezra's Game Hub</title>
+  <style>
+    :root {
+      --bg: #0d1b2a;
+      --card: #13263d;
+      --glow: #4dd9e0;
+      --gold: #ffd700;
+      --text: #e8f4ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(ellipse at top, #0a2a4a 0%, #050d18 70%);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .app {
+      width: min(780px, 100%);
+      background: var(--card);
+      border-radius: 24px;
+      box-shadow: 0 0 60px rgba(77, 217, 224, 0.15), 0 12px 36px rgba(0,0,20,0.5);
+      padding: clamp(16px, 3vw, 36px);
+      border: 1px solid #1e3a55;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      text-align: center;
+      letter-spacing: 0.03em;
+      background: linear-gradient(135deg, #4dd9e0, #a66cff, #ffd700);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 4px;
+    }
+    .byline {
+      text-align: center;
+      font-size: clamp(0.85rem, 2vw, 1.05rem);
+      color: #7da8c8;
+      margin-bottom: 24px;
+    }
+
+    /* ── Now-playing display ── */
+    .now-playing {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+      background: #0d1b2a;
+      border-radius: 14px;
+      padding: 12px 18px;
+      border: 1px solid #1e3a55;
+    }
+    .note-badge {
+      min-width: 64px;
+      height: 52px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1e3a55, #0a2238);
+      border: 2px solid #4dd9e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #4dd9e0;
+      box-shadow: 0 0 14px rgba(77,217,224,0.3);
+      transition: color 0.08s, border-color 0.08s, box-shadow 0.08s;
+      flex-shrink: 0;
+      letter-spacing: -0.02em;
+    }
+    .note-badge.lit {
+      color: var(--gold);
+      border-color: var(--gold);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    }
+    .progress-wrap { flex: 1; }
+    .bar-label {
+      font-size: 0.72rem;
+      color: #5a8ab0;
+      margin-bottom: 5px;
+    }
+    .progress-bar {
+      height: 8px;
+      background: #1e3a55;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #4dd9e0, #a66cff);
+      border-radius: 999px;
+      transition: width 0.05s linear;
+    }
+
+    /* ── Piano keyboard ── */
+    .piano-outer {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin-bottom: 22px;
+      padding-bottom: 6px;
+    }
+    .piano-scroll-hint {
+      text-align: center;
+      font-size: 0.73rem;
+      color: #4a6a88;
+      margin-bottom: 8px;
+      display: none;
+    }
+    @media (max-width: 680px) { .piano-scroll-hint { display: block; } }
+
+    .piano {
+      position: relative;
+      display: flex;
+      margin: 0 auto;
+      width: 660px; /* 15 white keys × 44px */
+      height: 165px;
+      flex-shrink: 0;
+    }
+
+    .white-key {
+      position: absolute;
+      width: 42px;
+      height: 165px;
+      background: linear-gradient(180deg, #f5f5f5 0%, #fff 100%);
+      border: 1.5px solid #aaa;
+      border-top: none;
+      border-radius: 0 0 7px 7px;
+      z-index: 1;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 6px;
+      transition: background 0.06s, box-shadow 0.06s;
+      box-shadow: 1px 3px 5px rgba(0,0,0,0.3);
+    }
+    .white-key .key-label {
+      font-size: 0.6rem;
+      font-weight: bold;
+      color: #888;
+      user-select: none;
+    }
+    .white-key.lit {
+      background: linear-gradient(180deg, #ffe060 0%, #ffc800 100%);
+      box-shadow: 0 0 18px rgba(255,200,0,0.7), 1px 3px 5px rgba(0,0,0,0.3);
+    }
+    .white-key.lit .key-label { color: #664400; }
+
+    .black-key {
+      position: absolute;
+      width: 28px;
+      height: 100px;
+      background: linear-gradient(180deg, #282828 0%, #111 100%);
+      border-radius: 0 0 5px 5px;
+      z-index: 2;
+      top: 0;
+      transition: background 0.06s, box-shadow 0.06s;
+      box-shadow: 1px 4px 8px rgba(0,0,0,0.6);
+    }
+    .black-key.lit {
+      background: linear-gradient(180deg, #cc8800 0%, #aa6600 100%);
+      box-shadow: 0 0 14px rgba(255,180,0,0.6), 1px 4px 8px rgba(0,0,0,0.6);
+    }
+
+    /* ── Controls ── */
+    .controls {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    button {
+      padding: 11px 26px;
+      border: none;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      min-height: 44px;
+      transition: filter 0.1s, transform 0.08s;
+      touch-action: manipulation;
+    }
+    button:active { transform: scale(0.95); }
+    #btnPlay {
+      background: linear-gradient(135deg, #4dd9e0, #2fa8b0);
+      color: #05151f;
+    }
+    #btnPlay:hover { filter: brightness(1.15); }
+    #btnRestart {
+      background: #1e3a55;
+      color: #7da8c8;
+      border: 1px solid #2a5070;
+    }
+    #btnRestart:hover { background: #2a4a65; }
+
+    .status-text {
+      text-align: center;
+      font-size: 0.88rem;
+      color: #5a8ab0;
+      min-height: 1.4em;
+      margin-bottom: 16px;
+    }
+
+    .score-display {
+      background: #0d1b2a;
+      border-radius: 14px;
+      padding: 14px 18px;
+      border: 1px solid #1e3a55;
+      margin-bottom: 18px;
+      font-size: 0.78rem;
+      color: #5a8ab0;
+      line-height: 1.8;
+    }
+    .score-display strong { color: #7da8c8; }
+
+    hr.divider { border: none; border-top: 1px solid #1e3a55; margin: 14px 0; }
+
+    .back-link {
+      text-align: center;
+      margin-top: 18px;
+      font-size: 0.95rem;
+    }
+    .back-link a {
+      color: #4dd9e0;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .back-link a:hover { text-decoration: underline; }
+
+    /* Stars */
+    .stars {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: -1; overflow: hidden;
+    }
+    .star {
+      position: absolute;
+      width: 2px; height: 2px;
+      background: white;
+      border-radius: 50%;
+      animation: twinkle var(--d) ease-in-out infinite;
+      animation-delay: var(--delay);
+    }
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.2; }
+      50% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Starfield background -->
+<div class="stars" id="stars"></div>
+
+<div class="app">
+  <h1>✨ Starlight</h1>
+  <p class="byline">An original melody — composed for Ezra</p>
+
+  <div class="now-playing">
+    <div class="note-badge" id="noteBadge">♩</div>
+    <div class="progress-wrap">
+      <div class="bar-label" id="barLabel">Press Play to begin</div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+  </div>
+
+  <p class="piano-scroll-hint">← Scroll to see full keyboard →</p>
+  <div class="piano-outer">
+    <div class="piano" id="piano"></div>
+  </div>
+
+  <div class="controls">
+    <button id="btnPlay">▶ Play</button>
+    <button id="btnRestart">↺ Restart</button>
+  </div>
+  <p class="status-text" id="statusText"></p>
+
+  <hr class="divider">
+
+  <div class="score-display">
+    <strong>About this piece:</strong> Starlight is written in <strong>C major</strong> at 90 BPM.
+    It has 8 bars and rises to a high A♯5 at the climax in bar 6, then gently
+    resolves back to C4 at the end. Watch the piano keys light up as each note plays! 🌟
+  </div>
+
+  <p class="back-link"><a href="index.html">← Back to Game Hub</a></p>
+</div>
+
+<script>
+/* ── Starfield ─────────────────────────────────────────────────────── */
+(function() {
+  const el = document.getElementById('stars');
+  for (let i = 0; i < 80; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.left = Math.random() * 100 + '%';
+    s.style.top  = Math.random() * 100 + '%';
+    s.style.setProperty('--d', (2 + Math.random() * 4) + 's');
+    s.style.setProperty('--delay', (-Math.random() * 4) + 's');
+    s.style.opacity = Math.random() * 0.5;
+    el.appendChild(s);
+  }
+})();
+
+/* ── Piano layout ──────────────────────────────────────────────────── */
+// White key width = 44px. 15 keys (C4–C6) total width = 660px.
+// Black key width = 28px. Left = rightWhiteIndex*44 - 14.
+const KEYS = [
+  // Octave 4
+  {id:'C4',  type:'white', left:0,   label:'C4'},
+  {id:'C#4', type:'black', left:30},
+  {id:'D4',  type:'white', left:44,  label:''},
+  {id:'D#4', type:'black', left:74},
+  {id:'E4',  type:'white', left:88,  label:''},
+  {id:'F4',  type:'white', left:132, label:''},
+  {id:'F#4', type:'black', left:162},
+  {id:'G4',  type:'white', left:176, label:''},
+  {id:'G#4', type:'black', left:206},
+  {id:'A4',  type:'white', left:220, label:''},
+  {id:'A#4', type:'black', left:250},
+  {id:'B4',  type:'white', left:264, label:''},
+  // Octave 5
+  {id:'C5',  type:'white', left:308, label:'C5'},
+  {id:'C#5', type:'black', left:338},
+  {id:'D5',  type:'white', left:352, label:''},
+  {id:'D#5', type:'black', left:382},
+  {id:'E5',  type:'white', left:396, label:''},
+  {id:'F5',  type:'white', left:440, label:''},
+  {id:'F#5', type:'black', left:470},
+  {id:'G5',  type:'white', left:484, label:''},
+  {id:'G#5', type:'black', left:514},
+  {id:'A5',  type:'white', left:528, label:''},
+  {id:'A#5', type:'black', left:558},
+  {id:'B5',  type:'white', left:572, label:''},
+  // C6
+  {id:'C6',  type:'white', left:616, label:'C6'},
+];
+
+const NOTE_FREQ = {
+  'C4':261.63,'C#4':277.18,'D4':293.66,'D#4':311.13,'E4':329.63,
+  'F4':349.23,'F#4':369.99,'G4':392.00,'G#4':415.30,'A4':440.00,
+  'A#4':466.16,'B4':493.88,
+  'C5':523.25,'C#5':554.37,'D5':587.33,'D#5':622.25,'E5':659.25,
+  'F5':698.46,'F#5':739.99,'G5':783.99,'G#5':830.61,'A5':880.00,
+  'A#5':932.33,'B5':987.77,'C6':1046.50
+};
+
+const pianoEl = document.getElementById('piano');
+
+// Render white keys first, then black keys on top
+KEYS.filter(k => k.type === 'white').forEach(k => {
+  const el = document.createElement('div');
+  el.className = 'white-key';
+  el.id = 'key-' + k.id;
+  el.style.left = k.left + 'px';
+  if (k.label) {
+    const lbl = document.createElement('span');
+    lbl.className = 'key-label';
+    lbl.textContent = k.label;
+    el.appendChild(lbl);
+  }
+  pianoEl.appendChild(el);
+});
+KEYS.filter(k => k.type === 'black').forEach(k => {
+  const el = document.createElement('div');
+  el.className = 'black-key';
+  el.id = 'key-' + k.id;
+  el.style.left = k.left + 'px';
+  pianoEl.appendChild(el);
+});
+
+/* ── Composition ───────────────────────────────────────────────────── */
+// "Starlight" — C major, 90 BPM, 8 bars
+// [noteId, durationInBeats]   (null = rest)
+const BPM  = 90;
+const BEAT = 60 / BPM; // seconds
+
+const MELODY = [
+  // Bar 1 — gentle ascent (intro)
+  ['G4',1],['A4',1],['B4',1],['C5',1],
+  // Bar 2 — flowing continuation
+  ['E5',1.5],['D5',0.5],['C5',2],
+  // Bar 3 — lyrical middle phrase
+  ['B4',1],['A4',1],['G4',1],['F4',1],
+  // Bar 4 — resting cadence
+  ['E4',2],['C4',2],
+  // Bar 5 — rising variation
+  ['C5',1],['E5',1],['G5',1],['E5',1],
+  // Bar 6 — peak of the piece (climax!)
+  ['A5',1.5],['G5',0.5],['F5',2],
+  // Bar 7 — descending resolution
+  ['E5',1],['D5',1],['C5',1],['B4',1],
+  // Bar 8 — gentle finale
+  ['G4',1.5],['E4',0.5],['C4',2],
+];
+
+/* Bar map: which note index starts each bar */
+const BAR_STARTS = [0, 4, 7, 11, 13, 17, 20, 24];
+const BAR_NAMES  = ['Bar 1','Bar 2','Bar 3','Bar 4','Bar 5','Bar 6','Bar 7','Bar 8'];
+
+/* Total duration in beats */
+const TOTAL_BEATS = MELODY.reduce((s,[,b]) => s + b, 0); // should be 32
+
+/* ── Audio ─────────────────────────────────────────────────────────── */
+let audioCtx = null;
+let playbackActive = false;
+let timeouts = [];
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playNoteAt(noteId, startTime, durationSecs) {
+  const freq = NOTE_FREQ[noteId];
+  if (!freq) return;
+
+  /* Triangle + octave sine for warm piano-bell tone */
+  const masterGain = audioCtx.createGain();
+  masterGain.connect(audioCtx.destination);
+
+  const osc1 = audioCtx.createOscillator();
+  osc1.type = 'triangle';
+  osc1.frequency.value = freq;
+  const g1 = audioCtx.createGain();
+  g1.gain.value = 0.65;
+  osc1.connect(g1);
+  g1.connect(masterGain);
+
+  const osc2 = audioCtx.createOscillator();
+  osc2.type = 'sine';
+  osc2.frequency.value = freq * 2;
+  const g2 = audioCtx.createGain();
+  g2.gain.value = 0.18;
+  osc2.connect(g2);
+  g2.connect(masterGain);
+
+  const attack = 0.008;
+  const endT   = startTime + durationSecs;
+  const relT   = endT + 0.55;
+
+  masterGain.gain.setValueAtTime(0, startTime);
+  masterGain.gain.linearRampToValueAtTime(0.42, startTime + attack);
+  masterGain.gain.exponentialRampToValueAtTime(0.22, startTime + 0.06);
+  masterGain.gain.setValueAtTime(0.22, endT);
+  masterGain.gain.exponentialRampToValueAtTime(0.001, relT);
+
+  osc1.start(startTime); osc1.stop(relT + 0.05);
+  osc2.start(startTime); osc2.stop(relT + 0.05);
+}
+
+/* ── Playback ──────────────────────────────────────────────────────── */
+function clearTimers() {
+  timeouts.forEach(t => clearTimeout(t));
+  timeouts = [];
+}
+
+function unlitAll() {
+  document.querySelectorAll('.white-key.lit, .black-key.lit').forEach(k => k.classList.remove('lit'));
+}
+
+function litKey(noteId) {
+  unlitAll();
+  const el = document.getElementById('key-' + noteId);
+  if (el) el.classList.add('lit');
+}
+
+function startPlayback() {
+  initAudio();
+  clearTimers();
+  unlitAll();
+  playbackActive = true;
+
+  const t0 = audioCtx.currentTime + 0.05;
+  let offsetBeats = 0;
+  const totalSecs = TOTAL_BEATS * BEAT;
+  const badgeEl   = document.getElementById('noteBadge');
+  const barLblEl  = document.getElementById('barLabel');
+  const progFill  = document.getElementById('progressFill');
+  const statusEl  = document.getElementById('statusText');
+
+  statusEl.textContent = '🎵 Playing…';
+
+  MELODY.forEach(([noteId, durationBeats], idx) => {
+    const startSecs = offsetBeats * BEAT;
+    const durSecs   = durationBeats * BEAT;
+
+    /* Schedule audio */
+    playNoteAt(noteId, t0 + startSecs, durSecs);
+
+    /* Schedule visual at the right moment */
+    const delay = startSecs * 1000 - 20; // 20ms early for visual prep
+    timeouts.push(setTimeout(() => {
+      if (!playbackActive) return;
+      litKey(noteId);
+      badgeEl.textContent = noteId;
+      badgeEl.classList.add('lit');
+      setTimeout(() => badgeEl.classList.remove('lit'), 200);
+
+      /* Bar label */
+      for (let b = BAR_STARTS.length - 1; b >= 0; b--) {
+        if (idx >= BAR_STARTS[b]) {
+          barLblEl.textContent = BAR_NAMES[b] + ' of 8';
+          break;
+        }
+      }
+      /* Progress */
+      const pct = Math.min(100, (startSecs / totalSecs) * 100);
+      progFill.style.width = pct + '%';
+    }, Math.max(0, delay)));
+
+    offsetBeats += durationBeats;
+  });
+
+  /* End of piece */
+  timeouts.push(setTimeout(() => {
+    if (!playbackActive) return;
+    unlitAll();
+    progFill.style.width = '100%';
+    barLblEl.textContent = 'Finished!';
+    badgeEl.textContent = '🌟';
+    statusEl.textContent = '✨ Fin — press Play again to replay';
+    playbackActive = false;
+  }, totalSecs * 1000 + 800));
+}
+
+function stopPlayback() {
+  playbackActive = false;
+  clearTimers();
+  unlitAll();
+  document.getElementById('noteBadge').textContent = '♩';
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('barLabel').textContent = 'Press Play to begin';
+  document.getElementById('statusText').textContent = '';
+}
+
+document.getElementById('btnPlay').addEventListener('click', startPlayback);
+document.getElementById('btnRestart').addEventListener('click', () => {
+  stopPlayback();
+  setTimeout(startPlayback, 80);
+});
+</script>
+</body>
+</html>
