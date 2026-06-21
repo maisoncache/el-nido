@@ -863,6 +863,7 @@
       if (state.positions.human >= TOTAL - 1) {
         state.winner = "human";
         recordAchievement("carodsWins");
+        bumpPetRoll();
         showWin("🏆 You win! Great driving!");
         return true;
       }
@@ -880,6 +881,15 @@
         const data = raw ? JSON.parse(raw) : {};
         data[key] = (data[key] || 0) + 1;
         localStorage.setItem("ezraAchievements_v1", JSON.stringify(data));
+      } catch (e) {}
+    }
+
+    function bumpPetRoll() {
+      try {
+        const raw = localStorage.getItem("ezraPetTriggers_v1");
+        const data = raw ? JSON.parse(raw) : { pendingRolls: 0 };
+        data.pendingRolls = (data.pendingRolls || 0) + 1;
+        localStorage.setItem("ezraPetTriggers_v1", JSON.stringify(data));
       } catch (e) {}
     }
 
