@@ -801,6 +801,15 @@
       }
     }
 
+    function bumpPetRoll() {
+      try {
+        const raw = localStorage.getItem("ezraPetTriggers_v1");
+        const data = raw ? JSON.parse(raw) : { pendingRolls: 0 };
+        data.pendingRolls = (data.pendingRolls || 0) + 1;
+        localStorage.setItem("ezraPetTriggers_v1", JSON.stringify(data));
+      } catch (e) {}
+    }
+
     function finishLevel() {
       const bonus = 20;
       totalScore += bonus;
@@ -810,6 +819,8 @@
       else if (correctCount >= Math.ceil(totalQs * 0.6)) badge = "silver";
       else if (correctCount >= 1) badge = "bronze";
       else badge = null;
+
+      if (badge) bumpPetRoll();
 
       if (currentSet.kind === "category") {
         if (badge) setBadge(currentSet.catId, currentSet.levelIdx, badge);

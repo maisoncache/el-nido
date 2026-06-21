@@ -24,7 +24,7 @@
         radial-gradient(circle at 20% 10%, #ffe7b0 0%, transparent 40%),
         radial-gradient(circle at 80% 90%, #ffd1f0 0%, transparent 45%),
         var(--bg);
-      padding: 20px;
+      padding: 16px;
       display: grid;
       place-items: center;
     }
@@ -33,265 +33,171 @@
       background: var(--card);
       border-radius: 24px;
       box-shadow: 0 14px 36px rgba(40, 30, 80, 0.15);
-      padding: clamp(20px, 4vw, 36px);
+      padding: clamp(16px, 4vw, 32px);
     }
     h1 {
       margin: 0;
       text-align: center;
-      font-size: clamp(1.8rem, 4.6vw, 2.6rem);
+      font-size: clamp(1.8rem, 4.6vw, 2.4rem);
     }
     .subtitle {
       text-align: center;
       opacity: 0.85;
-      margin: 10px auto 24px;
+      margin: 8px auto 14px;
       max-width: 60ch;
-    }
-    .summary {
-      text-align: center;
       font-size: 0.95rem;
-      margin-bottom: 18px;
-      color: #6a5a20;
+    }
+    .progress-line {
+      text-align: center;
       font-weight: bold;
+      margin: 6px 0;
+      color: #6a5a20;
     }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 18px;
-    }
-    .pet-card {
-      border-radius: 20px;
-      padding: 20px;
-      position: relative;
+    .progress-bar {
+      width: 100%;
+      max-width: 320px;
+      margin: 4px auto 14px;
+      height: 10px;
+      background: #f0e6c8;
+      border-radius: 999px;
       overflow: hidden;
     }
-    .pet-card.legendary {
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--common), var(--rare), var(--epic), var(--legendary));
+      transition: width 0.6s ease;
+    }
+    .filters {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 10px 0 14px;
+    }
+    .filters button {
+      background: white;
+      border: 2px solid #d6d0c0;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.85rem;
+      color: #5a5547;
+    }
+    .filters button.active { background: var(--text); color: white; border-color: var(--text); }
+    .filters button.r-common.active    { background: var(--common);    border-color: var(--common); }
+    .filters button.r-rare.active      { background: var(--rare);      border-color: var(--rare); }
+    .filters button.r-epic.active      { background: var(--epic);      border-color: var(--epic); }
+    .filters button.r-legendary.active { background: var(--legendary); color: #4a3500; border-color: var(--legendary); }
+
+    .binder {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+    }
+    .mini {
+      aspect-ratio: 3 / 4;
+      border-radius: 12px;
+      padding: 8px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .mini:hover { transform: translateY(-3px) scale(1.02); }
+    .mini.legendary {
       background: linear-gradient(160deg, #fffbef, #fff5d8);
       border: 3px solid var(--legendary);
-      box-shadow: 0 0 24px rgba(245, 180, 0, 0.25), inset 0 0 0 1px rgba(255,255,255,0.6);
+      box-shadow: 0 4px 14px rgba(245, 180, 0, 0.35);
     }
-    .pet-card.epic {
+    .mini.epic {
       background: linear-gradient(160deg, #faf5ff, #f0e6ff);
       border: 3px solid var(--epic);
-      box-shadow: 0 0 24px rgba(166, 108, 255, 0.25), inset 0 0 0 1px rgba(255,255,255,0.6);
+      box-shadow: 0 4px 14px rgba(166, 108, 255, 0.3);
     }
-    .pet-card.rare {
+    .mini.rare {
       background: linear-gradient(160deg, #f0fbff, #d8efff);
       border: 3px solid var(--rare);
-      box-shadow: 0 0 24px rgba(77, 193, 240, 0.25), inset 0 0 0 1px rgba(255,255,255,0.6);
+      box-shadow: 0 4px 14px rgba(77, 193, 240, 0.3);
     }
-    .pet-card.locked {
+    .mini.common {
+      background: linear-gradient(160deg, #f4faf0, #ddeed8);
+      border: 3px solid var(--common);
+      box-shadow: 0 4px 12px rgba(108, 191, 108, 0.25);
+    }
+    .mini.locked {
       background: #f4f1ec;
       border: 3px dashed #cfc6b3;
       box-shadow: none;
       color: #8a8676;
+      cursor: pointer;
     }
-    .rarity {
-      position: absolute;
-      top: 14px;
-      right: 14px;
-      padding: 4px 10px;
-      border-radius: 999px;
+    .mini .num {
+      font-size: 0.65rem;
+      letter-spacing: 0.5px;
+      font-weight: bold;
+      opacity: 0.7;
+    }
+    .mini .face {
+      font-size: 2.6rem;
+      line-height: 1;
+      margin: 4px 0;
+    }
+    .mini.locked .face {
+      filter: brightness(0) opacity(0.22);
+    }
+    .mini .name {
       font-size: 0.78rem;
       font-weight: bold;
+      text-align: center;
+      line-height: 1.1;
+      padding: 0 2px;
+    }
+    .mini .rar {
+      font-size: 0.62rem;
       letter-spacing: 0.5px;
       text-transform: uppercase;
-    }
-    .pet-card.legendary .rarity { background: var(--legendary); color: #4a3500; }
-    .pet-card.epic       .rarity { background: var(--epic);      color: white; }
-    .pet-card.rare       .rarity { background: var(--rare);      color: white; }
-    .pet-card.locked     .rarity { background: #cfc6b3; color: #5a5547; }
-    .pet-id {
-      font-size: 0.78rem;
-      letter-spacing: 1px;
-      color: #8a7a40;
       font-weight: bold;
-      margin-bottom: 4px;
+      margin-top: auto;
     }
-    .pet-card.epic .pet-id   { color: #6b3eb6; }
-    .pet-card.rare .pet-id   { color: #2a7099; }
-    .pet-card.locked .pet-id { color: #7a7460; }
-    .pet-name {
-      margin: 0;
-      font-size: 1.7rem;
-    }
-    .pet-stage {
-      position: relative;
-      height: 160px;
-      margin: 10px 0 14px;
-      display: grid;
-      place-items: center;
-      user-select: none;
-    }
-    .pet-emoji {
-      font-size: 6rem;
-      cursor: pointer;
-      display: inline-block;
-      transition: transform 0.15s ease;
-      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.15));
-    }
-    .pet-emoji:hover { transform: scale(1.08) rotate(-6deg); }
+    .mini.legendary .rar { color: #8a6300; }
+    .mini.epic .rar      { color: #6b3eb6; }
+    .mini.rare .rar      { color: #2a7099; }
+    .mini.common .rar    { color: #2f6b2f; }
 
-    /* Animations per pet */
-    .pet-emoji.anim-spin    { animation: nuckyWaddle 0.9s ease-in-out; }
-    .pet-emoji.anim-dash    { animation: zoomDash    0.8s ease-in-out; }
-    .pet-emoji.anim-turn    { animation: pipTurn     1.2s ease-in-out; }
-    .pet-emoji.anim-bounce  { animation: cometBounce 1.1s ease-in-out; }
-
-    @keyframes nuckyWaddle {
-      0%   { transform: scale(1) rotate(0deg) translateY(0); }
-      20%  { transform: scale(1.15) rotate(120deg) translateY(-12px); }
-      40%  { transform: scale(1.15) rotate(240deg) translateY(-6px); }
-      60%  { transform: scale(1.15) rotate(360deg) translateY(-14px); }
-      80%  { transform: scale(1.1)  rotate(360deg) translateY(0); }
-      100% { transform: scale(1)    rotate(360deg) translateY(0); }
-    }
-    @keyframes zoomDash {
-      0%   { transform: translateX(0)    scale(1); }
-      30%  { transform: translateX(60px) scale(1.15); }
-      35%  { opacity: 0; }
-      36%  { transform: translateX(-80px) scale(1.15); opacity: 0; }
-      37%  { opacity: 1; }
-      100% { transform: translateX(0)    scale(1); }
-    }
-    @keyframes pipTurn {
-      0%   { transform: rotate(0deg)   scale(1); }
-      50%  { transform: rotate(360deg) scale(1.15); }
-      100% { transform: rotate(360deg) scale(1); }
-    }
-    @keyframes cometBounce {
-      0%   { transform: translateY(0)    scale(1) rotate(0deg); }
-      25%  { transform: translateY(-40px) scale(1.1) rotate(-15deg); }
-      50%  { transform: translateY(0)    scale(1)   rotate(0deg); }
-      75%  { transform: translateY(-30px) scale(1.1) rotate(15deg); }
-      100% { transform: translateY(0)    scale(1)   rotate(0deg); }
-    }
-
-    .callout-bubble {
+    .mini.new-pop::after {
+      content: "NEW!";
       position: absolute;
-      top: 4px;
-      left: 50%;
-      transform: translateX(-50%) scale(0);
-      background: white;
-      border: 2px solid currentColor;
-      border-radius: 14px;
-      padding: 6px 12px;
-      font-weight: bold;
-      pointer-events: none;
-      opacity: 0;
-      transition: transform 0.2s ease, opacity 0.2s ease;
-      font-size: 1.1rem;
-    }
-    .pet-card.legendary .callout-bubble { color: #b88200; }
-    .pet-card.epic       .callout-bubble { color: #6b3eb6; }
-    .pet-card.rare       .callout-bubble { color: #2a7099; }
-    .callout-bubble.show {
-      transform: translateX(-50%) scale(1);
-      opacity: 1;
-    }
-    .pet-tap-hint {
-      text-align: center;
-      font-size: 0.85rem;
-      opacity: 0.7;
-      margin: 0 0 14px;
-    }
-    .pet-row {
-      display: flex;
-      gap: 10px;
-      margin: 8px 0;
-      font-size: 0.95rem;
-      line-height: 1.4;
-    }
-    .pet-row .label {
-      font-weight: bold;
-      min-width: 110px;
-    }
-    .pet-card.legendary .pet-row .label { color: #6b5a20; }
-    .pet-card.epic       .pet-row .label { color: #5a3895; }
-    .pet-card.rare       .pet-row .label { color: #1f5a7a; }
-    .pet-card.locked .pet-row .label    { color: #7a7460; }
-    .desc {
-      font-style: italic;
-      margin: 4px 0 12px;
-      line-height: 1.4;
-    }
-    .ability {
-      background: rgba(255,255,255,0.7);
-      border-left: 4px solid currentColor;
-      padding: 8px 12px;
-      border-radius: 8px;
-      margin: 10px 0;
-      color: inherit;
-    }
-    .pet-card.legendary .ability { border-left-color: var(--legendary); }
-    .pet-card.epic       .ability { border-left-color: var(--epic); }
-    .pet-card.rare       .ability { border-left-color: var(--rare); }
-    .ability-name { font-weight: bold; }
-    .pet-card.legendary .ability-name { color: #8a6300; }
-    .pet-card.epic       .ability-name { color: #6b3eb6; }
-    .pet-card.rare       .ability-name { color: #2a7099; }
-
-    .personality { margin-top: 6px; }
-    .stat-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 3px 0;
-      font-size: 0.92rem;
-    }
-    .stat-label { min-width: 90px; font-weight: bold; }
-    .stars { letter-spacing: 1px; }
-    .star-on { color: currentColor; }
-    .pet-card.legendary .star-on { color: var(--legendary); }
-    .pet-card.epic       .star-on { color: var(--epic); }
-    .pet-card.rare       .star-on { color: var(--rare); }
-    .star-off { color: #e0d5b3; }
-
-    /* Locked pet display */
-    .silhouette {
-      font-size: 6rem;
-      filter: brightness(0) opacity(0.25);
-      cursor: default;
-    }
-    .unlock-clue {
-      text-align: center;
-      background: #fff;
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-weight: bold;
-      color: #6a5a40;
-      border: 2px dashed #cfc6b3;
-      margin-top: 10px;
-    }
-
-    /* NEW! badge */
-    .new-badge {
-      position: absolute;
-      top: 10px;
-      left: 10px;
+      top: 5px;
+      right: 5px;
       background: #e44a4a;
       color: white;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 0.78rem;
+      font-size: 0.6rem;
       font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 999px;
       animation: pop 0.8s ease-in-out infinite alternate;
-      z-index: 2;
     }
     @keyframes pop {
       from { transform: scale(1); }
-      to   { transform: scale(1.12); }
+      to   { transform: scale(1.15); }
     }
 
     a.back-link {
       display: inline-block;
-      margin-top: 24px;
+      margin-top: 20px;
       color: #2f6df3;
       text-decoration: none;
       font-weight: bold;
     }
     a.back-link:hover { text-decoration: underline; }
 
-    /* Celebration modal */
+    /* DETAIL MODAL */
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -303,30 +209,238 @@
       padding: 14px;
     }
     .modal-backdrop.show { display: flex; }
-    .modal {
+    .detail-card {
+      background: white;
+      border-radius: 20px;
+      padding: 22px;
+      max-width: 380px;
+      width: 100%;
+      max-height: 92vh;
+      overflow-y: auto;
+      position: relative;
+      animation: modalIn 0.35s cubic-bezier(0.5, 1.5, 0.6, 1);
+    }
+    @keyframes modalIn {
+      from { transform: scale(0.7); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    .detail-card.legendary {
+      background: linear-gradient(160deg, #fffbef, #fff5d8);
+      border: 4px solid var(--legendary);
+      box-shadow: 0 0 30px rgba(245, 180, 0, 0.4);
+    }
+    .detail-card.epic {
+      background: linear-gradient(160deg, #faf5ff, #f0e6ff);
+      border: 4px solid var(--epic);
+      box-shadow: 0 0 30px rgba(166, 108, 255, 0.4);
+    }
+    .detail-card.rare {
+      background: linear-gradient(160deg, #f0fbff, #d8efff);
+      border: 4px solid var(--rare);
+      box-shadow: 0 0 30px rgba(77, 193, 240, 0.4);
+    }
+    .detail-card.common {
+      background: linear-gradient(160deg, #f4faf0, #ddeed8);
+      border: 4px solid var(--common);
+      box-shadow: 0 0 24px rgba(108, 191, 108, 0.35);
+    }
+    .detail-card.locked {
+      background: #f4f1ec;
+      border: 4px dashed #cfc6b3;
+    }
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      background: rgba(255,255,255,0.7);
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: inherit;
+      color: #4a4030;
+    }
+    .rarity-tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .detail-card.legendary .rarity-tag { background: var(--legendary); color: #4a3500; }
+    .detail-card.epic       .rarity-tag { background: var(--epic);      color: white; }
+    .detail-card.rare       .rarity-tag { background: var(--rare);      color: white; }
+    .detail-card.common     .rarity-tag { background: var(--common);    color: white; }
+    .detail-card.locked     .rarity-tag { background: #cfc6b3; color: #5a5547; }
+    .pet-id-row {
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      color: #7a7460;
+      font-weight: bold;
+      margin: 8px 0 2px;
+    }
+    .pet-name {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    .pet-stage {
+      position: relative;
+      height: 140px;
+      margin: 8px 0 12px;
+      display: grid;
+      place-items: center;
+      user-select: none;
+    }
+    .pet-emoji {
+      font-size: 5.5rem;
+      cursor: pointer;
+      display: inline-block;
+      transition: transform 0.15s ease;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.15));
+    }
+    .pet-emoji:hover { transform: scale(1.08) rotate(-6deg); }
+    .pet-emoji.anim-spin    { animation: nuckyWaddle 0.9s ease-in-out; }
+    .pet-emoji.anim-dash    { animation: zoomDash    0.8s ease-in-out; }
+    .pet-emoji.anim-turn    { animation: pipTurn     1.2s ease-in-out; }
+    .pet-emoji.anim-bounce  { animation: cometBounce 1.1s ease-in-out; }
+    .pet-emoji.anim-wiggle  { animation: wiggle      0.7s ease-in-out; }
+    .pet-emoji.anim-hop     { animation: hop         0.8s ease-in-out; }
+    .pet-emoji.anim-flutter { animation: flutter     1s ease-in-out; }
+
+    @keyframes nuckyWaddle {
+      0% { transform: scale(1) rotate(0deg) translateY(0); }
+      30% { transform: scale(1.15) rotate(180deg) translateY(-12px); }
+      60% { transform: scale(1.15) rotate(360deg) translateY(-14px); }
+      100% { transform: scale(1) rotate(360deg) translateY(0); }
+    }
+    @keyframes zoomDash {
+      0% { transform: translateX(0) scale(1); }
+      30% { transform: translateX(60px) scale(1.15); }
+      35% { opacity: 0; }
+      36% { transform: translateX(-80px) scale(1.15); opacity: 0; }
+      37% { opacity: 1; }
+      100% { transform: translateX(0) scale(1); }
+    }
+    @keyframes pipTurn {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(360deg) scale(1.15); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+    @keyframes cometBounce {
+      0% { transform: translateY(0) scale(1) rotate(0deg); }
+      25% { transform: translateY(-40px) scale(1.1) rotate(-15deg); }
+      50% { transform: translateY(0) scale(1) rotate(0deg); }
+      75% { transform: translateY(-30px) scale(1.1) rotate(15deg); }
+      100% { transform: translateY(0) scale(1) rotate(0deg); }
+    }
+    @keyframes wiggle {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-15deg) scale(1.1); }
+      75% { transform: rotate(15deg) scale(1.1); }
+    }
+    @keyframes hop {
+      0%, 100% { transform: translateY(0) scale(1); }
+      35% { transform: translateY(-30px) scale(1.12); }
+      70% { transform: translateY(-6px) scale(1.05); }
+    }
+    @keyframes flutter {
+      0%, 100% { transform: translateY(0) translateX(0); }
+      25% { transform: translateY(-12px) translateX(-8px) rotate(-8deg); }
+      50% { transform: translateY(-18px) translateX(8px) rotate(8deg); }
+      75% { transform: translateY(-6px) translateX(-4px) rotate(-4deg); }
+    }
+
+    .callout-bubble {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%) scale(0);
+      background: white;
+      border: 2px solid currentColor;
+      border-radius: 14px;
+      padding: 6px 12px;
+      font-weight: bold;
+      pointer-events: none;
+      opacity: 0;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      font-size: 1rem;
+    }
+    .detail-card.legendary .callout-bubble { color: #b88200; }
+    .detail-card.epic       .callout-bubble { color: #6b3eb6; }
+    .detail-card.rare       .callout-bubble { color: #2a7099; }
+    .detail-card.common     .callout-bubble { color: #2f6b2f; }
+    .callout-bubble.show { transform: translateX(-50%) scale(1); opacity: 1; }
+
+    .desc { font-style: italic; margin: 6px 0 12px; line-height: 1.4; font-size: 0.95rem; }
+    .ability {
+      background: rgba(255,255,255,0.7);
+      border-left: 4px solid currentColor;
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin: 10px 0;
+    }
+    .detail-card.legendary .ability { border-left-color: var(--legendary); }
+    .detail-card.epic       .ability { border-left-color: var(--epic); }
+    .detail-card.rare       .ability { border-left-color: var(--rare); }
+    .detail-card.common     .ability { border-left-color: var(--common); }
+    .ability-name { font-weight: bold; }
+    .detail-card.legendary .ability-name { color: #8a6300; }
+    .detail-card.epic       .ability-name { color: #6b3eb6; }
+    .detail-card.rare       .ability-name { color: #2a7099; }
+    .detail-card.common     .ability-name { color: #2f6b2f; }
+
+    .info-row { display: flex; gap: 8px; margin: 6px 0; font-size: 0.92rem; }
+    .info-row .label { font-weight: bold; min-width: 100px; }
+    .stat-row { display: flex; align-items: center; gap: 8px; margin: 2px 0; font-size: 0.88rem; }
+    .stat-label { min-width: 80px; font-weight: bold; }
+    .stars { letter-spacing: 1px; }
+    .star-off { color: #e0d5b3; }
+    .detail-card.legendary .star-on { color: var(--legendary); }
+    .detail-card.epic       .star-on { color: var(--epic); }
+    .detail-card.rare       .star-on { color: var(--rare); }
+    .detail-card.common     .star-on { color: var(--common); }
+
+    .silhouette { font-size: 5.5rem; filter: brightness(0) opacity(0.22); }
+    .unlock-clue {
+      text-align: center;
+      background: white;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: bold;
+      color: #6a5a40;
+      border: 2px dashed #cfc6b3;
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
+
+    /* CELEBRATION MODAL */
+    .celeb-card {
       background: linear-gradient(160deg, #fffbef, #ffe7a8);
       border-radius: 24px;
-      padding: 28px;
-      max-width: 380px;
+      padding: 26px;
+      max-width: 360px;
       width: 100%;
       text-align: center;
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      animation: modalIn 0.5s cubic-bezier(0.5, 1.5, 0.6, 1);
       border: 4px solid var(--legendary);
       position: relative;
       overflow: hidden;
+      animation: modalIn 0.5s cubic-bezier(0.5, 1.5, 0.6, 1);
     }
-    @keyframes modalIn {
-      from { transform: scale(0.6); opacity: 0; }
-      to   { transform: scale(1);   opacity: 1; }
-    }
-    .modal h2 {
-      margin: 0 0 6px;
-      font-size: 1.4rem;
-      color: #8a6300;
-    }
-    .modal .big-emoji {
-      font-size: 5rem;
+    .celeb-card.epic   { border-color: var(--epic); background: linear-gradient(160deg, #faf5ff, #e8d6ff); }
+    .celeb-card.rare   { border-color: var(--rare); background: linear-gradient(160deg, #f0fbff, #c8e6f5); }
+    .celeb-card.common { border-color: var(--common); background: linear-gradient(160deg, #f4faf0, #ccdec5); }
+    .celeb-card h2 { margin: 0 0 6px; font-size: 1.3rem; color: #4a3500; }
+    .celeb-card.epic   h2 { color: #4a2890; }
+    .celeb-card.rare   h2 { color: #1a4d6e; }
+    .celeb-card.common h2 { color: #1f4a1f; }
+    .big-emoji {
+      font-size: 4.5rem;
       margin: 12px 0;
       display: inline-block;
       animation: spin360 1.2s ease-in-out;
@@ -335,16 +449,12 @@
       from { transform: rotate(0deg) scale(0.4); }
       to   { transform: rotate(360deg) scale(1); }
     }
-    .modal .pet-tag {
-      font-size: 1.2rem;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-    .modal button {
+    .pet-tag { font-size: 1.15rem; font-weight: bold; margin-bottom: 6px; }
+    .celeb-card button {
       background: var(--legendary);
       color: #4a3500;
       border: none;
-      padding: 12px 22px;
+      padding: 11px 22px;
       border-radius: 12px;
       font-size: 1rem;
       font-weight: bold;
@@ -352,141 +462,391 @@
       margin-top: 12px;
       font-family: inherit;
     }
-    .confetti {
-      position: absolute;
-      width: 8px;
-      height: 8px;
-      pointer-events: none;
-    }
+    .celeb-card.epic button   { background: var(--epic); color: white; }
+    .celeb-card.rare button   { background: var(--rare); color: white; }
+    .celeb-card.common button { background: var(--common); color: white; }
+    .confetti { position: absolute; width: 8px; height: 8px; pointer-events: none; }
   </style>
 </head>
 <body>
   <main class="page">
     <h1>🐾 Ezra's Legendary Pets</h1>
-    <p class="subtitle">Tap a pet to see them do their special animation. Discover more pets by playing the other games!</p>
-    <p class="summary" id="summary"></p>
+    <p class="subtitle">Tap a pet card to see them in action. Find more by playing the other games!</p>
+    <p class="progress-line" id="summary"></p>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
 
-    <section class="grid" id="petGrid"></section>
+    <div class="filters" id="filters">
+      <button data-filter="all" class="active">All</button>
+      <button data-filter="common" class="r-common">Common</button>
+      <button data-filter="rare" class="r-rare">Rare</button>
+      <button data-filter="epic" class="r-epic">Epic</button>
+      <button data-filter="legendary" class="r-legendary">Legendary</button>
+      <button data-filter="locked">🔒 Locked</button>
+    </div>
+
+    <section class="binder" id="binder"></section>
 
     <a class="back-link" href="index.html">← Back to Game Hub</a>
   </main>
 
   <div class="modal-backdrop" id="modalBackdrop">
-    <div class="modal" id="modal"></div>
+    <div id="modalContent"></div>
   </div>
 
   <script>
-    // ============ PET DATA ============
+    // ============ PET DATA (35 pets) ============
     const PETS = [
-      {
-        id: "001",
-        name: "Nucky the Duck",
-        emoji: "🦆",
-        rarity: "Legendary",
+      // ----- Legendaries (starter + milestones + ultra-rare drops) -----
+      { id: "001", name: "Nucky the Duck",     emoji: "🦆", rarity: "Legendary",
         description: "A cheerful little duck who appears in unexpected places. Nucky loves puddles, snacks, and waddling after the player wherever they go.",
         ability: { name: "Lucky Waddle", text: "Sometimes Nucky finds hidden treasures or secret paths." },
         food: "Breadcrumbs and blueberries",
         personality: { Friendly: 5, Silly: 5, Bravery: 3, Mischief: 4 },
-        sound: "quack",
-        callout: "QUACK!",
-        anim: "spin",
-        unlock: { type: "always" },
-        unlockHint: "Your starter pet!"
-      },
-      {
-        id: "002",
-        name: "Zoom the Cheetah",
-        emoji: "🐆",
-        rarity: "Epic",
+        sound: "quack", callout: "QUACK!", anim: "spin",
+        unlock: { type: "always" }, unlockHint: "Your starter pet!" },
+
+      { id: "002", name: "Zoom the Cheetah", emoji: "🐆", rarity: "Epic",
         description: "Lightning fast and always racing. Zoom only befriends drivers who've proven they can win a race themselves.",
         ability: { name: "Turbo Boost", text: "Helps the player zip past obstacles in a flash." },
         food: "Energy berries and sprint snacks",
-        personality: { Friendly: 4, Silly: 2, Bravery: 5, Mischief: 3, Speed: 5 },
-        sound: "zoom",
-        callout: "ZOOM!",
-        anim: "dash",
-        unlock: { type: "carodsWin" },
-        unlockHint: "Win your first Carods race to unlock!"
-      },
-      {
-        id: "003",
-        name: "Pip the Owl",
-        emoji: "🦉",
-        rarity: "Epic",
+        personality: { Friendly: 4, Silly: 2, Bravery: 5, Speed: 5 },
+        sound: "zoom", callout: "ZOOM!", anim: "dash",
+        unlock: { type: "carodsWin" }, unlockHint: "Win your first Carods race to unlock!" },
+
+      { id: "003", name: "Pip the Owl", emoji: "🦉", rarity: "Epic",
         description: "Wise and watchful, Pip only befriends explorers who've shown they can master a tricky challenge.",
         ability: { name: "Wise Insight", text: "Whispers a clever hint when you're stuck on a puzzle." },
         food: "Walnuts and stargazer mushrooms",
-        personality: { Friendly: 3, Silly: 1, Bravery: 4, Mischief: 2, Wisdom: 5 },
-        sound: "hoot",
-        callout: "Hoo hoo!",
-        anim: "turn",
-        unlock: { type: "brainQuestGold" },
-        unlockHint: "Earn a Gold Badge on any Brain Quest Level 3 to unlock!"
-      },
-      {
-        id: "004",
-        name: "Comet the Space Pup",
-        emoji: "🐶",
-        rarity: "Legendary",
+        personality: { Friendly: 3, Bravery: 4, Wisdom: 5, Patience: 5 },
+        sound: "hoot", callout: "Hoo hoo!", anim: "turn",
+        unlock: { type: "brainQuestGold" }, unlockHint: "Earn a Gold Badge on any Brain Quest Level 3 to unlock!" },
+
+      { id: "004", name: "Comet the Space Pup", emoji: "🐶", rarity: "Legendary",
         description: "A cosmic puppy who travels between the stars. Only the Principal's challenge could call her down to Earth.",
         ability: { name: "Cosmic Leap", text: "Bounds across worlds to find rare treasures." },
         food: "Stardust kibble and moon cheese",
-        personality: { Friendly: 5, Silly: 4, Bravery: 5, Mischief: 3, Cosmic: 5 },
-        sound: "woof",
-        callout: "WOOF! ✨",
-        anim: "bounce",
-        unlock: { type: "principalChallenge" },
-        unlockHint: "Beat the Principal Brain Challenge to unlock!"
-      }
+        personality: { Friendly: 5, Bravery: 5, Silly: 4, Cosmic: 5 },
+        sound: "woof", callout: "WOOF! ✨", anim: "bounce",
+        unlock: { type: "principalChallenge" }, unlockHint: "Beat the Principal Brain Challenge to unlock!" },
+
+      { id: "005", name: "Aurora the Dragon", emoji: "🐲", rarity: "Legendary",
+        description: "A mythical dragon hatched from a rainbow egg. Aurora only appears to the rarest of friends.",
+        ability: { name: "Rainbow Breath", text: "Breathes a sparkling rainbow that lights up the sky." },
+        food: "Glowing fruit and lava chillis",
+        personality: { Friendly: 4, Bravery: 5, Magic: 5, Mischief: 4 },
+        sound: "roar", callout: "RRRAW!", anim: "spin",
+        unlock: { type: "drop" }, unlockHint: "Keep playing and one day she may appear..." },
+
+      // ----- Epics (random drops) -----
+      { id: "006", name: "Roary the Lion", emoji: "🦁", rarity: "Epic",
+        description: "King of the jungle with a heart of gold.",
+        ability: { name: "Mighty Roar", text: "Scares away anyone trying to slow you down." },
+        food: "Big steaks and golden grass",
+        personality: { Friendly: 4, Bravery: 5, Loyalty: 5 },
+        sound: "roar", callout: "ROAAAR!", anim: "wiggle",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "007", name: "Fang the Tiger", emoji: "🐯", rarity: "Epic",
+        description: "A striped hunter with a friendly side most never see.",
+        ability: { name: "Silent Pounce", text: "Sneaks past obstacles undetected." },
+        food: "Fish and forest meat",
+        personality: { Friendly: 3, Bravery: 5, Stealth: 5 },
+        sound: "roar", callout: "Grr!", anim: "wiggle",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "008", name: "Bamboo the Panda", emoji: "🐼", rarity: "Epic",
+        description: "Soft, sleepy, and surprisingly strong.",
+        ability: { name: "Bamboo Crush", text: "Smashes obstacles with one big paw." },
+        food: "Bamboo shoots and rice cakes",
+        personality: { Friendly: 5, Silly: 4, Bravery: 4, Calm: 5 },
+        sound: "growl", callout: "Munch!", anim: "wiggle",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "009", name: "Tusker the Elephant", emoji: "🐘", rarity: "Epic",
+        description: "Gentle and enormous, with a memory like no other.",
+        ability: { name: "Tusk Toss", text: "Lifts heavy things out of your way." },
+        food: "Peanuts and watermelon",
+        personality: { Friendly: 5, Bravery: 5, Memory: 5 },
+        sound: "trumpet", callout: "Trumpet!", anim: "hop",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "010", name: "Hop the Kangaroo", emoji: "🦘", rarity: "Epic",
+        description: "Bouncy Aussie buddy with a pouch full of surprises.",
+        ability: { name: "Mega Hop", text: "Leaps over a whole row of obstacles." },
+        food: "Eucalyptus snacks and grass",
+        personality: { Friendly: 4, Bravery: 4, Speed: 4, Bounciness: 5 },
+        sound: "boing", callout: "G'day!", anim: "hop",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "011", name: "Sparkle the Unicorn", emoji: "🦄", rarity: "Epic",
+        description: "A shimmering horse with a glowing horn and rainbow mane.",
+        ability: { name: "Magic Touch", text: "Turns any square gold for one turn." },
+        food: "Rainbow apples and sugar clouds",
+        personality: { Friendly: 5, Silly: 3, Magic: 5, Grace: 5 },
+        sound: "chime", callout: "✨", anim: "spin",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      // ----- Rares (random drops, common-ish) -----
+      { id: "012", name: "Patch the Cat", emoji: "🐱", rarity: "Rare",
+        description: "A curious cat with mismatched fur patches.",
+        ability: { name: "Nine Lives", text: "Always lands on her feet, no matter what." },
+        food: "Tuna and milk",
+        personality: { Friendly: 4, Silly: 3, Curiosity: 5 },
+        sound: "meow", callout: "Meow!", anim: "wiggle",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "013", name: "Buddy the Dog", emoji: "🐕", rarity: "Rare",
+        description: "Loyal, slobbery, always-up-for-fetch best friend.",
+        ability: { name: "Best Friend", text: "Cheers you on, giving extra confidence." },
+        food: "Bones and bacon treats",
+        personality: { Friendly: 5, Silly: 4, Loyalty: 5 },
+        sound: "woof", callout: "WOOF!", anim: "hop",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "014", name: "Mango the Fox", emoji: "🦊", rarity: "Rare",
+        description: "A clever orange fox with a swishy tail.",
+        ability: { name: "Clever Detour", text: "Finds shortcuts no one else can see." },
+        food: "Berries and wild mice",
+        personality: { Friendly: 3, Silly: 4, Cunning: 5, Mischief: 4 },
+        sound: "yip", callout: "Yip!", anim: "wiggle",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "015", name: "Bandit the Raccoon", emoji: "🦝", rarity: "Rare",
+        description: "A masked rascal who'll borrow your snacks.",
+        ability: { name: "Sneaky Swipe", text: "Steals an obstacle right off the board." },
+        food: "Anything in the bin",
+        personality: { Friendly: 3, Silly: 5, Mischief: 5 },
+        sound: "chitter", callout: "Hee hee!", anim: "wiggle",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "016", name: "Stripey the Skunk", emoji: "🦨", rarity: "Rare",
+        description: "Misunderstood and quite stinky, but a loyal friend.",
+        ability: { name: "Stink Cloud", text: "Slows down the CPU for a turn." },
+        food: "Worms and clover",
+        personality: { Friendly: 3, Silly: 4, Bravery: 4 },
+        sound: "squeak", callout: "Pew!", anim: "wiggle",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "017", name: "Otto the Otter", emoji: "🦦", rarity: "Rare",
+        description: "A splashy river friend who never lets go of his favourite rock.",
+        ability: { name: "River Ride", text: "Floats you forward 2 squares." },
+        food: "Clams and pebble cakes",
+        personality: { Friendly: 5, Silly: 5, Bravery: 3 },
+        sound: "squeak", callout: "Eeee!", anim: "hop",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "018", name: "Snug the Sloth", emoji: "🦥", rarity: "Rare",
+        description: "Takes his time. And his time. And his time.",
+        ability: { name: "Slow & Steady", text: "Never loses a step, no matter the obstacle." },
+        food: "Leaves and lazy fruit",
+        personality: { Friendly: 4, Silly: 3, Calm: 5, Patience: 5 },
+        sound: "yawn", callout: "Hellooo...", anim: "wiggle",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "019", name: "Echo the Bat", emoji: "🦇", rarity: "Rare",
+        description: "Sees in the dark and hears every secret.",
+        ability: { name: "Echo Vision", text: "Reveals the next hidden obstacle." },
+        food: "Bugs and night fruit",
+        personality: { Friendly: 3, Bravery: 4, Stealth: 5 },
+        sound: "chirp", callout: "Eep!", anim: "flutter",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "020", name: "Howl the Wolf", emoji: "🐺", rarity: "Rare",
+        description: "Pack leader with a moonlight howl.",
+        ability: { name: "Pack Power", text: "Calls a wolf pack to help you sprint." },
+        food: "Mountain meat and snow",
+        personality: { Friendly: 3, Bravery: 5, Loyalty: 5 },
+        sound: "howl", callout: "Awooo!", anim: "hop",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "021", name: "Slither the Snake", emoji: "🐍", rarity: "Rare",
+        description: "A long green friend who's much more gentle than he looks.",
+        ability: { name: "Slither Swap", text: "Switches places with the player ahead." },
+        food: "Mice and grass tea",
+        personality: { Friendly: 2, Silly: 2, Bravery: 4, Stealth: 5 },
+        sound: "hiss", callout: "Sssss!", anim: "wiggle",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "022", name: "Gobble the Turkey", emoji: "🦃", rarity: "Rare",
+        description: "Proud, fluffy, and surprisingly fast on his feet.",
+        ability: { name: "Feather Fan", text: "Distracts enemies with a colourful display." },
+        food: "Corn and stuffing",
+        personality: { Friendly: 4, Silly: 5, Bravery: 3 },
+        sound: "gobble", callout: "Gobble!", anim: "wiggle",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "023", name: "Tux the Penguin", emoji: "🐧", rarity: "Rare",
+        description: "A sharp-dressed bird who slides everywhere.",
+        ability: { name: "Belly Slide", text: "Slides extra spaces on icy squares." },
+        food: "Fresh fish and snow cones",
+        personality: { Friendly: 5, Silly: 4, Bravery: 3 },
+        sound: "chirp", callout: "Honk!", anim: "hop",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      // ----- Commons (random drops, frequent) -----
+      { id: "024", name: "Bramble the Hedgehog", emoji: "🦔", rarity: "Common",
+        description: "A spiky little explorer who curls into a ball when scared.",
+        ability: { name: "Quill Shield", text: "Bristles up to block one hit." },
+        food: "Beetles and berries",
+        personality: { Friendly: 3, Silly: 2, Bravery: 4 },
+        sound: "squeak", callout: "Squeak!", anim: "wiggle",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "025", name: "Splash the Frog", emoji: "🐸", rarity: "Common",
+        description: "A pond-hopping friend with a sticky tongue.",
+        ability: { name: "Lily Leap", text: "Leaps a single square forward." },
+        food: "Flies and pond weeds",
+        personality: { Friendly: 4, Silly: 5, Bounciness: 5 },
+        sound: "ribbit", callout: "Ribbit!", anim: "hop",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "026", name: "Tippy the Mouse", emoji: "🐭", rarity: "Common",
+        description: "Tiny, twitchy, and always nibbling on cheese.",
+        ability: { name: "Tiny Squeeze", text: "Sneaks through narrow gaps." },
+        food: "Cheese crumbs",
+        personality: { Friendly: 4, Silly: 3, Stealth: 4 },
+        sound: "squeak", callout: "Eek!", anim: "wiggle",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "027", name: "Buzz the Bee", emoji: "🐝", rarity: "Common",
+        description: "A busy bee with a tiny bag of pollen.",
+        ability: { name: "Honey Boost", text: "Sweetens your next move." },
+        food: "Pollen and nectar",
+        personality: { Friendly: 4, Silly: 3, Speed: 4 },
+        sound: "buzz", callout: "Bzzz!", anim: "flutter",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "028", name: "Crawly the Snail", emoji: "🐌", rarity: "Common",
+        description: "Slow but determined, with a swirly home on his back.",
+        ability: { name: "Shell Shield", text: "Tucks in to avoid an obstacle." },
+        food: "Leaves and dew drops",
+        personality: { Friendly: 3, Patience: 5, Calm: 5 },
+        sound: "squeak", callout: "Hi.", anim: "wiggle",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "029", name: "Dot the Ladybug", emoji: "🐞", rarity: "Common",
+        description: "A red-and-black charmer who brings good luck.",
+        ability: { name: "Lucky Spots", text: "Adds a little luck to your next card." },
+        food: "Aphids and apple bits",
+        personality: { Friendly: 5, Silly: 2, Luck: 5 },
+        sound: "chirp", callout: "Tee hee!", anim: "flutter",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "030", name: "Flap the Butterfly", emoji: "🦋", rarity: "Common",
+        description: "A delicate flier with shimmering wings.",
+        ability: { name: "Wing Dance", text: "Fluttering wings calm everyone down." },
+        food: "Nectar and flower water",
+        personality: { Friendly: 5, Silly: 3, Grace: 5 },
+        sound: "chirp", callout: "✿", anim: "flutter",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "031", name: "Cluck the Chicken", emoji: "🐔", rarity: "Common",
+        description: "A clucky farm friend who lays surprise treats.",
+        ability: { name: "Bonus Egg", text: "Lays a golden egg every few turns." },
+        food: "Seeds and grit",
+        personality: { Friendly: 4, Silly: 5, Patience: 4 },
+        sound: "cluck", callout: "Bawk!", anim: "wiggle",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "032", name: "Wooly the Sheep", emoji: "🐑", rarity: "Common",
+        description: "A fluffy cloud-on-legs who keeps everyone warm.",
+        ability: { name: "Cosy Cuddle", text: "Soft wool makes you faster." },
+        food: "Green grass and hay",
+        personality: { Friendly: 5, Silly: 3, Calm: 5 },
+        sound: "baa", callout: "Baaa!", anim: "wiggle",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "033", name: "Snuffles the Pig", emoji: "🐷", rarity: "Common",
+        description: "A muddy, snorty, snack-loving friend.",
+        ability: { name: "Truffle Sniff", text: "Sniffs out hidden bonuses." },
+        food: "Apples and mud pies",
+        personality: { Friendly: 5, Silly: 5, Curiosity: 4 },
+        sound: "oink", callout: "Oink!", anim: "wiggle",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "034", name: "Bouncer the Rabbit", emoji: "🐰", rarity: "Common",
+        description: "A hoppy bunny with twitchy ears and a quick getaway.",
+        ability: { name: "Quick Hop", text: "Hops one extra square on green tiles." },
+        food: "Carrots and clover",
+        personality: { Friendly: 5, Silly: 3, Speed: 5 },
+        sound: "squeak", callout: "Hop!", anim: "hop",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" },
+
+      { id: "035", name: "Moo the Cow", emoji: "🐮", rarity: "Common",
+        description: "A spotty, dreamy meadow friend.",
+        ability: { name: "Meadow Moo", text: "Soft mooing makes plants grow faster." },
+        food: "Grass and silage",
+        personality: { Friendly: 5, Silly: 2, Calm: 5 },
+        sound: "moo", callout: "Mooo!", anim: "wiggle",
+        unlock: { type: "drop" }, unlockHint: "A pet drop reward — keep playing!" }
     ];
 
-    // ============ UNLOCK CHECKING ============
-    function loadAchievements() {
+    const DROP_WEIGHTS = { Common: 35, Rare: 18, Epic: 5, Legendary: 1 };
+
+    // ============ STORAGE ============
+    function loadJSON(key, fallback) {
       try {
-        const raw = localStorage.getItem("ezraAchievements_v1");
-        return raw ? JSON.parse(raw) : {};
-      } catch (e) { return {}; }
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch (e) { return fallback; }
     }
-    function loadBrainQuestProgress() {
-      try {
-        const raw = localStorage.getItem("ezraBrainQuestProgress_v1");
-        return raw ? JSON.parse(raw) : { badges: {} };
-      } catch (e) { return { badges: {} }; }
+    function saveJSON(key, data) {
+      try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) {}
     }
-    function loadSeenPets() {
-      try {
-        const raw = localStorage.getItem("ezraPetSeen_v1");
-        return raw ? JSON.parse(raw) : {};
-      } catch (e) { return {}; }
-    }
-    function saveSeenPets(seen) {
-      try { localStorage.setItem("ezraPetSeen_v1", JSON.stringify(seen)); }
-      catch (e) {}
-    }
+    const loadAchievements = () => loadJSON("ezraAchievements_v1", {});
+    const loadBrainQuest = () => loadJSON("ezraBrainQuestProgress_v1", { badges: {} });
+    const loadDrops = () => loadJSON("ezraPetUnlocks_v1", {});
+    const saveDrops = d => saveJSON("ezraPetUnlocks_v1", d);
+    const loadSeen = () => loadJSON("ezraPetSeen_v1", {});
+    const saveSeen = d => saveJSON("ezraPetSeen_v1", d);
+    const loadTriggers = () => loadJSON("ezraPetTriggers_v1", { pendingRolls: 0 });
+    const saveTriggers = d => saveJSON("ezraPetTriggers_v1", d);
 
     function isUnlocked(pet) {
       const u = pet.unlock;
       if (u.type === "always") return true;
-      if (u.type === "carodsWin") {
-        const ach = loadAchievements();
-        return (ach.carodsWins || 0) >= 1;
-      }
+      if (u.type === "carodsWin") return (loadAchievements().carodsWins || 0) >= 1;
       if (u.type === "brainQuestGold") {
-        const p = loadBrainQuestProgress();
-        // any Level 3 (index 2) gold badge across the 5 categories
-        return Object.entries(p.badges || {}).some(([key, badge]) =>
-          badge === "gold" && key.endsWith("-2")
-        );
+        return Object.entries(loadBrainQuest().badges || {})
+          .some(([k, v]) => v === "gold" && k.endsWith("-2"));
       }
       if (u.type === "principalChallenge") {
-        const p = loadBrainQuestProgress();
-        const b = (p.badges || {})["principal-0"];
+        const b = (loadBrainQuest().badges || {})["principal-0"];
         return b === "silver" || b === "gold";
       }
+      if (u.type === "drop") return !!loadDrops()[pet.id];
       return false;
     }
 
-    // ============ SOUND ============
+    // Consume pending pet rolls and grant random locked drop-pool pets
+    function consumePendingRolls() {
+      const trig = loadTriggers();
+      let rolls = trig.pendingRolls || 0;
+      if (rolls <= 0) return [];
+      const drops = loadDrops();
+      const dropPool = PETS.filter(p => p.unlock.type === "drop" && !drops[p.id]);
+      const granted = [];
+      while (rolls > 0 && dropPool.length > 0) {
+        // weighted random
+        const weighted = [];
+        dropPool.forEach(p => {
+          const w = DROP_WEIGHTS[p.rarity] || 1;
+          for (let i = 0; i < w; i++) weighted.push(p);
+        });
+        const chosen = weighted[Math.floor(Math.random() * weighted.length)];
+        drops[chosen.id] = true;
+        granted.push(chosen);
+        const idx = dropPool.indexOf(chosen);
+        if (idx >= 0) dropPool.splice(idx, 1);
+        rolls--;
+      }
+      saveDrops(drops);
+      // any leftover rolls (no drops available because all unlocked) are wasted
+      saveTriggers({ pendingRolls: 0 });
+      return granted;
+    }
+
+    // ============ SOUNDS ============
     let audioCtx = null;
     function ensureAudio() {
       if (!audioCtx) {
@@ -495,245 +855,271 @@
       }
       return audioCtx;
     }
-    function quackSound() {
+    function tone(freq, dur, type, vol, delay, finalFreq) {
+      const ctx = ensureAudio(); if (!ctx) return;
+      const start = ctx.currentTime + (delay || 0);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, start);
+      if (finalFreq) osc.frequency.exponentialRampToValueAtTime(finalFreq, start + dur);
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(vol || 0.16, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + dur + 0.05);
+    }
+    function filteredTone(freq, finalFreq, dur, vol) {
       const ctx = ensureAudio(); if (!ctx) return;
       const now = ctx.currentTime;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       const filter = ctx.createBiquadFilter();
       osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(600, now);
-      osc.frequency.exponentialRampToValueAtTime(220, now + 0.08);
-      osc.frequency.exponentialRampToValueAtTime(420, now + 0.18);
+      osc.frequency.setValueAtTime(freq, now);
+      osc.frequency.exponentialRampToValueAtTime(finalFreq, now + dur);
       filter.type = "bandpass"; filter.frequency.value = 900; filter.Q.value = 4;
       gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.25, now + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+      gain.gain.linearRampToValueAtTime(vol || 0.22, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
       osc.connect(filter).connect(gain).connect(ctx.destination);
-      osc.start(now); osc.stop(now + 0.3);
+      osc.start(now); osc.stop(now + dur + 0.05);
     }
-    function zoomSound() {
-      const ctx = ensureAudio(); if (!ctx) return;
-      const now = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(180, now);
-      osc.frequency.exponentialRampToValueAtTime(900, now + 0.3);
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.18, now + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(now); osc.stop(now + 0.4);
-    }
-    function hootSound() {
-      const ctx = ensureAudio(); if (!ctx) return;
-      const now = ctx.currentTime;
-      [[440, 0], [440, 0.35]].forEach(([f, t]) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(f, now + t);
-        osc.frequency.exponentialRampToValueAtTime(f * 0.85, now + t + 0.2);
-        gain.gain.setValueAtTime(0, now + t);
-        gain.gain.linearRampToValueAtTime(0.18, now + t + 0.03);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.25);
-        osc.connect(gain).connect(ctx.destination);
-        osc.start(now + t); osc.stop(now + t + 0.3);
-      });
-    }
-    function woofSound() {
-      const ctx = ensureAudio(); if (!ctx) return;
-      const now = ctx.currentTime;
-      [[220, 0, "square"], [300, 0.18, "square"]].forEach(([f, t, type]) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(f, now + t);
-        osc.frequency.exponentialRampToValueAtTime(f * 0.5, now + t + 0.18);
-        gain.gain.setValueAtTime(0, now + t);
-        gain.gain.linearRampToValueAtTime(0.16, now + t + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.22);
-        osc.connect(gain).connect(ctx.destination);
-        osc.start(now + t); osc.stop(now + t + 0.25);
-      });
-    }
-    function sparkleSound() {
-      const ctx = ensureAudio(); if (!ctx) return;
-      [1318, 1568, 1976, 2349].forEach((f, i) => {
-        const now = ctx.currentTime + i * 0.07;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(f, now);
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.15, now + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
-        osc.connect(gain).connect(ctx.destination);
-        osc.start(now); osc.stop(now + 0.3);
-      });
-    }
-    const SOUND_MAP = {
-      quack: quackSound,
-      zoom:  zoomSound,
-      hoot:  hootSound,
-      woof:  woofSound
+    const SOUNDS = {
+      quack:   () => filteredTone(600, 420, 0.25),
+      zoom:    () => tone(180, 0.4, "sawtooth", 0.18, 0, 900),
+      hoot:    () => { tone(440, 0.25, "sine", 0.18, 0, 374); tone(440, 0.25, "sine", 0.18, 0.35, 374); },
+      woof:    () => { tone(220, 0.2, "square", 0.16, 0, 110); tone(300, 0.2, "square", 0.16, 0.18, 150); },
+      meow:    () => tone(700, 0.25, "sine", 0.16, 0, 500),
+      roar:    () => tone(120, 0.45, "sawtooth", 0.22, 0, 80),
+      growl:   () => tone(140, 0.35, "sawtooth", 0.18, 0, 100),
+      yip:     () => { tone(900, 0.08, "square", 0.14); tone(1100, 0.08, "square", 0.14, 0.1); },
+      howl:    () => tone(330, 0.6, "sine", 0.16, 0, 660),
+      hiss:    () => tone(2000, 0.4, "sawtooth", 0.05, 0, 1200),
+      squeak:  () => tone(1200, 0.1, "square", 0.12, 0, 1600),
+      ribbit:  () => { tone(180, 0.08, "square", 0.18); tone(140, 0.12, "square", 0.18, 0.1); },
+      buzz:    () => tone(220, 0.35, "sawtooth", 0.1),
+      chirp:   () => { tone(2200, 0.05, "sine", 0.12); tone(2600, 0.05, "sine", 0.12, 0.06); tone(2400, 0.05, "sine", 0.12, 0.12); },
+      cluck:   () => { tone(500, 0.05, "square", 0.16); tone(600, 0.08, "square", 0.16, 0.06); },
+      baa:     () => tone(330, 0.4, "sawtooth", 0.16, 0, 250),
+      oink:    () => { tone(300, 0.1, "square", 0.18); tone(220, 0.1, "square", 0.18, 0.1); },
+      moo:     () => tone(180, 0.5, "sine", 0.18, 0, 130),
+      trumpet: () => tone(330, 0.4, "square", 0.18, 0, 220),
+      boing:   () => tone(220, 0.3, "sine", 0.16, 0, 880),
+      chitter: () => { for (let i = 0; i < 5; i++) tone(1400 + i*100, 0.05, "square", 0.1, i*0.05); },
+      gobble:  () => { for (let i = 0; i < 4; i++) tone(280, 0.08, "square", 0.14, i*0.08, 220); },
+      yawn:    () => tone(220, 0.7, "sine", 0.12, 0, 140),
+      chime:   () => { [1318, 1568, 1976].forEach((f, i) => tone(f, 0.18, "triangle", 0.14, i*0.08)); }
     };
+    function sparkle() {
+      [1318, 1568, 1976, 2349].forEach((f, i) => tone(f, 0.18, "sine", 0.12, i*0.06));
+    }
 
-    // ============ RENDER ============
-    const grid = document.getElementById("petGrid");
+    // ============ DOM ============
+    const binder = document.getElementById("binder");
     const summary = document.getElementById("summary");
-
-    function stars(count) {
-      let html = '<span class="stars">';
-      for (let i = 0; i < 5; i++) {
-        html += i < count ? '<span class="star-on">★</span>' : '<span class="star-off">★</span>';
-      }
-      return html + '</span>';
-    }
-
-    function renderUnlockedPet(pet, isNew) {
-      const card = document.createElement("article");
-      card.className = "pet-card " + pet.rarity.toLowerCase();
-      const personalityHtml = Object.entries(pet.personality).map(([k, v]) =>
-        `<div class="stat-row"><span class="stat-label">${k}</span> ${stars(v)}</div>`
-      ).join("");
-      card.innerHTML = `
-        ${isNew ? '<span class="new-badge">NEW!</span>' : ''}
-        <span class="rarity">${pet.rarity}</span>
-        <div class="pet-id">PET #${pet.id}</div>
-        <h2 class="pet-name">${pet.name}</h2>
-        <p class="desc">${pet.description}</p>
-        <div class="pet-stage">
-          <span class="pet-emoji" role="button" aria-label="Tap ${pet.name}">${pet.emoji}</span>
-          <span class="callout-bubble">${pet.callout || "✨"}</span>
-        </div>
-        <p class="pet-tap-hint">Tap ${pet.name.split(" ")[0]} to see their special animation!</p>
-        <div class="ability">
-          <div class="ability-name">✨ ${pet.ability.name}</div>
-          <div>${pet.ability.text}</div>
-        </div>
-        <div class="pet-row"><span class="label">Favourite Food</span><span>${pet.food}</span></div>
-        <div class="personality">
-          <div class="pet-row"><span class="label">Personality</span></div>
-          ${personalityHtml}
-        </div>
-      `;
-      const emojiEl = card.querySelector(".pet-emoji");
-      const bubble = card.querySelector(".callout-bubble");
-      emojiEl.addEventListener("click", () => {
-        const animClass = "anim-" + pet.anim;
-        emojiEl.classList.remove(animClass);
-        void emojiEl.offsetWidth;
-        emojiEl.classList.add(animClass);
-        bubble.classList.add("show");
-        const sound = SOUND_MAP[pet.sound];
-        if (sound) sound();
-        setTimeout(() => bubble.classList.remove("show"), 1000);
-      });
-      return card;
-    }
-
-    function renderLockedPet(pet) {
-      const card = document.createElement("article");
-      card.className = "pet-card locked";
-      card.innerHTML = `
-        <span class="rarity">Locked</span>
-        <div class="pet-id">PET #${pet.id}</div>
-        <h2 class="pet-name">???</h2>
-        <p class="desc">A mysterious friend awaits...</p>
-        <div class="pet-stage">
-          <span class="silhouette">${pet.emoji}</span>
-        </div>
-        <div class="unlock-clue">🔒 ${pet.unlockHint}</div>
-      `;
-      return card;
-    }
-
-    // ============ CELEBRATION MODAL ============
+    const progressFill = document.getElementById("progressFill");
+    const filtersEl = document.getElementById("filters");
     const modalBackdrop = document.getElementById("modalBackdrop");
-    const modal = document.getElementById("modal");
+    const modalContent = document.getElementById("modalContent");
+
+    let currentFilter = "all";
     let modalQueue = [];
 
-    function showCelebration(pet) {
-      modal.innerHTML = `
-        <h2>✨ New Pet Unlocked! ✨</h2>
-        <div class="big-emoji">${pet.emoji}</div>
-        <div class="pet-tag">${pet.name}</div>
-        <div style="font-size:0.95rem; opacity:0.85; margin-bottom: 8px;">${pet.rarity} · #${pet.id}</div>
-        <p style="font-style:italic; margin: 10px 0;">${pet.description}</p>
-        <button type="button" id="modalClose">Awesome!</button>
-      `;
-      modalBackdrop.classList.add("show");
-      sparkleSound();
-      spawnConfetti();
-      document.getElementById("modalClose").addEventListener("click", closeModal);
+    // ============ RENDER ============
+    function stars(n) {
+      let h = '<span class="stars">';
+      for (let i = 0; i < 5; i++) {
+        h += i < n ? '<span class="star-on">★</span>' : '<span class="star-off">★</span>';
+      }
+      return h + '</span>';
     }
+
+    function renderBinder(newlyUnlockedIds) {
+      binder.innerHTML = "";
+      const seen = loadSeen();
+      const filtered = PETS.filter(p => {
+        if (currentFilter === "all") return true;
+        if (currentFilter === "locked") return !isUnlocked(p);
+        return p.rarity.toLowerCase() === currentFilter;
+      });
+      if (!filtered.length) {
+        binder.innerHTML = '<p style="grid-column: 1/-1; text-align:center; opacity:0.7; padding:20px;">No pets to show here yet.</p>';
+        return;
+      }
+      filtered.forEach(pet => {
+        const unlocked = isUnlocked(pet);
+        const mini = document.createElement("div");
+        mini.className = "mini " + (unlocked ? pet.rarity.toLowerCase() : "locked");
+        const isNew = unlocked && newlyUnlockedIds.includes(pet.id);
+        if (isNew) mini.classList.add("new-pop");
+        mini.innerHTML = `
+          <span class="num">#${pet.id}</span>
+          <span class="face">${pet.emoji}</span>
+          <span class="name">${unlocked ? pet.name.split(" ")[0] : "???"}</span>
+          <span class="rar">${unlocked ? pet.rarity : "Locked"}</span>
+        `;
+        mini.addEventListener("click", () => openDetail(pet));
+        binder.appendChild(mini);
+      });
+    }
+
+    function openDetail(pet) {
+      const unlocked = isUnlocked(pet);
+      modalContent.innerHTML = "";
+      const card = document.createElement("div");
+      card.className = "detail-card " + (unlocked ? pet.rarity.toLowerCase() : "locked");
+      if (unlocked) {
+        const personalityHtml = Object.entries(pet.personality).map(([k, v]) =>
+          `<div class="stat-row"><span class="stat-label">${k}</span> ${stars(v)}</div>`
+        ).join("");
+        card.innerHTML = `
+          <button class="close-btn" type="button" aria-label="Close">✕</button>
+          <span class="rarity-tag">${pet.rarity}</span>
+          <div class="pet-id-row">PET #${pet.id}</div>
+          <h2 class="pet-name">${pet.name}</h2>
+          <p class="desc">${pet.description}</p>
+          <div class="pet-stage">
+            <span class="pet-emoji" role="button" aria-label="Tap ${pet.name}">${pet.emoji}</span>
+            <span class="callout-bubble">${pet.callout || "✨"}</span>
+          </div>
+          <p style="text-align:center; font-size:0.82rem; opacity:0.7; margin: -6px 0 10px;">Tap ${pet.name.split(" ")[0]} to animate!</p>
+          <div class="ability">
+            <div class="ability-name">✨ ${pet.ability.name}</div>
+            <div>${pet.ability.text}</div>
+          </div>
+          <div class="info-row"><span class="label">Favourite Food</span><span>${pet.food}</span></div>
+          <div class="info-row"><span class="label">Personality</span></div>
+          ${personalityHtml}
+        `;
+        const emojiEl = card.querySelector(".pet-emoji");
+        const bubble = card.querySelector(".callout-bubble");
+        emojiEl.addEventListener("click", () => {
+          const cls = "anim-" + pet.anim;
+          emojiEl.classList.remove(cls);
+          void emojiEl.offsetWidth;
+          emojiEl.classList.add(cls);
+          bubble.classList.add("show");
+          const s = SOUNDS[pet.sound];
+          if (s) s();
+          setTimeout(() => bubble.classList.remove("show"), 1000);
+        });
+      } else {
+        card.innerHTML = `
+          <button class="close-btn" type="button" aria-label="Close">✕</button>
+          <span class="rarity-tag">Locked</span>
+          <div class="pet-id-row">PET #${pet.id}</div>
+          <h2 class="pet-name">???</h2>
+          <p class="desc">A mysterious friend waiting to be discovered...</p>
+          <div class="pet-stage"><span class="silhouette">${pet.emoji}</span></div>
+          <div class="unlock-clue">🔒 ${pet.unlockHint}</div>
+        `;
+      }
+      modalContent.appendChild(card);
+      card.querySelector(".close-btn").addEventListener("click", closeModal);
+      modalBackdrop.classList.add("show");
+    }
+
     function closeModal() {
       modalBackdrop.classList.remove("show");
-      // process next in queue
       setTimeout(() => {
         if (modalQueue.length) {
           showCelebration(modalQueue.shift());
         }
-      }, 300);
+      }, 250);
     }
-    function spawnConfetti() {
+    modalBackdrop.addEventListener("click", e => {
+      if (e.target === modalBackdrop) closeModal();
+    });
+
+    function showCelebration(pet) {
+      modalContent.innerHTML = "";
+      const card = document.createElement("div");
+      card.className = "celeb-card " + pet.rarity.toLowerCase();
+      card.innerHTML = `
+        <h2>✨ New Pet Discovered! ✨</h2>
+        <div class="big-emoji">${pet.emoji}</div>
+        <div class="pet-tag">${pet.name}</div>
+        <div style="font-size:0.9rem; opacity:0.85; margin-bottom:6px;">${pet.rarity} · #${pet.id}</div>
+        <p style="font-style:italic; margin:10px 0; font-size:0.95rem;">${pet.description}</p>
+        <button type="button">Awesome!</button>
+      `;
+      modalContent.appendChild(card);
+      modalBackdrop.classList.add("show");
+      sparkle();
+      const s = SOUNDS[pet.sound];
+      if (s) setTimeout(s, 400);
+      spawnConfetti(card);
+      card.querySelector("button").addEventListener("click", closeModal);
+    }
+
+    function spawnConfetti(host) {
       const colors = ["#f5b400", "#e44a4a", "#4dc1f0", "#a66cff", "#45c265"];
-      for (let i = 0; i < 40; i++) {
+      for (let i = 0; i < 36; i++) {
         const c = document.createElement("div");
         c.className = "confetti";
         c.style.background = colors[i % colors.length];
         c.style.left = (Math.random() * 100) + "%";
         c.style.top = "-10px";
-        c.style.transform = `rotate(${Math.random() * 360}deg)`;
         c.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
-        modal.appendChild(c);
-        const dx = (Math.random() - 0.5) * 200;
-        const dy = 300 + Math.random() * 200;
+        host.appendChild(c);
+        const dx = (Math.random() - 0.5) * 220;
+        const dy = 280 + Math.random() * 200;
         const dur = 1400 + Math.random() * 800;
         c.animate(
-          [
-            { transform: c.style.transform, opacity: 1 },
-            { transform: `translate(${dx}px, ${dy}px) rotate(${Math.random() * 720}deg)`, opacity: 0 }
-          ],
+          [{ transform: "rotate(0deg)", opacity: 1 },
+           { transform: `translate(${dx}px, ${dy}px) rotate(${Math.random()*720}deg)`, opacity: 0 }],
           { duration: dur, easing: "cubic-bezier(0.2, 0.6, 0.4, 1)", fill: "forwards" }
         );
         setTimeout(() => c.remove(), dur);
       }
     }
 
-    // ============ MAIN ============
-    function render() {
-      grid.innerHTML = "";
-      const seen = loadSeenPets();
-      const unlockedNow = PETS.filter(isUnlocked);
-      const newlyUnlocked = unlockedNow.filter(p => !seen[p.id] && p.unlock.type !== "always");
+    // ============ FILTERS ============
+    filtersEl.addEventListener("click", e => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      filtersEl.querySelectorAll("button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentFilter = btn.dataset.filter;
+      renderBinder([]);
+    });
 
-      let unlockedCount = 0;
-      PETS.forEach(pet => {
-        if (isUnlocked(pet)) {
-          unlockedCount++;
-          const isNew = newlyUnlocked.some(p => p.id === pet.id);
-          grid.appendChild(renderUnlockedPet(pet, isNew));
-        } else {
-          grid.appendChild(renderLockedPet(pet));
-        }
-      });
+    // ============ INIT ============
+    function init() {
+      // First: process any pending rolls so newly-granted drops are visible
+      const grantedFromRolls = consumePendingRolls();
 
-      summary.textContent = `🏆 ${unlockedCount} of ${PETS.length} pets discovered`;
+      // Compute current state
+      const seen = loadSeen();
+      const allUnlocked = PETS.filter(isUnlocked);
 
-      // mark all as seen and queue celebrations for newly unlocked
-      unlockedNow.forEach(p => { seen[p.id] = true; });
-      saveSeenPets(seen);
+      // Newly unlocked = any unlocked pet not yet acknowledged (and not the starter)
+      const newlyUnlocked = allUnlocked.filter(p => !seen[p.id] && p.unlock.type !== "always");
+      // Auto-mark the starter as seen
+      allUnlocked.forEach(p => { if (p.unlock.type === "always") seen[p.id] = true; });
+      saveSeen(seen);
 
+      summary.textContent = `🏆 ${allUnlocked.length} of ${PETS.length} pets collected`;
+      progressFill.style.width = (allUnlocked.length / PETS.length * 100) + "%";
+
+      renderBinder(newlyUnlocked.map(p => p.id));
+
+      // Queue celebrations
       if (newlyUnlocked.length) {
         modalQueue = newlyUnlocked.slice(1);
-        setTimeout(() => showCelebration(newlyUnlocked[0]), 400);
+        setTimeout(() => {
+          // mark all unlocked as seen before showing
+          const s2 = loadSeen();
+          newlyUnlocked.forEach(p => { s2[p.id] = true; });
+          saveSeen(s2);
+          showCelebration(newlyUnlocked[0]);
+        }, 500);
       }
     }
 
-    render();
+    init();
   </script>
 </body>
 </html>
