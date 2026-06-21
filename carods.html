@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carods — Ezra's Board Game</title>
+  <style>
+    :root {
+      --bg: #eaf6ff;
+      --card: #ffffff;
+      --text: #1c2740;
+      --road: #36405c;
+      --accent: #2f6df3;
+      --red: #e44a4a;
+      --orange: #ff8a3d;
+      --yellow: #ffd23d;
+      --green: #45c265;
+      --blue: #4aa5f0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 0%, #cfe6ff 0%, transparent 45%),
+        radial-gradient(circle at 80% 100%, #d6f5d8 0%, transparent 45%),
+        var(--bg);
+      padding: 14px;
+      display: grid;
+      place-items: center;
+    }
+    .page {
+      width: min(900px, 100%);
+      background: var(--card);
+      border-radius: 22px;
+      box-shadow: 0 14px 36px rgba(20, 40, 80, 0.15);
+      padding: clamp(14px, 3vw, 26px);
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(1.6rem, 4.4vw, 2.2rem);
+      text-align: center;
+    }
+    .subtitle {
+      text-align: center;
+      opacity: 0.85;
+      margin: 6px 0 16px;
+      font-size: 0.95rem;
+    }
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .player-pill {
+      background: #eef3ff;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95rem;
+    }
+    .player-pill.active {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 4px 14px rgba(47, 109, 243, 0.4);
+    }
+    .board-wrap {
+      background: var(--road);
+      border-radius: 16px;
+      padding: 10px;
+      box-shadow: inset 0 0 0 4px #2a3148, inset 0 0 14px rgba(0,0,0,0.3);
+      overflow-x: auto;
+    }
+    .board {
+      display: grid;
+      gap: 4px;
+    }
+    .row {
+      display: grid;
+      gap: 4px;
+      grid-template-columns: repeat(8, 1fr);
+    }
+    .row.reverse { direction: rtl; }
+    .row.reverse .sq { direction: ltr; }
+    .sq {
+      aspect-ratio: 1 / 1;
+      min-width: 36px;
+      border-radius: 8px;
+      position: relative;
+      display: grid;
+      place-items: center;
+      font-size: clamp(0.9rem, 2.2vw, 1.1rem);
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,0.35);
+    }
+    .sq.red    { background: var(--red); }
+    .sq.orange { background: var(--orange); }
+    .sq.yellow { background: var(--yellow); color: #5a4500; }
+    .sq.green  { background: var(--green); }
+    .sq.blue   { background: var(--blue); }
+    .sq.start, .sq.finish {
+      background: linear-gradient(135deg, #1c2740 25%, #ffffff 25%, #ffffff 50%, #1c2740 50%, #1c2740 75%, #ffffff 75%);
+      background-size: 16px 16px;
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: bold;
+      text-shadow: 0 0 4px black;
+    }
+    .sq .obstacle {
+      font-size: 1.2rem;
+      pointer-events: none;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+    }
+    .sq.highlight {
+      outline: 3px solid #fff;
+      outline-offset: 1px;
+      animation: pulse 0.6s ease-in-out infinite alternate;
+    }
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to   { transform: scale(1.08); }
+    }
+    .cars {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0;
+      pointer-events: none;
+      font-size: clamp(1rem, 2.6vw, 1.4rem);
+    }
+    .car {
+      transition: transform 0.4s cubic-bezier(0.5, 1.5, 0.6, 1);
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4));
+    }
+    .car.bump { animation: bump 0.4s ease; }
+    @keyframes bump {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .play-row {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 540px) {
+      .play-row { grid-template-columns: 1fr; }
+    }
+    .card-area {
+      background: #f7faff;
+      border-radius: 14px;
+      padding: 14px;
+      border: 2px solid #d6e4ff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .game-card {
+      width: 130px;
+      height: 180px;
+      background: linear-gradient(160deg, #fff, #f0f4ff);
+      border: 3px solid #cfdcf7;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(20, 40, 80, 0.15);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      font-weight: bold;
+      transition: transform 0.3s ease;
+      position: relative;
+    }
+    .game-card.back {
+      background:
+        repeating-linear-gradient(45deg, #2f6df3 0 10px, #4a80f5 10px 20px);
+      color: white;
+      font-size: 2.2rem;
+    }
+    .game-card.flip { transform: rotateY(360deg); }
+    .game-card .circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 3px rgba(255,255,255,0.5);
+    }
+    .game-card .circles { display: flex; gap: 8px; }
+    .game-card .label { font-size: 0.85rem; text-align: center; padding: 0 6px; }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    button {
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: bold;
+      padding: 12px 18px;
+      border-radius: 12px;
+      border: 2px solid var(--accent);
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+      min-height: 48px;
+    }
+    button.secondary {
+      background: white;
+      color: var(--accent);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .log {
+      background: #f7faff;
+      border-radius: 14px;
+      padding: 14px;
+      border: 2px solid #d6e4ff;
+      min-height: 220px;
+      max-height: 260px;
+      overflow-y: auto;
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+    .log h3 { margin: 0 0 6px; font-size: 1rem; }
+    .log .entry { padding: 3px 0; border-bottom: 1px dashed #e3e9f7; }
+    .log .entry:last-child { border-bottom: none; }
+    .log .you { color: #16662f; font-weight: bold; }
+    .log .cpu { color: #b03030; font-weight: bold; }
+    .log .obs { color: #8a4500; font-weight: bold; }
+
+    .win-banner {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #fff5d4, #ffe7a8);
+      border: 3px solid #f5b400;
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+    .win-banner.hidden { display: none; }
+
+    .legend {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      font-size: 0.82rem;
+      margin: 10px 0;
+      opacity: 0.9;
+    }
+    .legend span { display: inline-flex; align-items: center; gap: 4px; }
+
+    a.back-link {
+      display: inline-block;
+      margin-top: 18px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: bold;
+    }
+    a.back-link:hover { text-decoration: underline; }
+
+    .sound-toggle {
+      background: transparent;
+      color: var(--text);
+      border: 2px solid #d6e4ff;
+      padding: 6px 10px;
+      min-height: 0;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>🏁 Carods</h1>
+    <p class="subtitle">Ezra's car race! Draw a card, drive to the matching coloured square. First to the finish line wins.</p>
+
+    <div class="status-bar">
+      <div class="player-pill" id="humanPill">🚗 You — Square 0</div>
+      <div class="player-pill" id="cpuPill">🚙 CPU — Square 0</div>
+      <button class="sound-toggle" id="soundToggle" type="button">🔊 Sound</button>
+    </div>
+
+    <div class="legend">
+      <span>🛑 Skip turn</span>
+      <span>⬅️ Back 3</span>
+      <span>⭐ Lucky shortcut</span>
+      <span>🔄 Swap places</span>
+      <span>⛽ Go again</span>
+      <span>🌪️ Tornado teleport</span>
+    </div>
+
+    <div class="board-wrap">
+      <div class="board" id="board"></div>
+    </div>
+
+    <div class="play-row">
+      <div class="card-area">
+        <div class="game-card back" id="card">🃏</div>
+        <div class="controls">
+          <button id="drawBtn" type="button">Draw Card</button>
+          <button id="moveBtn" class="secondary" type="button" disabled>Move 🚗</button>
+        </div>
+        <button id="resetBtn" class="secondary" type="button" style="font-size:0.85rem; padding: 8px 12px; min-height: 0;">↻ New Game</button>
+      </div>
+      <div class="log" id="log">
+        <h3>Game Log</h3>
+      </div>
+    </div>
+
+    <div class="win-banner hidden" id="winBanner"></div>
+
+    <a class="back-link" href="index.html">← Back to Game Hub</a>
+  </main>
+
+  <script>
+    // ============ CONFIG ============
+    const COLS = 8;
+    const ROWS = 5;
+    const TOTAL = COLS * ROWS; // 40 squares including start (0) and finish (39)
+    const COLOURS = ["red", "orange", "yellow", "green", "blue"];
+    const OBSTACLES = ["skip", "back", "lucky", "swap", "fuel", "tornado"];
+    const OBSTACLE_EMOJI = {
+      skip: "🛑", back: "⬅️", lucky: "⭐", swap: "🔄",
+      fuel: "⛽", tornado: "🌪️"
+    };
+    const OBSTACLE_NAME = {
+      skip: "Skip a turn",
+      back: "Go back 3",
+      lucky: "Lucky shortcut",
+      swap: "Swap places",
+      fuel: "Fuel boost — go again!",
+      tornado: "Tornado! Random teleport"
+    };
+
+    // ============ STATE ============
+    let state;
+    function newState() {
+      return {
+        squares: buildSquares(),
+        positions: { human: 0, cpu: 0 },
+        turn: "human",
+        drawnCard: null,
+        moving: false,
+        skip: { human: false, cpu: false },
+        bonusTurn: null,
+        winner: null,
+        soundOn: state ? state.soundOn : true
+      };
+    }
+
+    function buildSquares() {
+      // index 0 = start (special), index TOTAL-1 = finish (special)
+      // middle squares get coloured + occasional obstacle
+      const sqs = new Array(TOTAL);
+      sqs[0] = { kind: "start" };
+      sqs[TOTAL - 1] = { kind: "finish" };
+      // distribute colours evenly through middle 38 squares
+      const middle = TOTAL - 2;
+      const colourPool = [];
+      for (let i = 0; i < middle; i++) colourPool.push(COLOURS[i % COLOURS.length]);
+      shuffle(colourPool);
+      for (let i = 1; i < TOTAL - 1; i++) {
+        sqs[i] = { kind: "colour", colour: colourPool[i - 1] };
+      }
+      // place obstacles on 7 random middle squares (not too close to finish)
+      const candidates = [];
+      for (let i = 4; i < TOTAL - 4; i++) candidates.push(i);
+      shuffle(candidates);
+      const obstaclePicks = candidates.slice(0, 7);
+      obstaclePicks.forEach((pos, idx) => {
+        sqs[pos].obstacle = OBSTACLES[idx % OBSTACLES.length];
+      });
+      // for each "lucky" obstacle, pick a target jump square (forward 4-6)
+      sqs.forEach((s, i) => {
+        if (s.obstacle === "lucky") {
+          s.luckyTarget = Math.min(TOTAL - 1, i + 4 + Math.floor(Math.random() * 3));
+        }
+      });
+      return sqs;
+    }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    }
+
+    function drawCard() {
+      // Card mix:
+      //   50% single   (next matching colour)
+      //   18% double   (2nd next matching colour)
+      //   8%  triple   (3rd next matching colour — speedy!)
+      //   8%  mixed    (next of each of two colours)
+      //   6%  turbo    (straight forward 4 squares)
+      //   5%  rainbow  (move to next square of ANY colour — basically +1)
+      //   5%  reverse  (back to nearest matching colour — uncommon bad luck)
+      const r = Math.random();
+      const randColour = () => COLOURS[Math.floor(Math.random() * COLOURS.length)];
+      if (r < 0.50) {
+        return { type: "single", colour: randColour() };
+      } else if (r < 0.68) {
+        return { type: "double", colour: randColour() };
+      } else if (r < 0.76) {
+        return { type: "triple", colour: randColour() };
+      } else if (r < 0.84) {
+        const a = randColour();
+        let b = randColour();
+        while (b === a) b = randColour();
+        return { type: "mixed", colours: [a, b] };
+      } else if (r < 0.90) {
+        return { type: "turbo", steps: 4 };
+      } else if (r < 0.95) {
+        return { type: "rainbow" };
+      } else {
+        return { type: "reverse", colour: randColour() };
+      }
+    }
+
+    // Given current position and card, find target square index (or TOTAL-1 if past finish)
+    function findTarget(fromIdx, card) {
+      if (card.type === "turbo") {
+        return Math.min(TOTAL - 1, fromIdx + card.steps);
+      }
+      if (card.type === "rainbow") {
+        // advance to the next coloured square (any colour)
+        for (let i = fromIdx + 1; i < TOTAL; i++) {
+          const sq = state.squares[i];
+          if (sq.kind === "colour" || sq.kind === "finish") return i;
+        }
+        return TOTAL - 1;
+      }
+      if (card.type === "reverse") {
+        // go back to nearest matching colour (no wrap-around past start)
+        for (let i = fromIdx - 1; i >= 1; i--) {
+          const sq = state.squares[i];
+          if (sq.kind === "colour" && sq.colour === card.colour) return i;
+        }
+        // no match behind — stay put (effectively a wasted card)
+        return fromIdx;
+      }
+      const steps = card.type === "single" ? [card.colour] :
+                    card.type === "double" ? [card.colour, card.colour] :
+                    card.type === "triple" ? [card.colour, card.colour, card.colour] :
+                    card.colours;
+      let pos = fromIdx;
+      for (const colour of steps) {
+        let found = -1;
+        for (let i = pos + 1; i < TOTAL; i++) {
+          const sq = state.squares[i];
+          if (sq.kind === "colour" && sq.colour === colour) {
+            found = i;
+            break;
+          }
+          if (sq.kind === "finish") {
+            found = i;
+            break;
+          }
+        }
+        if (found === -1) {
+          return TOTAL - 1;
+        }
+        pos = found;
+        if (pos === TOTAL - 1) break;
+      }
+      return pos;
+    }
+
+    // ============ DOM ============
+    const boardEl = document.getElementById("board");
+    const humanPill = document.getElementById("humanPill");
+    const cpuPill = document.getElementById("cpuPill");
+    const cardEl = document.getElementById("card");
+    const drawBtn = document.getElementById("drawBtn");
+    const moveBtn = document.getElementById("moveBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const logEl = document.getElementById("log");
+    const winBanner = document.getElementById("winBanner");
+    const soundToggleBtn = document.getElementById("soundToggle");
+
+    // ============ SOUND ============
+    let audioCtx = null;
+    function ensureAudio() {
+      if (!audioCtx) {
+        try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        catch (e) { audioCtx = null; }
+      }
+      return audioCtx;
+    }
+    function tone(freq, dur, type, vol, delay) {
+      if (!state.soundOn) return;
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      const start = ctx.currentTime + (delay || 0);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(vol || 0.12, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + dur + 0.05);
+    }
+    const sfx = {
+      vroom: () => { tone(200, 0.2, "sawtooth", 0.1, 0); tone(280, 0.2, "sawtooth", 0.08, 0.05); },
+      flip:  () => tone(700, 0.08, "square", 0.08, 0),
+      win:   () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.2, "triangle", 0.16, i * 0.12)); },
+      bad:   () => tone(180, 0.3, "sine", 0.16, 0),
+      good:  () => { tone(660, 0.12, "sine", 0.16, 0); tone(880, 0.16, "sine", 0.16, 0.1); }
+    };
+
+    // ============ RENDER ============
+    function renderBoard() {
+      boardEl.innerHTML = "";
+      // path goes: row 0 L→R (0..7), row 1 R→L (8..15), row 2 L→R (16..23), row 3 R→L (24..31), row 4 L→R (32..39)
+      for (let r = 0; r < ROWS; r++) {
+        const row = document.createElement("div");
+        row.className = "row" + (r % 2 === 1 ? " reverse" : "");
+        for (let c = 0; c < COLS; c++) {
+          const colInRow = c; // visual column
+          const pathIdx = r % 2 === 0
+            ? r * COLS + colInRow
+            : r * COLS + (COLS - 1 - colInRow);
+          const sq = state.squares[pathIdx];
+          const div = document.createElement("div");
+          div.className = "sq";
+          div.dataset.idx = pathIdx;
+          if (sq.kind === "start") {
+            div.classList.add("start");
+            div.innerHTML = `<span>START</span>`;
+          } else if (sq.kind === "finish") {
+            div.classList.add("finish");
+            div.innerHTML = `<span>FINISH</span>`;
+          } else {
+            div.classList.add(sq.colour);
+            if (sq.obstacle) {
+              div.innerHTML = `<span class="obstacle">${OBSTACLE_EMOJI[sq.obstacle]}</span>`;
+              div.title = OBSTACLE_NAME[sq.obstacle];
+            }
+          }
+          // add car container
+          const cars = document.createElement("div");
+          cars.className = "cars";
+          div.appendChild(cars);
+          row.appendChild(div);
+        }
+        boardEl.appendChild(row);
+      }
+      placeCars();
+    }
+
+    function placeCars() {
+      document.querySelectorAll(".cars").forEach(c => c.innerHTML = "");
+      const humanIdx = state.positions.human;
+      const cpuIdx = state.positions.cpu;
+      const humanSq = boardEl.querySelector(`.sq[data-idx="${humanIdx}"] .cars`);
+      const cpuSq = boardEl.querySelector(`.sq[data-idx="${cpuIdx}"] .cars`);
+      if (humanSq) {
+        const car = document.createElement("span");
+        car.className = "car";
+        car.textContent = "🚗";
+        humanSq.appendChild(car);
+      }
+      if (cpuSq) {
+        const car = document.createElement("span");
+        car.className = "car";
+        car.textContent = "🚙";
+        cpuSq.appendChild(car);
+      }
+    }
+
+    function updatePills() {
+      humanPill.innerHTML = `🚗 You — Square ${state.positions.human}`;
+      cpuPill.innerHTML = `🚙 CPU — Square ${state.positions.cpu}`;
+      humanPill.classList.toggle("active", state.turn === "human" && !state.winner);
+      cpuPill.classList.toggle("active", state.turn === "cpu" && !state.winner);
+    }
+
+    function renderCard(card) {
+      cardEl.classList.remove("back");
+      cardEl.classList.add("flip");
+      setTimeout(() => cardEl.classList.remove("flip"), 350);
+      const dot = c => `<span class="circle" style="background:var(--${c})"></span>`;
+      let circles = "";
+      let label = "";
+      switch (card.type) {
+        case "single":
+          circles = dot(card.colour);
+          label = "Next matching square";
+          break;
+        case "double":
+          circles = dot(card.colour) + dot(card.colour);
+          label = "2nd matching square";
+          break;
+        case "triple":
+          circles = dot(card.colour) + dot(card.colour) + dot(card.colour);
+          label = "3rd matching square ⚡";
+          break;
+        case "mixed":
+          circles = dot(card.colours[0]) + dot(card.colours[1]);
+          label = "Next of each colour";
+          break;
+        case "turbo":
+          circles = `<span style="font-size:2.2rem">🏎️💨</span>`;
+          label = `TURBO! Move ${card.steps} squares`;
+          break;
+        case "rainbow":
+          circles = `<span class="circle" style="background:linear-gradient(45deg,var(--red),var(--orange),var(--yellow),var(--green),var(--blue))"></span>`;
+          label = "🌈 Rainbow — any next square";
+          break;
+        case "reverse":
+          circles = `<span style="font-size:1.4rem">⬅️</span>` + dot(card.colour);
+          label = "Reverse to last matching square";
+          break;
+      }
+      cardEl.innerHTML = `<div class="circles">${circles}</div><div class="label">${label}</div>`;
+    }
+
+    function clearCard() {
+      cardEl.classList.add("back");
+      cardEl.innerHTML = "🃏";
+    }
+
+    function highlightTarget(idx) {
+      document.querySelectorAll(".sq.highlight").forEach(el => el.classList.remove("highlight"));
+      const el = boardEl.querySelector(`.sq[data-idx="${idx}"]`);
+      if (el) el.classList.add("highlight");
+    }
+    function clearHighlight() {
+      document.querySelectorAll(".sq.highlight").forEach(el => el.classList.remove("highlight"));
+    }
+
+    function log(html, klass) {
+      const div = document.createElement("div");
+      div.className = "entry" + (klass ? " " + klass : "");
+      div.innerHTML = html;
+      logEl.appendChild(div);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // ============ TURN LOGIC ============
+    function startTurn() {
+      if (state.winner) return;
+      // check for skip
+      if (state.skip[state.turn]) {
+        state.skip[state.turn] = false;
+        const who = state.turn === "human" ? "You" : "CPU";
+        const cls = state.turn === "human" ? "you" : "cpu";
+        log(`${who} <span class="obs">skipped a turn</span> 🛑`, cls);
+        endTurn();
+        return;
+      }
+      updatePills();
+      if (state.turn === "human") {
+        drawBtn.disabled = false;
+        moveBtn.disabled = true;
+        clearCard();
+      } else {
+        drawBtn.disabled = true;
+        moveBtn.disabled = true;
+        setTimeout(cpuTurn, 700);
+      }
+    }
+
+    function endTurn() {
+      clearHighlight();
+      clearCard();
+      state.drawnCard = null;
+      if (state.bonusTurn && state.bonusTurn === state.turn) {
+        // same player goes again
+        state.bonusTurn = null;
+      } else {
+        state.bonusTurn = null;
+        state.turn = state.turn === "human" ? "cpu" : "human";
+      }
+      updatePills();
+      setTimeout(startTurn, 400);
+    }
+
+    function handleDraw() {
+      if (state.turn !== "human" || state.drawnCard || state.winner) return;
+      const card = drawCard();
+      state.drawnCard = card;
+      renderCard(card);
+      sfx.flip();
+      const target = findTarget(state.positions.human, card);
+      highlightTarget(target);
+      drawBtn.disabled = true;
+      moveBtn.disabled = false;
+    }
+
+    function handleMove() {
+      if (state.turn !== "human" || !state.drawnCard || state.winner) return;
+      const target = findTarget(state.positions.human, state.drawnCard);
+      const fromIdx = state.positions.human;
+      moveBtn.disabled = true;
+      const animator = target < fromIdx ? animateBack : animateMove;
+      animator("human", fromIdx, target, () => {
+        state.positions.human = target;
+        updatePills();
+        resolveLanding("human", () => {
+          if (checkWin()) return;
+          endTurn();
+        });
+      });
+    }
+
+    function cpuTurn() {
+      const card = drawCard();
+      state.drawnCard = card;
+      renderCard(card);
+      sfx.flip();
+      const fromIdx = state.positions.cpu;
+      const target = findTarget(fromIdx, card);
+      highlightTarget(target);
+      log(`CPU drew a card and is moving to square ${target}.`, "cpu");
+      const animator = target < fromIdx ? animateBack : animateMove;
+      setTimeout(() => {
+        animator("cpu", fromIdx, target, () => {
+          state.positions.cpu = target;
+          updatePills();
+          resolveLanding("cpu", () => {
+            if (checkWin()) return;
+            endTurn();
+          });
+        });
+      }, 900);
+    }
+
+    function animateMove(who, from, to, done) {
+      state.moving = true;
+      const carEmoji = who === "human" ? "🚗" : "🚙";
+      // hop through each square between from→to for a bouncy travel feel
+      let cur = from;
+      function step() {
+        cur++;
+        if (cur > to) {
+          state.moving = false;
+          sfx.vroom();
+          done();
+          return;
+        }
+        if (who === "human") state.positions.human = cur;
+        else state.positions.cpu = cur;
+        placeCars();
+        const sq = boardEl.querySelector(`.sq[data-idx="${cur}"]`);
+        if (sq) {
+          const car = sq.querySelector(".car");
+          if (car) {
+            car.classList.add("bump");
+            setTimeout(() => car && car.classList.remove("bump"), 250);
+          }
+        }
+        sfx.vroom();
+        setTimeout(step, 180);
+      }
+      step();
+    }
+
+    function resolveLanding(who, done) {
+      const idx = state.positions[who];
+      const sq = state.squares[idx];
+      const youOrCpu = who === "human" ? "You" : "CPU";
+      const cls = who === "human" ? "you" : "cpu";
+      if (idx === TOTAL - 1) {
+        done();
+        return;
+      }
+      if (!sq.obstacle) {
+        log(`${youOrCpu} landed on square ${idx}.`, cls);
+        done();
+        return;
+      }
+      const obs = sq.obstacle;
+      log(`${youOrCpu} landed on ${OBSTACLE_EMOJI[obs]} <span class="obs">${OBSTACLE_NAME[obs]}</span>!`, cls);
+      sfx.bad();
+      setTimeout(() => {
+        if (obs === "skip") {
+          state.skip[who] = true;
+          done();
+        } else if (obs === "back") {
+          const target = Math.max(0, idx - 3);
+          animateBack(who, idx, target, () => {
+            state.positions[who] = target;
+            updatePills();
+            done();
+          });
+        } else if (obs === "lucky") {
+          const target = sq.luckyTarget || Math.min(TOTAL - 1, idx + 5);
+          sfx.good();
+          log(`✨ Lucky shortcut! ${youOrCpu} jump to square ${target}.`, cls);
+          animateMove(who, idx, target, () => {
+            state.positions[who] = target;
+            updatePills();
+            // do NOT re-trigger obstacle on the landed square (avoid loops)
+            done();
+          });
+        } else if (obs === "swap") {
+          const other = who === "human" ? "cpu" : "human";
+          const otherName = who === "human" ? "the CPU" : "you";
+          const tmp = state.positions[who];
+          state.positions[who] = state.positions[other];
+          state.positions[other] = tmp;
+          placeCars();
+          updatePills();
+          log(`🔄 ${youOrCpu} swapped places with ${otherName}!`, cls);
+          done();
+        } else if (obs === "fuel") {
+          // grant another turn for this player
+          sfx.good();
+          log(`⛽ ${youOrCpu} fuelled up — go again!`, cls);
+          state.bonusTurn = who;
+          done();
+        } else if (obs === "tornado") {
+          // teleport to a random other square (not start, not finish, not the same square)
+          const choices = [];
+          for (let i = 1; i < TOTAL - 1; i++) {
+            if (i !== idx) choices.push(i);
+          }
+          const target = choices[Math.floor(Math.random() * choices.length)];
+          log(`🌪️ ${youOrCpu} got swept to square ${target}!`, cls);
+          state.positions[who] = target;
+          placeCars();
+          updatePills();
+          // intentionally do NOT trigger another obstacle from the tornado landing
+          done();
+        }
+      }, 500);
+    }
+
+    function animateBack(who, from, to, done) {
+      let cur = from;
+      function step() {
+        cur--;
+        if (cur < to) { done(); return; }
+        if (who === "human") state.positions.human = cur;
+        else state.positions.cpu = cur;
+        placeCars();
+        sfx.vroom();
+        setTimeout(step, 180);
+      }
+      step();
+    }
+
+    function checkWin() {
+      if (state.positions.human >= TOTAL - 1) {
+        state.winner = "human";
+        showWin("🏆 You win! Great driving!");
+        return true;
+      }
+      if (state.positions.cpu >= TOTAL - 1) {
+        state.winner = "cpu";
+        showWin("🚙 CPU wins! Try again — you'll get them next time.");
+        return true;
+      }
+      return false;
+    }
+
+    function showWin(msg) {
+      winBanner.textContent = msg;
+      winBanner.classList.remove("hidden");
+      drawBtn.disabled = true;
+      moveBtn.disabled = true;
+      humanPill.classList.remove("active");
+      cpuPill.classList.remove("active");
+      sfx.win();
+    }
+
+    function startNewGame() {
+      state = newState();
+      winBanner.classList.add("hidden");
+      logEl.innerHTML = "<h3>Game Log</h3>";
+      log(`New race! Tap <strong>Draw Card</strong> to start. 🏁`);
+      renderBoard();
+      updatePills();
+      clearCard();
+      drawBtn.disabled = false;
+      moveBtn.disabled = true;
+    }
+
+    // ============ EVENTS ============
+    drawBtn.addEventListener("click", handleDraw);
+    moveBtn.addEventListener("click", handleMove);
+    resetBtn.addEventListener("click", () => {
+      if (confirm("Start a new race? Current game will be lost.")) startNewGame();
+    });
+    soundToggleBtn.addEventListener("click", () => {
+      state.soundOn = !state.soundOn;
+      soundToggleBtn.textContent = state.soundOn ? "🔊 Sound" : "🔇 Muted";
+    });
+
+    // ============ START ============
+    state = newState();
+    soundToggleBtn.textContent = state.soundOn ? "🔊 Sound" : "🔇 Muted";
+    startNewGame();
+  </script>
+</body>
+</html>
