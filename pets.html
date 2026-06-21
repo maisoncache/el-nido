@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ezra's Legendary Pets</title>
+  <style>
+    :root {
+      --bg: #fff7e6;
+      --card: #ffffff;
+      --text: #2a2440;
+      --legendary: #f5b400;
+      --epic: #a66cff;
+      --rare: #4dc1f0;
+      --common: #6cbf6c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 10%, #ffe7b0 0%, transparent 40%),
+        radial-gradient(circle at 80% 90%, #ffd1f0 0%, transparent 45%),
+        var(--bg);
+      padding: 20px;
+      display: grid;
+      place-items: center;
+    }
+    .page {
+      width: min(960px, 100%);
+      background: var(--card);
+      border-radius: 24px;
+      box-shadow: 0 14px 36px rgba(40, 30, 80, 0.15);
+      padding: clamp(20px, 4vw, 36px);
+    }
+    h1 {
+      margin: 0;
+      text-align: center;
+      font-size: clamp(1.8rem, 4.6vw, 2.6rem);
+    }
+    .subtitle {
+      text-align: center;
+      opacity: 0.85;
+      margin: 10px auto 24px;
+      max-width: 60ch;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+    }
+    .pet-card {
+      border-radius: 20px;
+      padding: 20px;
+      background: linear-gradient(160deg, #fffbef, #fff5d8);
+      border: 3px solid var(--legendary);
+      box-shadow: 0 0 24px rgba(245, 180, 0, 0.25), inset 0 0 0 1px rgba(255,255,255,0.6);
+      position: relative;
+      overflow: hidden;
+    }
+    .pet-card.locked {
+      background: #f4f1ec;
+      border: 3px dashed #cfc6b3;
+      box-shadow: none;
+      color: #8a8676;
+    }
+    .rarity {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: var(--legendary);
+      color: #4a3500;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .pet-card.locked .rarity {
+      background: #cfc6b3;
+      color: #5a5547;
+    }
+    .pet-id {
+      font-size: 0.78rem;
+      letter-spacing: 1px;
+      color: #8a7a40;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .pet-name {
+      margin: 0;
+      font-size: 1.7rem;
+    }
+    .pet-stage {
+      position: relative;
+      height: 160px;
+      margin: 10px 0 14px;
+      display: grid;
+      place-items: center;
+      user-select: none;
+    }
+    .pet-emoji {
+      font-size: 6rem;
+      cursor: pointer;
+      display: inline-block;
+      transition: transform 0.15s ease;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.15));
+    }
+    .pet-emoji:hover { transform: scale(1.08) rotate(-6deg); }
+    .pet-emoji.spinning {
+      animation: nuckyWaddle 0.9s ease-in-out;
+    }
+    @keyframes nuckyWaddle {
+      0%   { transform: scale(1) rotate(0deg) translateY(0); }
+      20%  { transform: scale(1.15) rotate(120deg) translateY(-12px); }
+      40%  { transform: scale(1.15) rotate(240deg) translateY(-6px); }
+      60%  { transform: scale(1.15) rotate(360deg) translateY(-14px); }
+      80%  { transform: scale(1.1)  rotate(360deg) translateY(0); }
+      100% { transform: scale(1)    rotate(360deg) translateY(0); }
+    }
+    .quack-bubble {
+      position: absolute;
+      top: 4px;
+      left: 50%;
+      transform: translateX(-50%) scale(0);
+      background: white;
+      border: 2px solid var(--legendary);
+      border-radius: 14px;
+      padding: 6px 12px;
+      font-weight: bold;
+      color: #b88200;
+      pointer-events: none;
+      opacity: 0;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      font-size: 1.1rem;
+    }
+    .quack-bubble.show {
+      transform: translateX(-50%) scale(1);
+      opacity: 1;
+    }
+    .pet-tap-hint {
+      text-align: center;
+      font-size: 0.85rem;
+      opacity: 0.7;
+      margin: 0 0 14px;
+    }
+    .pet-row {
+      display: flex;
+      gap: 10px;
+      margin: 8px 0;
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+    .pet-row .label {
+      font-weight: bold;
+      min-width: 110px;
+      color: #6b5a20;
+    }
+    .pet-card.locked .pet-row .label { color: #7a7460; }
+    .desc {
+      font-style: italic;
+      margin: 4px 0 12px;
+      line-height: 1.4;
+    }
+    .ability {
+      background: #fff;
+      border-left: 4px solid var(--legendary);
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin: 10px 0;
+    }
+    .ability-name { font-weight: bold; color: #8a6300; }
+    .personality { margin-top: 6px; }
+    .stat-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 3px 0;
+      font-size: 0.92rem;
+    }
+    .stat-label { min-width: 90px; font-weight: bold; }
+    .stars { letter-spacing: 1px; }
+    .star-on { color: var(--legendary); }
+    .star-off { color: #e0d5b3; }
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      color: #2f6df3;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .back-link:hover { text-decoration: underline; }
+    .locked-msg {
+      text-align: center;
+      font-style: italic;
+      opacity: 0.7;
+      margin: 30px 0;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>🐾 Ezra's Legendary Pets</h1>
+    <p class="subtitle">Tap a pet to see them do their special animation!</p>
+
+    <section class="grid" id="petGrid"></section>
+
+    <a class="back-link" href="index.html">← Back to Game Hub</a>
+  </main>
+
+  <script>
+    const PETS = [
+      {
+        id: "#001",
+        name: "Nucky the Duck",
+        emoji: "🦆",
+        rarity: "Legendary",
+        description: "A cheerful little duck who appears in unexpected places. Nucky loves puddles, snacks, and waddling after the player wherever they go.",
+        ability: {
+          name: "Lucky Waddle",
+          text: "Sometimes Nucky finds hidden treasures or secret paths."
+        },
+        food: "Breadcrumbs and blueberries",
+        personality: {
+          Friendly: 5,
+          Silly: 5,
+          Bravery: 3,
+          Mischief: 4
+        },
+        sound: "quack",
+        callout: "QUACK!"
+      }
+    ];
+
+    // ============ SOUND ============
+    let audioCtx = null;
+    function ensureAudio() {
+      if (!audioCtx) {
+        try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        catch (e) { audioCtx = null; }
+      }
+      return audioCtx;
+    }
+    function playQuack() {
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      // crude "quack": a quick down-up frequency sweep through a band-passed sawtooth
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(600, now);
+      osc.frequency.exponentialRampToValueAtTime(220, now + 0.08);
+      osc.frequency.exponentialRampToValueAtTime(420, now + 0.18);
+      filter.type = "bandpass";
+      filter.frequency.value = 900;
+      filter.Q.value = 4;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.25, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+      osc.connect(filter).connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    }
+
+    // ============ RENDER ============
+    const grid = document.getElementById("petGrid");
+
+    function stars(count) {
+      let html = '<span class="stars">';
+      for (let i = 0; i < 5; i++) {
+        html += i < count
+          ? '<span class="star-on">★</span>'
+          : '<span class="star-off">★</span>';
+      }
+      return html + '</span>';
+    }
+
+    function renderPet(pet) {
+      const card = document.createElement("article");
+      card.className = "pet-card";
+      const personalityHtml = Object.entries(pet.personality).map(([k, v]) =>
+        `<div class="stat-row"><span class="stat-label">${k}</span> ${stars(v)}</div>`
+      ).join("");
+      card.innerHTML = `
+        <span class="rarity">${pet.rarity}</span>
+        <div class="pet-id">PET ${pet.id}</div>
+        <h2 class="pet-name">${pet.name}</h2>
+        <p class="desc">${pet.description}</p>
+        <div class="pet-stage">
+          <span class="pet-emoji" role="button" aria-label="Tap ${pet.name}">${pet.emoji}</span>
+          <span class="quack-bubble">${pet.callout || "✨"}</span>
+        </div>
+        <p class="pet-tap-hint">Tap ${pet.name.split(" ")[0]} to see their special animation!</p>
+        <div class="ability">
+          <div class="ability-name">✨ ${pet.ability.name}</div>
+          <div>${pet.ability.text}</div>
+        </div>
+        <div class="pet-row"><span class="label">Favourite Food</span><span>${pet.food}</span></div>
+        <div class="personality">
+          <div class="pet-row"><span class="label">Personality</span></div>
+          ${personalityHtml}
+        </div>
+      `;
+      const emojiEl = card.querySelector(".pet-emoji");
+      const bubble = card.querySelector(".quack-bubble");
+      emojiEl.addEventListener("click", () => {
+        emojiEl.classList.remove("spinning");
+        void emojiEl.offsetWidth; // restart animation
+        emojiEl.classList.add("spinning");
+        bubble.classList.add("show");
+        if (pet.sound === "quack") playQuack();
+        setTimeout(() => bubble.classList.remove("show"), 900);
+      });
+      return card;
+    }
+
+    function renderLockedSlot(num) {
+      const card = document.createElement("article");
+      card.className = "pet-card locked";
+      card.innerHTML = `
+        <span class="rarity">Unknown</span>
+        <div class="pet-id">PET #${String(num).padStart(3, "0")}</div>
+        <h2 class="pet-name">Coming Soon</h2>
+        <div class="pet-stage">
+          <span class="pet-emoji" style="cursor:default; filter:none; opacity:0.4;">❔</span>
+        </div>
+        <p class="pet-tap-hint">A new legendary friend is on the way...</p>
+      `;
+      return card;
+    }
+
+    PETS.forEach(p => grid.appendChild(renderPet(p)));
+    // a couple of placeholder slots so the page hints at more pets to come
+    for (let i = PETS.length + 1; i <= PETS.length + 2; i++) {
+      grid.appendChild(renderLockedSlot(i));
+    }
+  </script>
+</body>
+</html>
