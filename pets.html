@@ -46,6 +46,13 @@
       margin: 10px auto 24px;
       max-width: 60ch;
     }
+    .summary {
+      text-align: center;
+      font-size: 0.95rem;
+      margin-bottom: 18px;
+      color: #6a5a20;
+      font-weight: bold;
+    }
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -54,11 +61,23 @@
     .pet-card {
       border-radius: 20px;
       padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .pet-card.legendary {
       background: linear-gradient(160deg, #fffbef, #fff5d8);
       border: 3px solid var(--legendary);
       box-shadow: 0 0 24px rgba(245, 180, 0, 0.25), inset 0 0 0 1px rgba(255,255,255,0.6);
-      position: relative;
-      overflow: hidden;
+    }
+    .pet-card.epic {
+      background: linear-gradient(160deg, #faf5ff, #f0e6ff);
+      border: 3px solid var(--epic);
+      box-shadow: 0 0 24px rgba(166, 108, 255, 0.25), inset 0 0 0 1px rgba(255,255,255,0.6);
+    }
+    .pet-card.rare {
+      background: linear-gradient(160deg, #f0fbff, #d8efff);
+      border: 3px solid var(--rare);
+      box-shadow: 0 0 24px rgba(77, 193, 240, 0.25), inset 0 0 0 1px rgba(255,255,255,0.6);
     }
     .pet-card.locked {
       background: #f4f1ec;
@@ -70,8 +89,6 @@
       position: absolute;
       top: 14px;
       right: 14px;
-      background: var(--legendary);
-      color: #4a3500;
       padding: 4px 10px;
       border-radius: 999px;
       font-size: 0.78rem;
@@ -79,10 +96,10 @@
       letter-spacing: 0.5px;
       text-transform: uppercase;
     }
-    .pet-card.locked .rarity {
-      background: #cfc6b3;
-      color: #5a5547;
-    }
+    .pet-card.legendary .rarity { background: var(--legendary); color: #4a3500; }
+    .pet-card.epic       .rarity { background: var(--epic);      color: white; }
+    .pet-card.rare       .rarity { background: var(--rare);      color: white; }
+    .pet-card.locked     .rarity { background: #cfc6b3; color: #5a5547; }
     .pet-id {
       font-size: 0.78rem;
       letter-spacing: 1px;
@@ -90,6 +107,9 @@
       font-weight: bold;
       margin-bottom: 4px;
     }
+    .pet-card.epic .pet-id   { color: #6b3eb6; }
+    .pet-card.rare .pet-id   { color: #2a7099; }
+    .pet-card.locked .pet-id { color: #7a7460; }
     .pet-name {
       margin: 0;
       font-size: 1.7rem;
@@ -110,9 +130,13 @@
       filter: drop-shadow(0 6px 12px rgba(0,0,0,0.15));
     }
     .pet-emoji:hover { transform: scale(1.08) rotate(-6deg); }
-    .pet-emoji.spinning {
-      animation: nuckyWaddle 0.9s ease-in-out;
-    }
+
+    /* Animations per pet */
+    .pet-emoji.anim-spin    { animation: nuckyWaddle 0.9s ease-in-out; }
+    .pet-emoji.anim-dash    { animation: zoomDash    0.8s ease-in-out; }
+    .pet-emoji.anim-turn    { animation: pipTurn     1.2s ease-in-out; }
+    .pet-emoji.anim-bounce  { animation: cometBounce 1.1s ease-in-out; }
+
     @keyframes nuckyWaddle {
       0%   { transform: scale(1) rotate(0deg) translateY(0); }
       20%  { transform: scale(1.15) rotate(120deg) translateY(-12px); }
@@ -121,23 +145,46 @@
       80%  { transform: scale(1.1)  rotate(360deg) translateY(0); }
       100% { transform: scale(1)    rotate(360deg) translateY(0); }
     }
-    .quack-bubble {
+    @keyframes zoomDash {
+      0%   { transform: translateX(0)    scale(1); }
+      30%  { transform: translateX(60px) scale(1.15); }
+      35%  { opacity: 0; }
+      36%  { transform: translateX(-80px) scale(1.15); opacity: 0; }
+      37%  { opacity: 1; }
+      100% { transform: translateX(0)    scale(1); }
+    }
+    @keyframes pipTurn {
+      0%   { transform: rotate(0deg)   scale(1); }
+      50%  { transform: rotate(360deg) scale(1.15); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+    @keyframes cometBounce {
+      0%   { transform: translateY(0)    scale(1) rotate(0deg); }
+      25%  { transform: translateY(-40px) scale(1.1) rotate(-15deg); }
+      50%  { transform: translateY(0)    scale(1)   rotate(0deg); }
+      75%  { transform: translateY(-30px) scale(1.1) rotate(15deg); }
+      100% { transform: translateY(0)    scale(1)   rotate(0deg); }
+    }
+
+    .callout-bubble {
       position: absolute;
       top: 4px;
       left: 50%;
       transform: translateX(-50%) scale(0);
       background: white;
-      border: 2px solid var(--legendary);
+      border: 2px solid currentColor;
       border-radius: 14px;
       padding: 6px 12px;
       font-weight: bold;
-      color: #b88200;
       pointer-events: none;
       opacity: 0;
       transition: transform 0.2s ease, opacity 0.2s ease;
       font-size: 1.1rem;
     }
-    .quack-bubble.show {
+    .pet-card.legendary .callout-bubble { color: #b88200; }
+    .pet-card.epic       .callout-bubble { color: #6b3eb6; }
+    .pet-card.rare       .callout-bubble { color: #2a7099; }
+    .callout-bubble.show {
       transform: translateX(-50%) scale(1);
       opacity: 1;
     }
@@ -157,22 +204,32 @@
     .pet-row .label {
       font-weight: bold;
       min-width: 110px;
-      color: #6b5a20;
     }
-    .pet-card.locked .pet-row .label { color: #7a7460; }
+    .pet-card.legendary .pet-row .label { color: #6b5a20; }
+    .pet-card.epic       .pet-row .label { color: #5a3895; }
+    .pet-card.rare       .pet-row .label { color: #1f5a7a; }
+    .pet-card.locked .pet-row .label    { color: #7a7460; }
     .desc {
       font-style: italic;
       margin: 4px 0 12px;
       line-height: 1.4;
     }
     .ability {
-      background: #fff;
-      border-left: 4px solid var(--legendary);
+      background: rgba(255,255,255,0.7);
+      border-left: 4px solid currentColor;
       padding: 8px 12px;
       border-radius: 8px;
       margin: 10px 0;
+      color: inherit;
     }
-    .ability-name { font-weight: bold; color: #8a6300; }
+    .pet-card.legendary .ability { border-left-color: var(--legendary); }
+    .pet-card.epic       .ability { border-left-color: var(--epic); }
+    .pet-card.rare       .ability { border-left-color: var(--rare); }
+    .ability-name { font-weight: bold; }
+    .pet-card.legendary .ability-name { color: #8a6300; }
+    .pet-card.epic       .ability-name { color: #6b3eb6; }
+    .pet-card.rare       .ability-name { color: #2a7099; }
+
     .personality { margin-top: 6px; }
     .stat-row {
       display: flex;
@@ -183,57 +240,251 @@
     }
     .stat-label { min-width: 90px; font-weight: bold; }
     .stars { letter-spacing: 1px; }
-    .star-on { color: var(--legendary); }
+    .star-on { color: currentColor; }
+    .pet-card.legendary .star-on { color: var(--legendary); }
+    .pet-card.epic       .star-on { color: var(--epic); }
+    .pet-card.rare       .star-on { color: var(--rare); }
     .star-off { color: #e0d5b3; }
-    .back-link {
+
+    /* Locked pet display */
+    .silhouette {
+      font-size: 6rem;
+      filter: brightness(0) opacity(0.25);
+      cursor: default;
+    }
+    .unlock-clue {
+      text-align: center;
+      background: #fff;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: bold;
+      color: #6a5a40;
+      border: 2px dashed #cfc6b3;
+      margin-top: 10px;
+    }
+
+    /* NEW! badge */
+    .new-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: #e44a4a;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: bold;
+      animation: pop 0.8s ease-in-out infinite alternate;
+      z-index: 2;
+    }
+    @keyframes pop {
+      from { transform: scale(1); }
+      to   { transform: scale(1.12); }
+    }
+
+    a.back-link {
       display: inline-block;
       margin-top: 24px;
       color: #2f6df3;
       text-decoration: none;
       font-weight: bold;
     }
-    .back-link:hover { text-decoration: underline; }
-    .locked-msg {
+    a.back-link:hover { text-decoration: underline; }
+
+    /* Celebration modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 15, 40, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 14px;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal {
+      background: linear-gradient(160deg, #fffbef, #ffe7a8);
+      border-radius: 24px;
+      padding: 28px;
+      max-width: 380px;
+      width: 100%;
       text-align: center;
-      font-style: italic;
-      opacity: 0.7;
-      margin: 30px 0;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: modalIn 0.5s cubic-bezier(0.5, 1.5, 0.6, 1);
+      border: 4px solid var(--legendary);
+      position: relative;
+      overflow: hidden;
+    }
+    @keyframes modalIn {
+      from { transform: scale(0.6); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    .modal h2 {
+      margin: 0 0 6px;
+      font-size: 1.4rem;
+      color: #8a6300;
+    }
+    .modal .big-emoji {
+      font-size: 5rem;
+      margin: 12px 0;
+      display: inline-block;
+      animation: spin360 1.2s ease-in-out;
+    }
+    @keyframes spin360 {
+      from { transform: rotate(0deg) scale(0.4); }
+      to   { transform: rotate(360deg) scale(1); }
+    }
+    .modal .pet-tag {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .modal button {
+      background: var(--legendary);
+      color: #4a3500;
+      border: none;
+      padding: 12px 22px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 12px;
+      font-family: inherit;
+    }
+    .confetti {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
   <main class="page">
     <h1>🐾 Ezra's Legendary Pets</h1>
-    <p class="subtitle">Tap a pet to see them do their special animation!</p>
+    <p class="subtitle">Tap a pet to see them do their special animation. Discover more pets by playing the other games!</p>
+    <p class="summary" id="summary"></p>
 
     <section class="grid" id="petGrid"></section>
 
     <a class="back-link" href="index.html">← Back to Game Hub</a>
   </main>
 
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" id="modal"></div>
+  </div>
+
   <script>
+    // ============ PET DATA ============
     const PETS = [
       {
-        id: "#001",
+        id: "001",
         name: "Nucky the Duck",
         emoji: "🦆",
         rarity: "Legendary",
         description: "A cheerful little duck who appears in unexpected places. Nucky loves puddles, snacks, and waddling after the player wherever they go.",
-        ability: {
-          name: "Lucky Waddle",
-          text: "Sometimes Nucky finds hidden treasures or secret paths."
-        },
+        ability: { name: "Lucky Waddle", text: "Sometimes Nucky finds hidden treasures or secret paths." },
         food: "Breadcrumbs and blueberries",
-        personality: {
-          Friendly: 5,
-          Silly: 5,
-          Bravery: 3,
-          Mischief: 4
-        },
+        personality: { Friendly: 5, Silly: 5, Bravery: 3, Mischief: 4 },
         sound: "quack",
-        callout: "QUACK!"
+        callout: "QUACK!",
+        anim: "spin",
+        unlock: { type: "always" },
+        unlockHint: "Your starter pet!"
+      },
+      {
+        id: "002",
+        name: "Zoom the Cheetah",
+        emoji: "🐆",
+        rarity: "Epic",
+        description: "Lightning fast and always racing. Zoom only befriends drivers who've proven they can win a race themselves.",
+        ability: { name: "Turbo Boost", text: "Helps the player zip past obstacles in a flash." },
+        food: "Energy berries and sprint snacks",
+        personality: { Friendly: 4, Silly: 2, Bravery: 5, Mischief: 3, Speed: 5 },
+        sound: "zoom",
+        callout: "ZOOM!",
+        anim: "dash",
+        unlock: { type: "carodsWin" },
+        unlockHint: "Win your first Carods race to unlock!"
+      },
+      {
+        id: "003",
+        name: "Pip the Owl",
+        emoji: "🦉",
+        rarity: "Epic",
+        description: "Wise and watchful, Pip only befriends explorers who've shown they can master a tricky challenge.",
+        ability: { name: "Wise Insight", text: "Whispers a clever hint when you're stuck on a puzzle." },
+        food: "Walnuts and stargazer mushrooms",
+        personality: { Friendly: 3, Silly: 1, Bravery: 4, Mischief: 2, Wisdom: 5 },
+        sound: "hoot",
+        callout: "Hoo hoo!",
+        anim: "turn",
+        unlock: { type: "brainQuestGold" },
+        unlockHint: "Earn a Gold Badge on any Brain Quest Level 3 to unlock!"
+      },
+      {
+        id: "004",
+        name: "Comet the Space Pup",
+        emoji: "🐶",
+        rarity: "Legendary",
+        description: "A cosmic puppy who travels between the stars. Only the Principal's challenge could call her down to Earth.",
+        ability: { name: "Cosmic Leap", text: "Bounds across worlds to find rare treasures." },
+        food: "Stardust kibble and moon cheese",
+        personality: { Friendly: 5, Silly: 4, Bravery: 5, Mischief: 3, Cosmic: 5 },
+        sound: "woof",
+        callout: "WOOF! ✨",
+        anim: "bounce",
+        unlock: { type: "principalChallenge" },
+        unlockHint: "Beat the Principal Brain Challenge to unlock!"
       }
     ];
+
+    // ============ UNLOCK CHECKING ============
+    function loadAchievements() {
+      try {
+        const raw = localStorage.getItem("ezraAchievements_v1");
+        return raw ? JSON.parse(raw) : {};
+      } catch (e) { return {}; }
+    }
+    function loadBrainQuestProgress() {
+      try {
+        const raw = localStorage.getItem("ezraBrainQuestProgress_v1");
+        return raw ? JSON.parse(raw) : { badges: {} };
+      } catch (e) { return { badges: {} }; }
+    }
+    function loadSeenPets() {
+      try {
+        const raw = localStorage.getItem("ezraPetSeen_v1");
+        return raw ? JSON.parse(raw) : {};
+      } catch (e) { return {}; }
+    }
+    function saveSeenPets(seen) {
+      try { localStorage.setItem("ezraPetSeen_v1", JSON.stringify(seen)); }
+      catch (e) {}
+    }
+
+    function isUnlocked(pet) {
+      const u = pet.unlock;
+      if (u.type === "always") return true;
+      if (u.type === "carodsWin") {
+        const ach = loadAchievements();
+        return (ach.carodsWins || 0) >= 1;
+      }
+      if (u.type === "brainQuestGold") {
+        const p = loadBrainQuestProgress();
+        // any Level 3 (index 2) gold badge across the 5 categories
+        return Object.entries(p.badges || {}).some(([key, badge]) =>
+          badge === "gold" && key.endsWith("-2")
+        );
+      }
+      if (u.type === "principalChallenge") {
+        const p = loadBrainQuestProgress();
+        const b = (p.badges || {})["principal-0"];
+        return b === "silver" || b === "gold";
+      }
+      return false;
+    }
 
     // ============ SOUND ============
     let audioCtx = null;
@@ -244,11 +495,9 @@
       }
       return audioCtx;
     }
-    function playQuack() {
-      const ctx = ensureAudio();
-      if (!ctx) return;
+    function quackSound() {
+      const ctx = ensureAudio(); if (!ctx) return;
       const now = ctx.currentTime;
-      // crude "quack": a quick down-up frequency sweep through a band-passed sawtooth
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       const filter = ctx.createBiquadFilter();
@@ -256,44 +505,108 @@
       osc.frequency.setValueAtTime(600, now);
       osc.frequency.exponentialRampToValueAtTime(220, now + 0.08);
       osc.frequency.exponentialRampToValueAtTime(420, now + 0.18);
-      filter.type = "bandpass";
-      filter.frequency.value = 900;
-      filter.Q.value = 4;
+      filter.type = "bandpass"; filter.frequency.value = 900; filter.Q.value = 4;
       gain.gain.setValueAtTime(0, now);
       gain.gain.linearRampToValueAtTime(0.25, now + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
       osc.connect(filter).connect(gain).connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.3);
+      osc.start(now); osc.stop(now + 0.3);
     }
+    function zoomSound() {
+      const ctx = ensureAudio(); if (!ctx) return;
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.exponentialRampToValueAtTime(900, now + 0.3);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.18, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now); osc.stop(now + 0.4);
+    }
+    function hootSound() {
+      const ctx = ensureAudio(); if (!ctx) return;
+      const now = ctx.currentTime;
+      [[440, 0], [440, 0.35]].forEach(([f, t]) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(f, now + t);
+        osc.frequency.exponentialRampToValueAtTime(f * 0.85, now + t + 0.2);
+        gain.gain.setValueAtTime(0, now + t);
+        gain.gain.linearRampToValueAtTime(0.18, now + t + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.25);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + t); osc.stop(now + t + 0.3);
+      });
+    }
+    function woofSound() {
+      const ctx = ensureAudio(); if (!ctx) return;
+      const now = ctx.currentTime;
+      [[220, 0, "square"], [300, 0.18, "square"]].forEach(([f, t, type]) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(f, now + t);
+        osc.frequency.exponentialRampToValueAtTime(f * 0.5, now + t + 0.18);
+        gain.gain.setValueAtTime(0, now + t);
+        gain.gain.linearRampToValueAtTime(0.16, now + t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.22);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + t); osc.stop(now + t + 0.25);
+      });
+    }
+    function sparkleSound() {
+      const ctx = ensureAudio(); if (!ctx) return;
+      [1318, 1568, 1976, 2349].forEach((f, i) => {
+        const now = ctx.currentTime + i * 0.07;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(f, now);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.15, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now); osc.stop(now + 0.3);
+      });
+    }
+    const SOUND_MAP = {
+      quack: quackSound,
+      zoom:  zoomSound,
+      hoot:  hootSound,
+      woof:  woofSound
+    };
 
     // ============ RENDER ============
     const grid = document.getElementById("petGrid");
+    const summary = document.getElementById("summary");
 
     function stars(count) {
       let html = '<span class="stars">';
       for (let i = 0; i < 5; i++) {
-        html += i < count
-          ? '<span class="star-on">★</span>'
-          : '<span class="star-off">★</span>';
+        html += i < count ? '<span class="star-on">★</span>' : '<span class="star-off">★</span>';
       }
       return html + '</span>';
     }
 
-    function renderPet(pet) {
+    function renderUnlockedPet(pet, isNew) {
       const card = document.createElement("article");
-      card.className = "pet-card";
+      card.className = "pet-card " + pet.rarity.toLowerCase();
       const personalityHtml = Object.entries(pet.personality).map(([k, v]) =>
         `<div class="stat-row"><span class="stat-label">${k}</span> ${stars(v)}</div>`
       ).join("");
       card.innerHTML = `
+        ${isNew ? '<span class="new-badge">NEW!</span>' : ''}
         <span class="rarity">${pet.rarity}</span>
-        <div class="pet-id">PET ${pet.id}</div>
+        <div class="pet-id">PET #${pet.id}</div>
         <h2 class="pet-name">${pet.name}</h2>
         <p class="desc">${pet.description}</p>
         <div class="pet-stage">
           <span class="pet-emoji" role="button" aria-label="Tap ${pet.name}">${pet.emoji}</span>
-          <span class="quack-bubble">${pet.callout || "✨"}</span>
+          <span class="callout-bubble">${pet.callout || "✨"}</span>
         </div>
         <p class="pet-tap-hint">Tap ${pet.name.split(" ")[0]} to see their special animation!</p>
         <div class="ability">
@@ -307,38 +620,120 @@
         </div>
       `;
       const emojiEl = card.querySelector(".pet-emoji");
-      const bubble = card.querySelector(".quack-bubble");
+      const bubble = card.querySelector(".callout-bubble");
       emojiEl.addEventListener("click", () => {
-        emojiEl.classList.remove("spinning");
-        void emojiEl.offsetWidth; // restart animation
-        emojiEl.classList.add("spinning");
+        const animClass = "anim-" + pet.anim;
+        emojiEl.classList.remove(animClass);
+        void emojiEl.offsetWidth;
+        emojiEl.classList.add(animClass);
         bubble.classList.add("show");
-        if (pet.sound === "quack") playQuack();
-        setTimeout(() => bubble.classList.remove("show"), 900);
+        const sound = SOUND_MAP[pet.sound];
+        if (sound) sound();
+        setTimeout(() => bubble.classList.remove("show"), 1000);
       });
       return card;
     }
 
-    function renderLockedSlot(num) {
+    function renderLockedPet(pet) {
       const card = document.createElement("article");
       card.className = "pet-card locked";
       card.innerHTML = `
-        <span class="rarity">Unknown</span>
-        <div class="pet-id">PET #${String(num).padStart(3, "0")}</div>
-        <h2 class="pet-name">Coming Soon</h2>
+        <span class="rarity">Locked</span>
+        <div class="pet-id">PET #${pet.id}</div>
+        <h2 class="pet-name">???</h2>
+        <p class="desc">A mysterious friend awaits...</p>
         <div class="pet-stage">
-          <span class="pet-emoji" style="cursor:default; filter:none; opacity:0.4;">❔</span>
+          <span class="silhouette">${pet.emoji}</span>
         </div>
-        <p class="pet-tap-hint">A new legendary friend is on the way...</p>
+        <div class="unlock-clue">🔒 ${pet.unlockHint}</div>
       `;
       return card;
     }
 
-    PETS.forEach(p => grid.appendChild(renderPet(p)));
-    // a couple of placeholder slots so the page hints at more pets to come
-    for (let i = PETS.length + 1; i <= PETS.length + 2; i++) {
-      grid.appendChild(renderLockedSlot(i));
+    // ============ CELEBRATION MODAL ============
+    const modalBackdrop = document.getElementById("modalBackdrop");
+    const modal = document.getElementById("modal");
+    let modalQueue = [];
+
+    function showCelebration(pet) {
+      modal.innerHTML = `
+        <h2>✨ New Pet Unlocked! ✨</h2>
+        <div class="big-emoji">${pet.emoji}</div>
+        <div class="pet-tag">${pet.name}</div>
+        <div style="font-size:0.95rem; opacity:0.85; margin-bottom: 8px;">${pet.rarity} · #${pet.id}</div>
+        <p style="font-style:italic; margin: 10px 0;">${pet.description}</p>
+        <button type="button" id="modalClose">Awesome!</button>
+      `;
+      modalBackdrop.classList.add("show");
+      sparkleSound();
+      spawnConfetti();
+      document.getElementById("modalClose").addEventListener("click", closeModal);
     }
+    function closeModal() {
+      modalBackdrop.classList.remove("show");
+      // process next in queue
+      setTimeout(() => {
+        if (modalQueue.length) {
+          showCelebration(modalQueue.shift());
+        }
+      }, 300);
+    }
+    function spawnConfetti() {
+      const colors = ["#f5b400", "#e44a4a", "#4dc1f0", "#a66cff", "#45c265"];
+      for (let i = 0; i < 40; i++) {
+        const c = document.createElement("div");
+        c.className = "confetti";
+        c.style.background = colors[i % colors.length];
+        c.style.left = (Math.random() * 100) + "%";
+        c.style.top = "-10px";
+        c.style.transform = `rotate(${Math.random() * 360}deg)`;
+        c.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+        modal.appendChild(c);
+        const dx = (Math.random() - 0.5) * 200;
+        const dy = 300 + Math.random() * 200;
+        const dur = 1400 + Math.random() * 800;
+        c.animate(
+          [
+            { transform: c.style.transform, opacity: 1 },
+            { transform: `translate(${dx}px, ${dy}px) rotate(${Math.random() * 720}deg)`, opacity: 0 }
+          ],
+          { duration: dur, easing: "cubic-bezier(0.2, 0.6, 0.4, 1)", fill: "forwards" }
+        );
+        setTimeout(() => c.remove(), dur);
+      }
+    }
+
+    // ============ MAIN ============
+    function render() {
+      grid.innerHTML = "";
+      const seen = loadSeenPets();
+      const unlockedNow = PETS.filter(isUnlocked);
+      const newlyUnlocked = unlockedNow.filter(p => !seen[p.id] && p.unlock.type !== "always");
+
+      let unlockedCount = 0;
+      PETS.forEach(pet => {
+        if (isUnlocked(pet)) {
+          unlockedCount++;
+          const isNew = newlyUnlocked.some(p => p.id === pet.id);
+          grid.appendChild(renderUnlockedPet(pet, isNew));
+        } else {
+          grid.appendChild(renderLockedPet(pet));
+        }
+      });
+
+      summary.textContent = `🏆 ${unlockedCount} of ${PETS.length} pets discovered`;
+
+      // mark all as seen and queue celebrations for newly unlocked
+      unlockedNow.forEach(p => { seen[p.id] = true; });
+      saveSeenPets(seen);
+
+      if (newlyUnlocked.length) {
+        modalQueue = newlyUnlocked.slice(1);
+        setTimeout(() => showCelebration(newlyUnlocked[0]), 400);
+      }
+    }
+
+    render();
   </script>
 </body>
 </html>
