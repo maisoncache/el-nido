@@ -862,6 +862,7 @@
     function checkWin() {
       if (state.positions.human >= TOTAL - 1) {
         state.winner = "human";
+        recordAchievement("carodsWins");
         showWin("🏆 You win! Great driving!");
         return true;
       }
@@ -871,6 +872,15 @@
         return true;
       }
       return false;
+    }
+
+    function recordAchievement(key) {
+      try {
+        const raw = localStorage.getItem("ezraAchievements_v1");
+        const data = raw ? JSON.parse(raw) : {};
+        data[key] = (data[key] || 0) + 1;
+        localStorage.setItem("ezraAchievements_v1", JSON.stringify(data));
+      } catch (e) {}
     }
 
     function showWin(msg) {
