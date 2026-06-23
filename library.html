@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ezra's Lost Library</title>
+  <style>
+    :root {
+      --paper: #fdf6e3;
+      --cream: #fff8e7;
+      --wood: #8a5a2b;
+      --wood-dark: #5e3a18;
+      --wood-light: #b88c5a;
+      --ink: #3a2614;
+      --warm: #f5b400;
+      --glow: #ffd97a;
+      --moon: #4f7cc7;
+      --dino: #6fa64a;
+      --sci:  #d96a5a;
+      --magic:#a66cff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Georgia", "Trebuchet MS", serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 50% -10%, #fff1c4 0%, transparent 50%),
+        radial-gradient(circle at 100% 100%, #f9deba 0%, transparent 50%),
+        #f4dca0;
+      padding: 12px;
+      overflow-x: hidden;
+    }
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+      background: var(--paper);
+      border-radius: 22px;
+      box-shadow: 0 14px 40px rgba(60, 40, 10, 0.2);
+      padding: clamp(12px, 3vw, 22px);
+      position: relative;
+      overflow: hidden;
+      border: 4px solid var(--wood);
+    }
+    h1 {
+      margin: 0;
+      text-align: center;
+      font-size: clamp(1.6rem, 4.4vw, 2.2rem);
+      color: var(--wood-dark);
+    }
+    .subtitle {
+      text-align: center;
+      opacity: 0.85;
+      margin: 6px auto 14px;
+      max-width: 56ch;
+      font-size: 0.95rem;
+      font-style: italic;
+    }
+    .progress {
+      text-align: center;
+      font-weight: bold;
+      color: var(--wood-dark);
+      margin: 4px 0 10px;
+    }
+
+    /* SHELVES */
+    .shelves {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+      position: relative;
+      z-index: 1;
+    }
+    @media (max-width: 720px) {
+      .shelves { grid-template-columns: repeat(2, 1fr); }
+    }
+    .shelf {
+      background: linear-gradient(180deg, var(--wood-light) 0%, var(--wood) 100%);
+      border-radius: 12px 12px 6px 6px;
+      padding: 10px 8px 14px;
+      border: 3px solid var(--wood-dark);
+      box-shadow: 0 6px 0 var(--wood-dark), inset 0 1px 0 rgba(255,255,255,0.2);
+      min-height: 150px;
+      position: relative;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .shelf.glow-correct {
+      animation: shelfGlow 0.5s ease;
+    }
+    @keyframes shelfGlow {
+      0%, 100% { box-shadow: 0 6px 0 var(--wood-dark); }
+      50% { box-shadow: 0 6px 0 var(--wood-dark), 0 0 24px var(--glow); }
+    }
+    .shelf.drop-target {
+      transform: translateY(-3px);
+      box-shadow: 0 9px 0 var(--wood-dark), 0 0 20px var(--glow);
+    }
+    .shelf-label {
+      text-align: center;
+      color: #fff8e7;
+      font-weight: bold;
+      font-size: 0.95rem;
+      text-shadow: 1px 1px 0 var(--wood-dark);
+      margin-bottom: 8px;
+    }
+    .shelf-icon { font-size: 1.4rem; display: block; margin-bottom: 2px; }
+    .shelf-books {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      min-height: 80px;
+      background: rgba(0,0,0,0.18);
+      border-radius: 6px;
+      padding: 6px;
+      align-content: flex-start;
+    }
+    .shelf-books .book-mini {
+      width: 22px;
+      height: 70px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25), 0 2px 4px rgba(0,0,0,0.3);
+      flex-shrink: 0;
+    }
+    .shelf.moon  { background: linear-gradient(180deg, #6f9bd6, var(--moon)); }
+    .shelf.dino  { background: linear-gradient(180deg, #8dc568, var(--dino)); }
+    .shelf.sci   { background: linear-gradient(180deg, #f08673, var(--sci));  }
+    .shelf.magic { background: linear-gradient(180deg, #c298ff, var(--magic));}
+
+    /* PILE / FLOOR */
+    .floor {
+      background:
+        repeating-linear-gradient(45deg, #d6a96b 0 10px, #c69757 10px 20px);
+      border-radius: 14px;
+      border: 3px solid var(--wood-dark);
+      padding: 14px;
+      min-height: 230px;
+      position: relative;
+      box-shadow: inset 0 4px 12px rgba(0,0,0,0.25);
+    }
+    .floor-label {
+      position: absolute;
+      top: -14px;
+      left: 18px;
+      background: var(--paper);
+      padding: 2px 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      color: var(--wood-dark);
+      border: 2px solid var(--wood);
+      font-size: 0.9rem;
+    }
+    .pile {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      min-height: 190px;
+    }
+
+    /* BOOKS */
+    .book {
+      width: 88px;
+      height: 116px;
+      border-radius: 6px 4px 4px 6px;
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.25), inset -3px 0 0 rgba(0,0,0,0.15), inset 3px 0 0 rgba(255,255,255,0.25);
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+      transition: transform 0.2s ease;
+      font-family: "Trebuchet MS", sans-serif;
+    }
+    .book.dragging {
+      cursor: grabbing;
+      z-index: 1000;
+      transform: scale(1.1) rotate(2deg);
+      box-shadow: 6px 8px 14px rgba(0,0,0,0.35);
+      transition: none;
+    }
+    .book.wiggle { animation: wiggleBad 0.5s ease; }
+    @keyframes wiggleBad {
+      0%, 100% { transform: rotate(0); }
+      25% { transform: rotate(-8deg) scale(1.05); }
+      50% { transform: rotate(8deg) scale(1.05); }
+      75% { transform: rotate(-4deg); }
+    }
+    .book.return { animation: returnHome 0.45s ease forwards; }
+    @keyframes returnHome {
+      from { transform: scale(1.1) translateY(-20px); opacity: 0.5; }
+      to   { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .book.snap { animation: snapIn 0.4s cubic-bezier(0.5, 1.5, 0.6, 1); }
+    @keyframes snapIn {
+      0% { transform: scale(1.3) rotate(10deg); }
+      100% { transform: scale(1); }
+    }
+    .book-cover-icon { font-size: 2rem; line-height: 1; margin-bottom: 4px; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3)); }
+    .book-title {
+      font-size: 0.72rem;
+      text-align: center;
+      font-weight: bold;
+      line-height: 1.1;
+      color: white;
+      text-shadow: 1px 1px 0 rgba(0,0,0,0.4);
+      padding: 0 2px;
+    }
+    .book.cat-sitting { filter: saturate(0.7); }
+    .book.cat-sitting::after {
+      content: "🐈";
+      position: absolute;
+      top: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 2rem;
+      animation: catPurr 1.5s ease-in-out infinite;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
+    }
+    @keyframes catPurr {
+      0%, 100% { transform: translateX(-50%) scale(1); }
+      50% { transform: translateX(-50%) scale(1.08); }
+    }
+
+    /* CAT */
+    .cat-sprite {
+      position: absolute;
+      font-size: 2.2rem;
+      pointer-events: auto;
+      cursor: pointer;
+      z-index: 5;
+      transition: transform 0.5s linear;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
+    }
+    .cat-sprite.face-left { transform: scaleX(-1); }
+    .meow-bubble {
+      position: absolute;
+      background: white;
+      border: 2px solid var(--warm);
+      border-radius: 12px;
+      padding: 4px 10px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: #6b5a20;
+      top: -32px;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      white-space: nowrap;
+      z-index: 6;
+    }
+    .meow-bubble.show { opacity: 1; }
+
+    /* WIN OVERLAY */
+    .win-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 10, 0, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 14px;
+    }
+    .win-overlay.show { display: flex; }
+    .win-card {
+      background: var(--paper);
+      border-radius: 22px;
+      padding: 26px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 14px 40px rgba(0,0,0,0.3);
+      border: 4px solid var(--wood);
+      position: relative;
+      overflow: hidden;
+      animation: modalIn 0.5s cubic-bezier(0.5, 1.5, 0.6, 1);
+    }
+    @keyframes modalIn {
+      from { transform: scale(0.6); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+    .win-card h2 { margin: 0 0 10px; color: var(--wood-dark); font-size: 1.5rem; }
+    .win-card .fireplace { font-size: 3rem; margin: 10px 0; }
+    .win-card .message { font-style: italic; color: var(--wood-dark); font-size: 1.1rem; margin: 10px 0; }
+    .win-card button {
+      background: var(--warm);
+      border: none;
+      padding: 12px 22px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 14px;
+      font-family: inherit;
+      color: #4a3500;
+    }
+    .win-card button.secondary {
+      background: white;
+      border: 2px solid var(--wood);
+      color: var(--wood-dark);
+      margin-left: 8px;
+    }
+
+    /* VANDA RUNNING ANIMATION */
+    .vanda {
+      position: fixed;
+      bottom: 12%;
+      left: -200px;
+      font-size: 5rem;
+      z-index: 200;
+      pointer-events: none;
+      display: none;
+    }
+    .vanda.run {
+      display: block;
+      animation: vandaRun 4s linear forwards;
+    }
+    @keyframes vandaRun {
+      0%   { left: -200px; transform: scaleX(1); }
+      45%  { left: calc(100% - 250px); transform: scaleX(1) translateY(-10px); }
+      50%  { left: calc(100% - 250px); transform: scaleX(-1) translateY(-10px); }
+      100% { left: -200px; transform: scaleX(-1); }
+    }
+    .vanda .glasses {
+      font-size: 2.4rem;
+      position: absolute;
+      top: 14px;
+      left: 18px;
+    }
+
+    /* WHEN WON: SHELVES GLOW */
+    .page.won .shelf {
+      animation: shelvesGlow 2.5s ease-in-out infinite alternate;
+    }
+    @keyframes shelvesGlow {
+      from { box-shadow: 0 6px 0 var(--wood-dark); }
+      to   { box-shadow: 0 6px 0 var(--wood-dark), 0 0 28px var(--glow); }
+    }
+
+    /* FIREPLACE in corner when won */
+    .fireplace-corner {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      font-size: 2rem;
+      filter: drop-shadow(0 0 8px #ffb84a);
+      display: none;
+      animation: flicker 1.6s ease-in-out infinite alternate;
+    }
+    .page.won .fireplace-corner { display: block; }
+    @keyframes flicker {
+      from { transform: scale(1) translateY(0); opacity: 1; }
+      to   { transform: scale(1.1) translateY(-2px); opacity: 0.9; }
+    }
+
+    /* CONTROLS */
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .controls button {
+      background: white;
+      border: 2px solid var(--wood);
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: inherit;
+      color: var(--wood-dark);
+    }
+
+    a.back-link {
+      display: inline-block;
+      margin-top: 16px;
+      color: var(--wood-dark);
+      text-decoration: none;
+      font-weight: bold;
+    }
+    a.back-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <main class="page" id="page">
+    <span class="fireplace-corner" aria-hidden="true">🔥</span>
+    <h1>📚 Ezra's Lost Library</h1>
+    <p class="subtitle">The books have all fallen on the floor! Drag each one to the right shelf to tidy up.</p>
+    <p class="progress" id="progress">0 / 0 books sorted</p>
+
+    <section class="shelves" id="shelves">
+      <div class="shelf moon"  data-cat="moon">
+        <div class="shelf-label"><span class="shelf-icon">🌙</span>Moon &amp; Space</div>
+        <div class="shelf-books" data-cat="moon"></div>
+      </div>
+      <div class="shelf dino"  data-cat="dino">
+        <div class="shelf-label"><span class="shelf-icon">🦕</span>Dinosaurs</div>
+        <div class="shelf-books" data-cat="dino"></div>
+      </div>
+      <div class="shelf sci"   data-cat="sci">
+        <div class="shelf-label"><span class="shelf-icon">🧪</span>Science Stuff</div>
+        <div class="shelf-books" data-cat="sci"></div>
+      </div>
+      <div class="shelf magic" data-cat="magic">
+        <div class="shelf-label"><span class="shelf-icon">🐉</span>Monsters &amp; Magic</div>
+        <div class="shelf-books" data-cat="magic"></div>
+      </div>
+    </section>
+
+    <div class="floor">
+      <span class="floor-label">📖 The Floor</span>
+      <div class="pile" id="pile"></div>
+    </div>
+
+    <div class="controls">
+      <button id="resetBtn" type="button">↻ New Library</button>
+      <button id="soundBtn" type="button">🔊 Sound</button>
+    </div>
+
+    <a class="back-link" href="index.html">← Back to Game Hub</a>
+  </main>
+
+  <div class="cat-sprite" id="cat" aria-label="A wandering library cat">🐈
+    <span class="meow-bubble" id="meowBubble">Meow!</span>
+  </div>
+
+  <div class="vanda" id="vanda" aria-hidden="true">🦖<span class="glasses">🤓</span></div>
+
+  <div class="win-overlay" id="winOverlay">
+    <div class="win-card">
+      <div class="fireplace">🔥</div>
+      <h2>The library is whole again ✨</h2>
+      <p class="message" id="winMsg">"Wonderful work, Librarian Ezra."</p>
+      <p style="font-size:0.9rem; opacity:0.8;">Vanda the Velociraptor approves.</p>
+      <button id="playAgainBtn" type="button">Play Again</button>
+      <button id="hubBtn" class="secondary" type="button">Back to Hub</button>
+    </div>
+  </div>
+
+  <script>
+    // ============ BOOK DATA ============
+    const CATS = {
+      moon:  { name: "Moon & Space",      color: "#4f7cc7", icon: "🌙" },
+      dino:  { name: "Dinosaurs",         color: "#6fa64a", icon: "🦕" },
+      sci:   { name: "Science Stuff",     color: "#d96a5a", icon: "🧪" },
+      magic: { name: "Monsters & Magic",  color: "#a66cff", icon: "🐉" }
+    };
+
+    const BOOK_BANK = [
+      // Moon & Space
+      { title: "Stars Above",          cat: "moon", emoji: "⭐" },
+      { title: "The Moon's Adventure", cat: "moon", emoji: "🌙" },
+      { title: "Rockets & Planets",    cat: "moon", emoji: "🚀" },
+      { title: "Galaxy Stories",       cat: "moon", emoji: "🌌" },
+      { title: "Astronaut Annie",      cat: "moon", emoji: "👩‍🚀" },
+      { title: "Sun and Solar Storms", cat: "moon", emoji: "☀️" },
+      // Dinosaurs
+      { title: "Vanda the Velociraptor", cat: "dino", emoji: "🦖" },
+      { title: "T-Rex Tales",            cat: "dino", emoji: "🦕" },
+      { title: "Fossils & Footprints",   cat: "dino", emoji: "🦴" },
+      { title: "The Triceratops Diary",  cat: "dino", emoji: "🦕" },
+      { title: "Dinosaur Eggs",          cat: "dino", emoji: "🥚" },
+      { title: "Stegosaurus Spikes",     cat: "dino", emoji: "🦖" },
+      // Science Stuff
+      { title: "Exploding Volcanoes", cat: "sci", emoji: "🌋" },
+      { title: "How Magnets Work",    cat: "sci", emoji: "🧲" },
+      { title: "Weather Wonders",     cat: "sci", emoji: "⛅" },
+      { title: "The Body Book",       cat: "sci", emoji: "🫀" },
+      { title: "Microbes and Me",     cat: "sci", emoji: "🦠" },
+      { title: "Chemistry for Kids",  cat: "sci", emoji: "⚗️" },
+      // Monsters & Magic
+      { title: "The Sleepy Dragon",    cat: "magic", emoji: "🐉" },
+      { title: "Witch's Workshop",     cat: "magic", emoji: "🧙‍♀️" },
+      { title: "Wizards of Willowdale",cat: "magic", emoji: "🪄" },
+      { title: "Ghosts in the Attic",  cat: "magic", emoji: "👻" },
+      { title: "Unicorn Lullabies",    cat: "magic", emoji: "🦄" },
+      { title: "Goblins & Gremlins",   cat: "magic", emoji: "👺" }
+    ];
+
+    // ============ STATE ============
+    let books = [];
+    let sortedCount = 0;
+    let totalCount = 0;
+    let soundOn = true;
+    let won = false;
+    let catSittingOnBookId = null;
+    let catSitTimer = null;
+
+    function newGame() {
+      const pool = [...BOOK_BANK];
+      // shuffle and pick ~16 books, evenly across 4 categories where possible
+      // pick 4 from each so we always have 16
+      const byCat = { moon: [], dino: [], sci: [], magic: [] };
+      pool.forEach(b => byCat[b.cat].push(b));
+      Object.values(byCat).forEach(arr => shuffle(arr));
+      const selection = [];
+      Object.keys(byCat).forEach(c => {
+        selection.push(...byCat[c].slice(0, 4));
+      });
+      shuffle(selection);
+      books = selection.map((b, i) => ({
+        id: "b" + i,
+        title: b.title,
+        cat: b.cat,
+        emoji: b.emoji,
+        placed: false
+      }));
+      sortedCount = 0;
+      totalCount = books.length;
+      won = false;
+      catSittingOnBookId = null;
+      if (catSitTimer) { clearTimeout(catSitTimer); catSitTimer = null; }
+      document.getElementById("page").classList.remove("won");
+      document.getElementById("winOverlay").classList.remove("show");
+      document.getElementById("vanda").classList.remove("run");
+      renderAll();
+      scheduleCatSit();
+    }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    }
+
+    // ============ SOUNDS ============
+    let audioCtx = null;
+    function ensureAudio() {
+      if (!audioCtx) {
+        try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        catch (e) { audioCtx = null; }
+      }
+      return audioCtx;
+    }
+    function tone(freq, dur, type, vol, delay, finalFreq) {
+      if (!soundOn) return;
+      const ctx = ensureAudio(); if (!ctx) return;
+      const t = ctx.currentTime + (delay || 0);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, t);
+      if (finalFreq) osc.frequency.exponentialRampToValueAtTime(finalFreq, t + dur);
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(vol || 0.15, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t); osc.stop(t + dur + 0.05);
+    }
+    const sfx = {
+      correct: () => { tone(523, 0.12, "triangle", 0.16); tone(784, 0.16, "triangle", 0.16, 0.08); tone(1047, 0.2, "triangle", 0.16, 0.16); },
+      wrong:   () => tone(220, 0.2, "sine", 0.14, 0, 180),
+      sparkle: () => { [1318, 1568, 1976, 2349].forEach((f, i) => tone(f, 0.14, "sine", 0.12, i*0.05)); },
+      meow:    () => tone(700, 0.25, "sine", 0.18, 0, 500),
+      fanfare: () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, "triangle", 0.18, i*0.13)); }
+    };
+
+    // ============ PET ROLL (achievement hook) ============
+    function bumpPetRoll() {
+      try {
+        const raw = localStorage.getItem("ezraPetTriggers_v1");
+        const data = raw ? JSON.parse(raw) : { pendingRolls: 0 };
+        data.pendingRolls = (data.pendingRolls || 0) + 1;
+        localStorage.setItem("ezraPetTriggers_v1", JSON.stringify(data));
+      } catch (e) {}
+    }
+
+    // ============ RENDER ============
+    const pileEl = document.getElementById("pile");
+    const progressEl = document.getElementById("progress");
+    const shelvesEl = document.getElementById("shelves");
+
+    function renderAll() {
+      pileEl.innerHTML = "";
+      shelvesEl.querySelectorAll(".shelf-books").forEach(el => el.innerHTML = "");
+      books.forEach(b => {
+        if (b.placed) {
+          const shelf = shelvesEl.querySelector(`.shelf-books[data-cat="${b.cat}"]`);
+          const mini = document.createElement("div");
+          mini.className = "book-mini";
+          mini.style.background = CATS[b.cat].color;
+          mini.textContent = b.emoji;
+          mini.title = b.title;
+          shelf.appendChild(mini);
+        } else {
+          pileEl.appendChild(makeBookEl(b));
+        }
+      });
+      progressEl.textContent = `${sortedCount} / ${totalCount} books sorted`;
+    }
+
+    function makeBookEl(b) {
+      const el = document.createElement("div");
+      el.className = "book";
+      el.dataset.id = b.id;
+      el.dataset.cat = b.cat;
+      el.style.background = `linear-gradient(135deg, ${CATS[b.cat].color}, ${shade(CATS[b.cat].color, -20)})`;
+      el.style.transform = `rotate(${(Math.random() * 14 - 7).toFixed(1)}deg)`;
+      el.innerHTML = `
+        <div class="book-cover-icon">${b.emoji}</div>
+        <div class="book-title">${b.title}</div>
+      `;
+      if (b.id === catSittingOnBookId) el.classList.add("cat-sitting");
+      attachDrag(el, b);
+      return el;
+    }
+
+    function shade(hex, delta) {
+      const h = hex.replace("#", "");
+      const num = parseInt(h, 16);
+      let r = (num >> 16) + delta;
+      let g = ((num >> 8) & 0xff) + delta;
+      let bl = (num & 0xff) + delta;
+      r = Math.max(0, Math.min(255, r));
+      g = Math.max(0, Math.min(255, g));
+      bl = Math.max(0, Math.min(255, bl));
+      return "#" + ((r << 16) | (g << 8) | bl).toString(16).padStart(6, "0");
+    }
+
+    // ============ DRAG ============
+    function attachDrag(el, book) {
+      let dragging = false;
+      let startX = 0, startY = 0;
+      let origLeft = 0, origTop = 0;
+      let origRect = null;
+      let originalParent = null;
+      let originalNext = null;
+      let originalRotation = "";
+
+      function onPointerDown(e) {
+        if (won) return;
+        if (book.placed) return;
+        if (book.id === catSittingOnBookId) {
+          // book is occupied by cat — wiggle but don't pick up
+          el.classList.add("wiggle");
+          setTimeout(() => el.classList.remove("wiggle"), 500);
+          showMeow("Purrr... not now!");
+          return;
+        }
+        e.preventDefault();
+        dragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        origRect = el.getBoundingClientRect();
+        originalParent = el.parentNode;
+        originalNext = el.nextSibling;
+        originalRotation = el.style.transform;
+        // hoist to body for free positioning
+        el.style.position = "fixed";
+        el.style.left = origRect.left + "px";
+        el.style.top = origRect.top + "px";
+        el.style.width = origRect.width + "px";
+        el.style.height = origRect.height + "px";
+        el.style.transform = "none";
+        document.body.appendChild(el);
+        el.classList.add("dragging");
+        try { el.setPointerCapture(e.pointerId); } catch (e2) {}
+      }
+
+      function onPointerMove(e) {
+        if (!dragging) return;
+        e.preventDefault();
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        el.style.left = (origRect.left + dx) + "px";
+        el.style.top = (origRect.top + dy) + "px";
+        // highlight target shelf
+        const target = shelfUnder(e.clientX, e.clientY);
+        shelvesEl.querySelectorAll(".shelf").forEach(s => s.classList.remove("drop-target"));
+        if (target) target.classList.add("drop-target");
+      }
+
+      function onPointerUp(e) {
+        if (!dragging) return;
+        dragging = false;
+        try { el.releasePointerCapture(e.pointerId); } catch (e2) {}
+        const target = shelfUnder(e.clientX, e.clientY);
+        shelvesEl.querySelectorAll(".shelf").forEach(s => s.classList.remove("drop-target"));
+        if (target && target.dataset.cat === book.cat) {
+          // CORRECT
+          placeBook(book, target);
+        } else if (target) {
+          // WRONG — wiggle and float back
+          el.classList.add("wiggle");
+          sfx.wrong();
+          target.classList.remove("drop-target");
+          setTimeout(() => returnToPile(el, originalParent, originalNext, originalRotation), 400);
+        } else {
+          // dropped on nothing — just return
+          returnToPile(el, originalParent, originalNext, originalRotation);
+        }
+      }
+
+      el.addEventListener("pointerdown", onPointerDown);
+      el.addEventListener("pointermove", onPointerMove);
+      el.addEventListener("pointerup", onPointerUp);
+      el.addEventListener("pointercancel", onPointerUp);
+    }
+
+    function returnToPile(el, originalParent, originalNext, originalRotation) {
+      el.style.position = "";
+      el.style.left = "";
+      el.style.top = "";
+      el.style.width = "";
+      el.style.height = "";
+      el.style.transform = originalRotation;
+      el.classList.remove("dragging");
+      el.classList.add("return");
+      if (originalNext && originalNext.parentNode === originalParent) {
+        originalParent.insertBefore(el, originalNext);
+      } else {
+        originalParent.appendChild(el);
+      }
+      setTimeout(() => el.classList.remove("return", "wiggle"), 500);
+    }
+
+    function shelfUnder(x, y) {
+      const shelves = shelvesEl.querySelectorAll(".shelf");
+      for (const s of shelves) {
+        const r = s.getBoundingClientRect();
+        if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return s;
+      }
+      return null;
+    }
+
+    function placeBook(book, shelfEl) {
+      book.placed = true;
+      sortedCount++;
+      // remove the dragging element
+      const dragged = document.querySelector(`.book[data-id="${book.id}"]`);
+      if (dragged) dragged.remove();
+      // add mini to shelf
+      const target = shelfEl.querySelector(".shelf-books");
+      const mini = document.createElement("div");
+      mini.className = "book-mini";
+      mini.style.background = CATS[book.cat].color;
+      mini.textContent = book.emoji;
+      mini.title = book.title;
+      target.appendChild(mini);
+      shelfEl.classList.add("glow-correct");
+      setTimeout(() => shelfEl.classList.remove("glow-correct"), 500);
+      sfx.correct();
+      sfx.sparkle();
+      spawnSparkles(shelfEl);
+      progressEl.textContent = `${sortedCount} / ${totalCount} books sorted`;
+      if (sortedCount === totalCount) {
+        setTimeout(triggerWin, 500);
+      }
+    }
+
+    function spawnSparkles(shelfEl) {
+      const r = shelfEl.getBoundingClientRect();
+      const colours = ["#ffd97a", "#fff8c4", "#ffe16e", "#fff"];
+      for (let i = 0; i < 8; i++) {
+        const s = document.createElement("span");
+        s.textContent = "✨";
+        s.style.position = "fixed";
+        s.style.left = (r.left + Math.random() * r.width) + "px";
+        s.style.top = (r.top + Math.random() * r.height * 0.6) + "px";
+        s.style.fontSize = "1.2rem";
+        s.style.pointerEvents = "none";
+        s.style.zIndex = 1000;
+        document.body.appendChild(s);
+        const dx = (Math.random() - 0.5) * 80;
+        const dy = -40 - Math.random() * 60;
+        s.animate(
+          [{ transform: "translate(0,0) scale(0.6)", opacity: 1 },
+           { transform: `translate(${dx}px, ${dy}px) scale(1.4)`, opacity: 0 }],
+          { duration: 800, easing: "cubic-bezier(0.2, 0.6, 0.4, 1)", fill: "forwards" }
+        );
+        setTimeout(() => s.remove(), 850);
+      }
+    }
+
+    // ============ CAT ============
+    const catEl = document.getElementById("cat");
+    const meowBubble = document.getElementById("meowBubble");
+
+    function placeCatRandomly() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      // wander around the top half of the page
+      const x = 40 + Math.random() * (Math.min(w, 980) - 100);
+      const y = 70 + Math.random() * (h * 0.35);
+      catEl.style.left = x + "px";
+      catEl.style.top = y + "px";
+      // face direction
+      catEl.classList.toggle("face-left", Math.random() < 0.5);
+    }
+
+    function catWander() {
+      if (won) return;
+      placeCatRandomly();
+      setTimeout(catWander, 4000 + Math.random() * 3000);
+    }
+
+    function showMeow(text) {
+      meowBubble.textContent = text || "Meow!";
+      meowBubble.classList.add("show");
+      setTimeout(() => meowBubble.classList.remove("show"), 1200);
+    }
+
+    catEl.addEventListener("click", () => {
+      sfx.meow();
+      showMeow("Meow!");
+      if (catSittingOnBookId) {
+        // cat gets up
+        const wasOn = catSittingOnBookId;
+        catSittingOnBookId = null;
+        const stillOnPile = document.querySelector(`.book[data-id="${wasOn}"]`);
+        if (stillOnPile) stillOnPile.classList.remove("cat-sitting");
+        if (catSitTimer) { clearTimeout(catSitTimer); catSitTimer = null; }
+        scheduleCatSit();
+      }
+    });
+
+    function scheduleCatSit() {
+      if (catSitTimer) clearTimeout(catSitTimer);
+      catSitTimer = setTimeout(() => {
+        if (won) return;
+        const pileBooks = books.filter(b => !b.placed && b.id !== catSittingOnBookId);
+        if (!pileBooks.length) return;
+        const target = pileBooks[Math.floor(Math.random() * pileBooks.length)];
+        catSittingOnBookId = target.id;
+        const el = document.querySelector(`.book[data-id="${target.id}"]`);
+        if (el) {
+          el.classList.add("cat-sitting");
+          // move cat sprite over the book
+          const r = el.getBoundingClientRect();
+          catEl.style.left = (r.left + r.width / 2 - 20) + "px";
+          catEl.style.top  = (r.top - 32) + "px";
+        }
+        // cat sits for 4-7s then gets up
+        const sitDuration = 4000 + Math.random() * 3000;
+        catSitTimer = setTimeout(() => {
+          if (catSittingOnBookId === target.id) {
+            catSittingOnBookId = null;
+            const elNow = document.querySelector(`.book[data-id="${target.id}"]`);
+            if (elNow) elNow.classList.remove("cat-sitting");
+          }
+          scheduleCatSit();
+        }, sitDuration);
+      }, 6000 + Math.random() * 6000);
+    }
+
+    // ============ WIN ============
+    function triggerWin() {
+      won = true;
+      document.getElementById("page").classList.add("won");
+      sfx.fanfare();
+      // release the cat if sitting
+      if (catSittingOnBookId) {
+        catSittingOnBookId = null;
+      }
+      // run Vanda
+      const vanda = document.getElementById("vanda");
+      vanda.classList.remove("run");
+      void vanda.offsetWidth;
+      vanda.classList.add("run");
+      // bump pet roll
+      bumpPetRoll();
+      // show overlay after a moment so player sees the glow first
+      setTimeout(() => {
+        document.getElementById("winOverlay").classList.add("show");
+      }, 1500);
+    }
+
+    // ============ EVENTS ============
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      if (sortedCount === 0 || confirm("Start a new library?")) newGame();
+    });
+    document.getElementById("soundBtn").addEventListener("click", e => {
+      soundOn = !soundOn;
+      e.currentTarget.textContent = soundOn ? "🔊 Sound" : "🔇 Muted";
+    });
+    document.getElementById("playAgainBtn").addEventListener("click", () => {
+      document.getElementById("winOverlay").classList.remove("show");
+      newGame();
+    });
+    document.getElementById("hubBtn").addEventListener("click", () => {
+      window.location.href = "index.html";
+    });
+
+    // ============ START ============
+    newGame();
+    placeCatRandomly();
+    catWander();
+  </script>
+</body>
+</html>
