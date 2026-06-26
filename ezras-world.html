@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ezra's World</title>
+  <style>
+    :root {
+      --ezra-blue: #3b82f6;
+      --ezra-blue-deep: #1e40af;
+      --paper: #ffffff;
+      --ink: #1f2a3d;
+      --warm: #f5b400;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top, #cfe2ff 0%, transparent 50%),
+        #eaf3ff;
+      padding: 10px;
+      overflow-x: hidden;
+    }
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+      background: var(--paper);
+      border-radius: 22px;
+      box-shadow: 0 14px 36px rgba(20, 40, 80, 0.15);
+      padding: clamp(12px, 2.5vw, 20px);
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    h1 { margin: 0; font-size: clamp(1.4rem, 4vw, 1.9rem); color: var(--ezra-blue-deep); }
+    .counter {
+      background: #eef3ff;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    /* ROOM TABS */
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .tabs button {
+      flex: 1 1 auto;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: bold;
+      padding: 8px 10px;
+      border-radius: 10px 10px 0 0;
+      border: 2px solid #cdd9f0;
+      border-bottom: 2px solid transparent;
+      background: #f4f7ff;
+      cursor: pointer;
+      color: var(--ink);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      min-width: 70px;
+    }
+    .tabs button .em { font-size: 1.2rem; line-height: 1; }
+    .tabs button.active {
+      background: white;
+      border-color: var(--ezra-blue);
+      color: var(--ezra-blue-deep);
+      box-shadow: 0 -2px 8px rgba(59, 130, 246, 0.2);
+    }
+    .tabs button.locked { opacity: 0.55; }
+
+    /* CANVAS */
+    .canvas-area {
+      display: grid;
+      grid-template-columns: 1fr 70px;
+      gap: 8px;
+    }
+    @media (max-width: 540px) {
+      .canvas-area { grid-template-columns: 1fr 60px; }
+    }
+    .room-canvas {
+      position: relative;
+      border-radius: 14px;
+      border: 3px solid var(--ezra-blue);
+      min-height: 320px;
+      overflow: hidden;
+      touch-action: none;
+      transition: background 0.4s ease;
+    }
+    .canvas-bg-bedroom { background: linear-gradient(180deg, #cfe2ff 0%, #b5cef3 55%, #d4a574 55%, #b8845a 100%); }
+    .canvas-bg-space   { background: radial-gradient(ellipse at center, #2a1b5c 0%, #0a0729 100%); }
+    .canvas-bg-game    { background: linear-gradient(180deg, #fff5d4 0%, #ffe89e 55%, #8a5a2b 55%, #5e3a18 100%); }
+    .canvas-bg-snack   { background: linear-gradient(180deg, #ffe0b2 0%, #ffc987 55%, #d96a5a 55%, #a3433a 100%); }
+    .canvas-bg-library { background: linear-gradient(180deg, #f0e1c0 0%, #d4b88a 55%, #6b4a25 55%, #3a2614 100%); }
+    .canvas-bg-mystery {
+      background:
+        radial-gradient(circle at 30% 20%, rgba(255,255,255,0.4) 0%, transparent 12%),
+        radial-gradient(circle at 70% 60%, rgba(255,255,255,0.4) 0%, transparent 10%),
+        radial-gradient(circle at 20% 80%, rgba(255,255,255,0.3) 0%, transparent 8%),
+        linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #a855f7 100%);
+    }
+    .time-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: transparent;
+      transition: background 0.4s ease;
+    }
+    .room-canvas.night .time-overlay {
+      background: rgba(20, 20, 60, 0.5);
+    }
+    .room-canvas.night::after {
+      content: "✨  ⭐    ✨   ⋆  *  ✨    ⭐  ✨  ⋆  *   ✨  ⭐   ⋆  ✨";
+      position: absolute;
+      inset: 0;
+      color: rgba(255, 255, 200, 0.7);
+      font-size: 0.9rem;
+      letter-spacing: 2px;
+      padding: 10px;
+      white-space: pre-wrap;
+      pointer-events: none;
+      animation: twinkle 3s ease-in-out infinite alternate;
+    }
+    @keyframes twinkle {
+      from { opacity: 0.6; }
+      to { opacity: 1; }
+    }
+
+    /* PLACED ITEMS */
+    .item {
+      position: absolute;
+      font-size: 2.4rem;
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+      line-height: 1;
+      transform-origin: center;
+      filter: drop-shadow(0 3px 4px rgba(0,0,0,0.3));
+      animation: popIn 0.3s cubic-bezier(0.5, 1.5, 0.6, 1);
+    }
+    .item.flipped { transform: scaleX(-1); }
+    .item:hover { z-index: 10; }
+    .item.dragging { z-index: 100; cursor: grabbing; transition: none; }
+    .item.pulse { animation: itemPulse 0.6s ease; }
+    @keyframes itemPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+    }
+    @keyframes popIn {
+      0% { transform: scale(0); }
+      100% { transform: scale(1); }
+    }
+    .item.flipped.pulse { animation: itemPulseFlip 0.6s ease; }
+    @keyframes itemPulseFlip {
+      0%, 100% { transform: scaleX(-1) scale(1); }
+      50% { transform: scaleX(-1) scale(1.3); }
+    }
+
+    /* TRASH */
+    .trash-zone {
+      background: #f7faff;
+      border: 3px dashed #cdd9f0;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 4px;
+      font-size: 0.7rem;
+      font-weight: bold;
+      color: #6a7390;
+      transition: all 0.15s ease;
+    }
+    .trash-zone .trash-icon { font-size: 2rem; }
+    .trash-zone.over {
+      background: #ffe5e5;
+      border-color: #e44a4a;
+      border-style: solid;
+      color: #b03030;
+      transform: scale(1.05);
+    }
+
+    /* CONTROLS */
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 12px 0;
+    }
+    .controls button {
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: bold;
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: 2px solid #cdd9f0;
+      background: white;
+      cursor: pointer;
+    }
+    .controls button.active {
+      background: var(--ezra-blue);
+      color: white;
+      border-color: var(--ezra-blue);
+    }
+    .controls button.danger {
+      border-color: #e44a4a;
+      color: #b03030;
+    }
+
+    /* PALETTE */
+    .palette-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+    .palette-tabs button {
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: bold;
+      padding: 6px 12px;
+      border-radius: 10px 10px 0 0;
+      border: 2px solid #cdd9f0;
+      border-bottom: none;
+      background: #eef3ff;
+      cursor: pointer;
+    }
+    .palette-tabs button.active {
+      background: white;
+      border-color: var(--ezra-blue);
+      color: var(--ezra-blue-deep);
+    }
+    .palette {
+      background: white;
+      border: 2px solid #cdd9f0;
+      border-radius: 0 10px 10px 10px;
+      padding: 10px 8px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      min-height: 78px;
+      scrollbar-width: thin;
+    }
+    .palette-item {
+      flex-shrink: 0;
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #f8faff, #eef3ff);
+      border: 2px solid #cdd9f0;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.7rem;
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+      transition: transform 0.1s ease;
+    }
+    .palette-item:hover { transform: translateY(-2px); border-color: var(--ezra-blue); }
+    .palette-item:active { cursor: grabbing; }
+    .palette-item .lbl {
+      font-size: 0.55rem;
+      color: #6a7390;
+      font-weight: bold;
+      margin-top: 2px;
+    }
+
+    .drag-ghost {
+      position: fixed;
+      font-size: 2.4rem;
+      pointer-events: none;
+      z-index: 1000;
+      transform: translate(-50%, -50%);
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+      opacity: 0.85;
+    }
+
+    /* FLOATING EFFECTS */
+    .float-effect {
+      position: absolute;
+      pointer-events: none;
+      font-weight: bold;
+      font-size: 1.2rem;
+      animation: floatUp 1.4s ease-out forwards;
+      color: var(--ezra-blue-deep);
+      text-shadow: 1px 1px 0 white;
+      z-index: 50;
+    }
+    @keyframes floatUp {
+      from { transform: translateY(0); opacity: 1; }
+      to   { transform: translateY(-50px); opacity: 0; }
+    }
+
+    /* CELEBRATION MODAL */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 15, 40, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 14px;
+    }
+    .modal-backdrop.show { display: flex; }
+    .celeb-card {
+      background: linear-gradient(160deg, #fff, #cfe2ff);
+      border-radius: 22px;
+      padding: 26px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 14px 40px rgba(0,0,0,0.3);
+      border: 4px solid var(--ezra-blue);
+      position: relative;
+      overflow: hidden;
+      animation: modalIn 0.4s cubic-bezier(0.5, 1.5, 0.6, 1);
+    }
+    @keyframes modalIn {
+      from { transform: scale(0.6); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+    .celeb-card h2 { margin: 0 0 8px; color: var(--ezra-blue-deep); }
+    .celeb-card .big { font-size: 3.5rem; margin: 8px 0; }
+    .celeb-card button {
+      background: var(--ezra-blue);
+      color: white;
+      border: none;
+      padding: 11px 22px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 14px;
+      font-family: inherit;
+    }
+    .confetti { position: absolute; width: 8px; height: 8px; pointer-events: none; }
+
+    a.back-link {
+      display: inline-block;
+      margin-top: 16px;
+      color: var(--ezra-blue);
+      text-decoration: none;
+      font-weight: bold;
+    }
+    a.back-link:hover { text-decoration: underline; }
+
+    /* Vanda runs (easter egg) */
+    .vanda-runner {
+      position: fixed;
+      bottom: 18%;
+      left: -200px;
+      font-size: 4rem;
+      z-index: 150;
+      pointer-events: none;
+      display: none;
+    }
+    .vanda-runner.run {
+      display: block;
+      animation: vandaSprint 3.5s linear forwards;
+    }
+    @keyframes vandaSprint {
+      from { left: -200px; }
+      to   { left: 105%; }
+    }
+    .vanda-runner .gl { font-size: 2rem; position: absolute; top: 10px; left: 14px; }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="topbar">
+      <h1>🏠 Ezra's World</h1>
+      <div class="counter">📦 <span id="counter">0</span> items</div>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+
+    <div class="canvas-area">
+      <div class="room-canvas" id="canvas">
+        <div class="time-overlay"></div>
+      </div>
+      <div class="trash-zone" id="trashZone">
+        <span class="trash-icon">🗑️</span>
+        <span>Trash</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="dayBtn" class="active" type="button">🌞 Day</button>
+      <button id="nightBtn" type="button">🌙 Night</button>
+      <button id="clearBtn" class="danger" type="button">↻ Clear Room</button>
+      <button id="soundBtn" type="button">🔊 Sound</button>
+    </div>
+
+    <div class="palette-tabs">
+      <button data-pal="room" class="active" type="button">Room Items</button>
+      <button data-pal="friends" type="button">⭐ Friends</button>
+    </div>
+    <div class="palette" id="palette"></div>
+
+    <a class="back-link" href="index.html">← Back to Game Hub</a>
+  </main>
+
+  <div class="vanda-runner" id="vanda" aria-hidden="true">🦖<span class="gl">🤓</span></div>
+
+  <div class="modal-backdrop" id="modal">
+    <div class="celeb-card" id="celeb"></div>
+  </div>
+
+  <script>
+    // ============ DATA ============
+    const ROOMS = [
+      { id: "bedroom", name: "Bedroom",   emoji: "🛏️" },
+      { id: "space",   name: "Space",     emoji: "🚀" },
+      { id: "game",    name: "Game Room", emoji: "🎮" },
+      { id: "snack",   name: "Snack Bar", emoji: "🌭" },
+      { id: "library", name: "Library",   emoji: "📚" },
+      { id: "mystery", name: "???",       emoji: "✨", locked: true, unlockAt: 25 }
+    ];
+
+    const ROOM_ITEMS = {
+      bedroom: [
+        { id: "bed",      emoji: "🛏️", name: "Bed", interactive: "sleep" },
+        { id: "person-bed", emoji: "🛌", name: "Sleeping", interactive: "sleep" },
+        { id: "lamp",     emoji: "💡", name: "Lamp" },
+        { id: "clock",    emoji: "🕰️", name: "Clock", interactive: "tick" },
+        { id: "teddy",    emoji: "🧸", name: "Teddy" },
+        { id: "book",     emoji: "📕", name: "Book" },
+        { id: "plant",    emoji: "🪴", name: "Plant" },
+        { id: "picture",  emoji: "🖼️", name: "Picture" },
+        { id: "mirror",   emoji: "🪞", name: "Mirror" },
+        { id: "tv",       emoji: "📺", name: "TV" },
+        { id: "window",   emoji: "🪟", name: "Window" },
+        { id: "bluerug",  emoji: "🟦", name: "Blue Rug" },
+        { id: "door",     emoji: "🚪", name: "Door" }
+      ],
+      space: [
+        { id: "rocket",   emoji: "🚀", name: "Rocket", interactive: "launch" },
+        { id: "ufo",      emoji: "🛸", name: "UFO" },
+        { id: "saturn",   emoji: "🪐", name: "Saturn", interactive: "spin" },
+        { id: "earth",    emoji: "🌍", name: "Earth", interactive: "spin" },
+        { id: "moon",     emoji: "🌙", name: "Moon", interactive: "twinkle" },
+        { id: "star",     emoji: "⭐", name: "Star", interactive: "twinkle" },
+        { id: "comet",    emoji: "☄️", name: "Comet" },
+        { id: "astronaut",emoji: "👨‍🚀", name: "Astronaut" },
+        { id: "telescope",emoji: "🔭", name: "Telescope" },
+        { id: "satellite",emoji: "🛰️", name: "Satellite" },
+        { id: "alien",    emoji: "👽", name: "Alien" },
+        { id: "sun",      emoji: "☀️", name: "Sun" }
+      ],
+      game: [
+        { id: "chess",    emoji: "♟️", name: "Chess", interactive: "chess" },
+        { id: "dice",     emoji: "🎲", name: "Dice", interactive: "roll" },
+        { id: "controller",emoji: "🎮", name: "Controller" },
+        { id: "puzzle",   emoji: "🧩", name: "Puzzle" },
+        { id: "cards",    emoji: "🃏", name: "Cards" },
+        { id: "dart",     emoji: "🎯", name: "Dart" },
+        { id: "art",      emoji: "🎨", name: "Art" },
+        { id: "computer", emoji: "💻", name: "Computer" },
+        { id: "chair",    emoji: "🪑", name: "Chair" },
+        { id: "tv",       emoji: "📺", name: "TV" },
+        { id: "trophy",   emoji: "🏆", name: "Trophy" },
+        { id: "medal",    emoji: "🥇", name: "Medal" },
+        { id: "rubik",    emoji: "🟦", name: "Cube" }
+      ],
+      snack: [
+        { id: "hotdog",   emoji: "🌭", name: "Hot Dog", interactive: "yum" },
+        { id: "pizza",    emoji: "🍕", name: "Pizza", interactive: "yum" },
+        { id: "burger",   emoji: "🍔", name: "Burger", interactive: "yum" },
+        { id: "drink",    emoji: "🥤", name: "Drink" },
+        { id: "donut",    emoji: "🍩", name: "Donut", interactive: "yum" },
+        { id: "cookie",   emoji: "🍪", name: "Cookie", interactive: "yum" },
+        { id: "cupcake",  emoji: "🧁", name: "Cupcake" },
+        { id: "pretzel",  emoji: "🥨", name: "Pretzel" },
+        { id: "icecream", emoji: "🍦", name: "Ice Cream" },
+        { id: "fries",    emoji: "🍟", name: "Fries" },
+        { id: "sushi",    emoji: "🍣", name: "Sushi" },
+        { id: "cake",     emoji: "🍰", name: "Cake" }
+      ],
+      library: [
+        { id: "books",    emoji: "📚", name: "Books" },
+        { id: "open-book",emoji: "📖", name: "Open Book" },
+        { id: "chair",    emoji: "🪑", name: "Chair" },
+        { id: "candle",   emoji: "🕯️", name: "Candle" },
+        { id: "fire",     emoji: "🔥", name: "Fire", interactive: "twinkle" },
+        { id: "tea",      emoji: "☕", name: "Tea" },
+        { id: "globe",    emoji: "🌐", name: "Globe", interactive: "spin" },
+        { id: "scroll",   emoji: "📜", name: "Scroll" },
+        { id: "magnifier",emoji: "🔍", name: "Magnify" },
+        { id: "quill",    emoji: "🖋️", name: "Quill" },
+        { id: "lantern",  emoji: "🪔", name: "Lantern" }
+      ],
+      mystery: [
+        { id: "rainbow",  emoji: "🌈", name: "Rainbow" },
+        { id: "wand",     emoji: "🪄", name: "Wand" },
+        { id: "crystal",  emoji: "🔮", name: "Crystal" },
+        { id: "gem",      emoji: "💎", name: "Gem" },
+        { id: "bigstar",  emoji: "🌟", name: "Star" },
+        { id: "cloud",    emoji: "☁️", name: "Cloud" },
+        { id: "sparkle",  emoji: "✨", name: "Sparkle" },
+        { id: "castle",   emoji: "🏰", name: "Castle" },
+        { id: "fairy",    emoji: "🧚", name: "Fairy" },
+        { id: "wizardhat",emoji: "🧙", name: "Wizard" }
+      ]
+    };
+
+    // Easter-egg friends available in every room via the ⭐ Friends tab
+    const FRIEND_ITEMS = [
+      { id: "f-nucky",  emoji: "🦆", name: "Nucky",     interactive: "quack" },
+      { id: "f-cat",    emoji: "🐈", name: "Cat",       interactive: "meow" },
+      { id: "f-vanda",  emoji: "🦖", name: "Vanda",     interactive: "vanda" },
+      { id: "f-zoom",   emoji: "🐆", name: "Zoom",      interactive: "zoom" },
+      { id: "f-pip",    emoji: "🦉", name: "Pip",       interactive: "hoot" },
+      { id: "f-comet",  emoji: "🐶", name: "Comet",     interactive: "woof" },
+      { id: "f-aurora", emoji: "🐲", name: "Aurora",    interactive: "roar" },
+      { id: "f-car",    emoji: "🚗", name: "Carod",     interactive: "vroom" },
+      { id: "f-brain",  emoji: "🧠", name: "Brain",     interactive: "pulse" },
+      { id: "f-controller", emoji: "🎮", name: "Game",  interactive: "pulse" }
+    ];
+
+    // friends used by the "5 pets in one room" easter egg
+    const MAIN_PETS = ["f-nucky", "f-zoom", "f-pip", "f-comet", "f-aurora"];
+
+    // ============ STATE ============
+    const STORAGE_KEY = "ezraWorldData_v1";
+    let state;
+    let dragState = null;
+    let nextId = 1;
+    let currentPalette = "room";
+    let lastPetRollAt = 0;
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return null;
+    }
+    function freshState() {
+      const placed = {};
+      ROOMS.forEach(r => placed[r.id] = []);
+      return {
+        currentRoom: "bedroom",
+        placed,
+        totalPlaced: 0,
+        mysteryUnlocked: false,
+        timeOfDay: "day",
+        soundOn: true
+      };
+    }
+    function saveState() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+      catch (e) {}
+    }
+
+    // ============ SOUND ============
+    let audioCtx = null;
+    function ensureAudio() {
+      if (!audioCtx) {
+        try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        catch (e) { audioCtx = null; }
+      }
+      return audioCtx;
+    }
+    function tone(freq, dur, type, vol, delay, fin) {
+      if (!state.soundOn) return;
+      const ctx = ensureAudio(); if (!ctx) return;
+      const t = ctx.currentTime + (delay || 0);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, t);
+      if (fin) osc.frequency.exponentialRampToValueAtTime(fin, t + dur);
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(vol || 0.14, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t); osc.stop(t + dur + 0.05);
+    }
+    function filteredTone(freq, finalFreq, dur, vol) {
+      if (!state.soundOn) return;
+      const ctx = ensureAudio(); if (!ctx) return;
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(freq, now);
+      osc.frequency.exponentialRampToValueAtTime(finalFreq, now + dur);
+      filter.type = "bandpass"; filter.frequency.value = 900; filter.Q.value = 4;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(vol || 0.22, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+      osc.connect(filter).connect(gain).connect(ctx.destination);
+      osc.start(now); osc.stop(now + dur + 0.05);
+    }
+    const sfx = {
+      plop:   () => tone(420, 0.08, "sine", 0.12, 0, 280),
+      trash:  () => { tone(180, 0.12, "sine", 0.14, 0, 100); tone(120, 0.18, "sawtooth", 0.1, 0.05); },
+      pop:    () => tone(900, 0.05, "square", 0.1),
+      sparkle:() => { [1318, 1568, 1976, 2349].forEach((f, i) => tone(f, 0.14, "sine", 0.12, i*0.05)); },
+      fanfare:() => { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.2, "triangle", 0.16, i*0.1)); },
+      quack:  () => filteredTone(600, 420, 0.25),
+      meow:   () => tone(700, 0.25, "sine", 0.18, 0, 500),
+      hoot:   () => { tone(440, 0.2, "sine", 0.18); tone(440, 0.2, "sine", 0.18, 0.3); },
+      woof:   () => { tone(220, 0.18, "square", 0.18, 0, 110); tone(300, 0.18, "square", 0.18, 0.18, 150); },
+      roar:   () => tone(110, 0.5, "sawtooth", 0.22, 0, 75),
+      zoom:   () => tone(180, 0.4, "sawtooth", 0.18, 0, 900),
+      vroom:  () => { tone(150, 0.3, "sawtooth", 0.18, 0, 250); tone(180, 0.3, "sawtooth", 0.12, 0.05, 280); },
+      tick:   () => tone(1200, 0.05, "square", 0.08),
+      yum:    () => { tone(660, 0.1, "sine", 0.14); tone(880, 0.15, "sine", 0.14, 0.08); },
+      twinkle:() => { tone(2200, 0.08, "sine", 0.1); tone(2800, 0.08, "sine", 0.1, 0.06); },
+      launch: () => tone(120, 0.6, "sawtooth", 0.18, 0, 500),
+      sleep:  () => tone(380, 0.4, "sine", 0.12, 0, 240),
+      chess:  () => { tone(500, 0.06, "sine", 0.1); tone(450, 0.06, "sine", 0.1, 0.08); tone(550, 0.06, "sine", 0.1, 0.16); },
+      pulse:  () => tone(500, 0.18, "sine", 0.12, 0, 350)
+    };
+
+    // ============ PET ROLL ============
+    function bumpPetRoll() {
+      try {
+        const raw = localStorage.getItem("ezraPetTriggers_v1");
+        const data = raw ? JSON.parse(raw) : { pendingRolls: 0 };
+        data.pendingRolls = (data.pendingRolls || 0) + 1;
+        localStorage.setItem("ezraPetTriggers_v1", JSON.stringify(data));
+      } catch (e) {}
+    }
+
+    // ============ RENDER ============
+    const tabsEl = document.getElementById("tabs");
+    const canvasEl = document.getElementById("canvas");
+    const paletteEl = document.getElementById("palette");
+    const trashEl = document.getElementById("trashZone");
+    const counterEl = document.getElementById("counter");
+
+    function renderTabs() {
+      tabsEl.innerHTML = "";
+      ROOMS.forEach(room => {
+        const isLocked = room.locked && !state.mysteryUnlocked;
+        const btn = document.createElement("button");
+        btn.className = (state.currentRoom === room.id ? "active " : "") + (isLocked ? "locked" : "");
+        btn.innerHTML = `<span class="em">${room.emoji}</span><span>${isLocked ? "?" : room.name}</span>`;
+        btn.addEventListener("click", () => {
+          if (isLocked) {
+            const remaining = room.unlockAt - state.totalPlaced;
+            showCeleb({
+              big: "🔒",
+              title: "Mystery Room locked",
+              text: `Place ${remaining} more item${remaining === 1 ? "" : "s"} across your rooms to unlock!`
+            });
+            return;
+          }
+          state.currentRoom = room.id;
+          saveState();
+          renderAll();
+        });
+        tabsEl.appendChild(btn);
+      });
+    }
+
+    function renderCanvas() {
+      // clear placed items but keep .time-overlay
+      [...canvasEl.querySelectorAll(".item")].forEach(el => el.remove());
+      canvasEl.className = "room-canvas canvas-bg-" + state.currentRoom + (state.timeOfDay === "night" ? " night" : "");
+      const list = state.placed[state.currentRoom] || [];
+      list.forEach(it => {
+        const el = makeItemElement(it);
+        canvasEl.appendChild(el);
+      });
+    }
+
+    function findItemDef(typeId) {
+      for (const room in ROOM_ITEMS) {
+        const f = ROOM_ITEMS[room].find(i => i.id === typeId);
+        if (f) return f;
+      }
+      const fr = FRIEND_ITEMS.find(i => i.id === typeId);
+      if (fr) return fr;
+      return null;
+    }
+
+    function makeItemElement(it) {
+      const def = findItemDef(it.type);
+      const el = document.createElement("div");
+      el.className = "item" + (it.flipped ? " flipped" : "");
+      el.dataset.id = it.id;
+      el.textContent = def ? def.emoji : "❓";
+      el.style.left = it.x + "px";
+      el.style.top  = it.y + "px";
+      el.style.fontSize = (it.size || 38) + "px";
+      // taps trigger micro-interactions
+      attachItemHandlers(el, it, def);
+      return el;
+    }
+
+    function renderPalette() {
+      paletteEl.innerHTML = "";
+      let items;
+      if (currentPalette === "friends") {
+        items = FRIEND_ITEMS;
+      } else {
+        items = ROOM_ITEMS[state.currentRoom] || [];
+      }
+      items.forEach(item => {
+        const el = document.createElement("div");
+        el.className = "palette-item";
+        el.innerHTML = `<span>${item.emoji}</span><span class="lbl">${item.name}</span>`;
+        el.addEventListener("pointerdown", e => startDrag(e, item, "palette", null));
+        paletteEl.appendChild(el);
+      });
+    }
+
+    function renderCounter() {
+      counterEl.textContent = state.totalPlaced;
+    }
+
+    function renderAll() {
+      renderTabs();
+      renderCanvas();
+      renderPalette();
+      renderCounter();
+    }
+
+    // ============ DRAG ============
+    function startDrag(e, item, source, placedId) {
+      e.preventDefault();
+      if (dragState) cancelDrag();
+      dragState = { item, source, placedId, pointerId: e.pointerId };
+      // create ghost
+      const ghost = document.createElement("div");
+      ghost.className = "drag-ghost";
+      ghost.textContent = item.emoji;
+      document.body.appendChild(ghost);
+      dragState.ghostEl = ghost;
+      updateGhost(e.clientX, e.clientY);
+      // dim original if from room
+      if (source === "room") {
+        const el = canvasEl.querySelector(`.item[data-id="${placedId}"]`);
+        if (el) el.style.opacity = "0.25";
+      }
+      window.addEventListener("pointermove", onDragMove);
+      window.addEventListener("pointerup", onDragEnd);
+      window.addEventListener("pointercancel", onDragEnd);
+    }
+    function updateGhost(x, y) {
+      if (!dragState || !dragState.ghostEl) return;
+      dragState.ghostEl.style.left = x + "px";
+      dragState.ghostEl.style.top = y + "px";
+    }
+    function onDragMove(e) {
+      if (!dragState) return;
+      updateGhost(e.clientX, e.clientY);
+      // trash hover state
+      const r = trashEl.getBoundingClientRect();
+      const over = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+      trashEl.classList.toggle("over", over && dragState.source === "room");
+    }
+    function onDragEnd(e) {
+      if (!dragState) return;
+      const trashRect = trashEl.getBoundingClientRect();
+      const overTrash = e.clientX >= trashRect.left && e.clientX <= trashRect.right && e.clientY >= trashRect.top && e.clientY <= trashRect.bottom;
+      const canvasRect = canvasEl.getBoundingClientRect();
+      const overCanvas = e.clientX >= canvasRect.left && e.clientX <= canvasRect.right && e.clientY >= canvasRect.top && e.clientY <= canvasRect.bottom;
+
+      if (overTrash && dragState.source === "room") {
+        removePlaced(dragState.placedId);
+        sfx.trash();
+      } else if (overCanvas) {
+        const x = e.clientX - canvasRect.left;
+        const y = e.clientY - canvasRect.top;
+        if (dragState.source === "palette") {
+          placeNew(dragState.item, x, y);
+        } else {
+          movePlaced(dragState.placedId, x, y);
+        }
+      } else {
+        // restore original
+        if (dragState.source === "room") {
+          const el = canvasEl.querySelector(`.item[data-id="${dragState.placedId}"]`);
+          if (el) el.style.opacity = "";
+        }
+      }
+      cancelDrag();
+    }
+    function cancelDrag() {
+      if (!dragState) return;
+      if (dragState.ghostEl) dragState.ghostEl.remove();
+      trashEl.classList.remove("over");
+      window.removeEventListener("pointermove", onDragMove);
+      window.removeEventListener("pointerup", onDragEnd);
+      window.removeEventListener("pointercancel", onDragEnd);
+      dragState = null;
+    }
+
+    // ============ PLACE / MOVE / REMOVE ============
+    function placeNew(item, x, y) {
+      const id = "p" + (nextId++);
+      const it = {
+        id, type: item.id,
+        x: Math.max(0, Math.min(canvasEl.clientWidth - 40, x - 20)),
+        y: Math.max(0, Math.min(canvasEl.clientHeight - 40, y - 20)),
+        flipped: false, size: 38
+      };
+      state.placed[state.currentRoom].push(it);
+      state.totalPlaced++;
+      sfx.plop();
+      // unlock mystery room
+      if (!state.mysteryUnlocked && state.totalPlaced >= 25) {
+        state.mysteryUnlocked = true;
+        showCeleb({
+          big: "✨",
+          title: "Mystery Room unlocked!",
+          text: "A magical new room is yours to decorate. Tap the ✨ tab to explore!"
+        });
+        sfx.fanfare();
+      }
+      // pet roll every 10 items
+      if (state.totalPlaced - lastPetRollAt >= 10 || (state.totalPlaced % 10 === 0 && state.totalPlaced > 0 && lastPetRollAt === 0)) {
+        // tighter: trigger if crossing a multiple of 10
+        if (Math.floor(state.totalPlaced / 10) > Math.floor(lastPetRollAt / 10)) {
+          bumpPetRoll();
+          showFloat(`+1 pet roll!`, canvasEl.clientWidth / 2, canvasEl.clientHeight / 2);
+          sfx.sparkle();
+        }
+        lastPetRollAt = state.totalPlaced;
+      }
+      saveState();
+      renderCanvas();
+      renderCounter();
+      checkEasterEggs(item);
+    }
+    function movePlaced(id, x, y) {
+      const list = state.placed[state.currentRoom];
+      const it = list.find(i => i.id === id);
+      if (!it) return;
+      it.x = Math.max(0, Math.min(canvasEl.clientWidth - 40, x - 20));
+      it.y = Math.max(0, Math.min(canvasEl.clientHeight - 40, y - 20));
+      saveState();
+      renderCanvas();
+    }
+    function removePlaced(id) {
+      const list = state.placed[state.currentRoom];
+      const idx = list.findIndex(i => i.id === id);
+      if (idx < 0) return;
+      list.splice(idx, 1);
+      // don't decrement totalPlaced — lifetime counter for unlocks/rolls
+      saveState();
+      renderCanvas();
+      renderCounter();
+    }
+
+    // ============ ITEM INTERACTIONS ============
+    function attachItemHandlers(el, it, def) {
+      let lastTap = 0;
+      let downPos = null;
+      let dragStarted = false;
+      el.addEventListener("pointerdown", e => {
+        downPos = { x: e.clientX, y: e.clientY };
+        dragStarted = false;
+      });
+      el.addEventListener("pointermove", e => {
+        if (!downPos) return;
+        const dx = e.clientX - downPos.x;
+        const dy = e.clientY - downPos.y;
+        if (!dragStarted && Math.hypot(dx, dy) > 6) {
+          dragStarted = true;
+          startDrag(e, { id: it.type, emoji: def ? def.emoji : "?" }, "room", it.id);
+        }
+      });
+      el.addEventListener("pointerup", e => {
+        if (!downPos) return;
+        if (!dragStarted) {
+          // it's a tap
+          const now = Date.now();
+          if (now - lastTap < 350) {
+            // double-tap → flip
+            it.flipped = !it.flipped;
+            saveState();
+            renderCanvas();
+            sfx.pop();
+          } else {
+            // single-tap → interactive effect
+            triggerInteraction(it, def, el);
+          }
+          lastTap = now;
+        }
+        downPos = null;
+        dragStarted = false;
+      });
+    }
+
+    function triggerInteraction(it, def, el) {
+      if (!def) return;
+      el.classList.remove("pulse");
+      void el.offsetWidth;
+      el.classList.add("pulse");
+      setTimeout(() => el.classList.remove("pulse"), 600);
+      const r = it; // for clarity
+      switch (def.interactive) {
+        case "sleep":
+          showFloat("💤", r.x + 20, r.y);
+          sfx.sleep();
+          break;
+        case "tick":
+          showFloat("tick!", r.x + 20, r.y);
+          sfx.tick();
+          break;
+        case "spin":
+          el.style.transition = "transform 0.6s ease";
+          el.style.transform = (it.flipped ? "scaleX(-1) " : "") + "rotate(360deg)";
+          sfx.twinkle();
+          setTimeout(() => {
+            el.style.transition = "";
+            el.style.transform = it.flipped ? "scaleX(-1)" : "";
+          }, 700);
+          break;
+        case "twinkle":
+          showFloat("✨", r.x + 20, r.y);
+          sfx.twinkle();
+          break;
+        case "launch":
+          showFloat("💨", r.x + 20, r.y + 20);
+          sfx.launch();
+          break;
+        case "yum":
+          showFloat("Yum!", r.x + 20, r.y);
+          sfx.yum();
+          break;
+        case "chess":
+          showFloat("♚♛♜♝♞♟", r.x + 20, r.y);
+          sfx.chess();
+          break;
+        case "roll":
+          showFloat(["⚀","⚁","⚂","⚃","⚄","⚅"][Math.floor(Math.random()*6)], r.x + 20, r.y);
+          sfx.pop();
+          break;
+        case "quack": showFloat("QUACK!", r.x + 20, r.y); sfx.quack(); break;
+        case "meow":  showFloat("Meow!",  r.x + 20, r.y); sfx.meow(); break;
+        case "hoot":  showFloat("Hoo!",   r.x + 20, r.y); sfx.hoot(); break;
+        case "woof":  showFloat("Woof!",  r.x + 20, r.y); sfx.woof(); break;
+        case "roar":  showFloat("RRRAW!", r.x + 20, r.y); sfx.roar(); break;
+        case "zoom":  showFloat("ZOOM!",  r.x + 20, r.y); sfx.zoom(); break;
+        case "vroom": showFloat("Vroom!", r.x + 20, r.y); sfx.vroom(); break;
+        case "vanda":
+          runVanda();
+          sfx.roar();
+          break;
+        case "pulse":
+          sfx.pulse();
+          break;
+        default:
+          sfx.pop();
+      }
+    }
+
+    function showFloat(text, x, y) {
+      const f = document.createElement("div");
+      f.className = "float-effect";
+      f.textContent = text;
+      f.style.left = x + "px";
+      f.style.top  = y + "px";
+      canvasEl.appendChild(f);
+      setTimeout(() => f.remove(), 1500);
+    }
+
+    function runVanda() {
+      const v = document.getElementById("vanda");
+      v.classList.remove("run");
+      void v.offsetWidth;
+      v.classList.add("run");
+    }
+
+    // ============ EASTER EGGS ============
+    function checkEasterEggs(justPlacedItem) {
+      const list = state.placed[state.currentRoom];
+      // 1. 5 hotdogs in this room
+      const hotdogs = list.filter(p => p.type === "hotdog").length;
+      if (hotdogs === 5 && justPlacedItem.id === "hotdog") {
+        showCeleb({ big: "🌭🌭🌭🌭🌭", title: "Hotdog Feast!", text: "Five hot dogs! Ezra's favourite snack party has begun." });
+        sfx.fanfare();
+        bumpPetRoll();
+      }
+      // 2. All 5 main pets in this room
+      const friendIds = new Set(list.map(p => p.type));
+      const haveAllPets = MAIN_PETS.every(id => friendIds.has(id));
+      if (haveAllPets && MAIN_PETS.includes(justPlacedItem.id)) {
+        showCeleb({ big: "🦆🐆🦉🐶🐲", title: "All your friends together!", text: "Nucky, Zoom, Pip, Comet and Aurora are all hanging out together. Best party ever!" });
+        sfx.fanfare();
+        bumpPetRoll();
+      }
+      // 3. Chess set on any room
+      if (justPlacedItem.id === "chess") {
+        showFloat("♚♛♜♝♞♟", justPlacedItem.x || 100, justPlacedItem.y || 100);
+      }
+    }
+
+    // ============ CELEBRATION MODAL ============
+    function showCeleb({ big, title, text }) {
+      const card = document.getElementById("celeb");
+      card.innerHTML = `
+        <div class="big">${big}</div>
+        <h2>${title}</h2>
+        <p>${text}</p>
+        <button type="button" id="celebClose">Cool!</button>
+      `;
+      document.getElementById("modal").classList.add("show");
+      spawnConfetti(card);
+      document.getElementById("celebClose").addEventListener("click", () => {
+        document.getElementById("modal").classList.remove("show");
+      });
+    }
+    function spawnConfetti(host) {
+      const colors = ["#3b82f6", "#f5b400", "#e44a4a", "#a855f7", "#45c265"];
+      for (let i = 0; i < 30; i++) {
+        const c = document.createElement("div");
+        c.className = "confetti";
+        c.style.background = colors[i % colors.length];
+        c.style.left = (Math.random() * 100) + "%";
+        c.style.top = "-10px";
+        c.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+        host.appendChild(c);
+        const dx = (Math.random() - 0.5) * 220;
+        const dy = 260 + Math.random() * 180;
+        const dur = 1400 + Math.random() * 800;
+        c.animate(
+          [{ transform: "rotate(0deg)", opacity: 1 },
+           { transform: `translate(${dx}px, ${dy}px) rotate(${Math.random()*720}deg)`, opacity: 0 }],
+          { duration: dur, easing: "cubic-bezier(0.2, 0.6, 0.4, 1)", fill: "forwards" }
+        );
+        setTimeout(() => c.remove(), dur);
+      }
+    }
+
+    // ============ EVENTS ============
+    document.getElementById("dayBtn").addEventListener("click", () => {
+      state.timeOfDay = "day";
+      document.getElementById("dayBtn").classList.add("active");
+      document.getElementById("nightBtn").classList.remove("active");
+      canvasEl.classList.remove("night");
+      saveState();
+    });
+    document.getElementById("nightBtn").addEventListener("click", () => {
+      state.timeOfDay = "night";
+      document.getElementById("nightBtn").classList.add("active");
+      document.getElementById("dayBtn").classList.remove("active");
+      canvasEl.classList.add("night");
+      saveState();
+    });
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      const list = state.placed[state.currentRoom];
+      if (!list.length) return;
+      if (confirm(`Clear all items from this room? (${list.length} items)`)) {
+        state.placed[state.currentRoom] = [];
+        saveState();
+        renderCanvas();
+      }
+    });
+    document.getElementById("soundBtn").addEventListener("click", e => {
+      state.soundOn = !state.soundOn;
+      e.currentTarget.textContent = state.soundOn ? "🔊 Sound" : "🔇 Muted";
+      saveState();
+    });
+    document.querySelectorAll(".palette-tabs button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        currentPalette = btn.dataset.pal;
+        document.querySelectorAll(".palette-tabs button").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        renderPalette();
+      });
+    });
+
+    // resize: clamp items so they stay visible
+    let resizeTimer;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const list = state.placed[state.currentRoom] || [];
+        const w = canvasEl.clientWidth;
+        const h = canvasEl.clientHeight;
+        list.forEach(it => {
+          if (it.x > w - 40) it.x = Math.max(0, w - 40);
+          if (it.y > h - 40) it.y = Math.max(0, h - 40);
+        });
+        renderCanvas();
+      }, 200);
+    });
+
+    // ============ INIT ============
+    function init() {
+      const loaded = loadState();
+      state = loaded || freshState();
+      // ensure all room buckets exist
+      ROOMS.forEach(r => { if (!state.placed[r.id]) state.placed[r.id] = []; });
+      // set nextId past any saved IDs
+      let max = 0;
+      Object.values(state.placed).forEach(list => list.forEach(it => {
+        const n = parseInt((it.id || "p0").slice(1), 10);
+        if (n > max) max = n;
+      }));
+      nextId = max + 1;
+      lastPetRollAt = Math.floor(state.totalPlaced / 10) * 10;
+      // apply saved time
+      if (state.timeOfDay === "night") {
+        canvasEl.classList.add("night");
+        document.getElementById("nightBtn").classList.add("active");
+        document.getElementById("dayBtn").classList.remove("active");
+      }
+      document.getElementById("soundBtn").textContent = state.soundOn ? "🔊 Sound" : "🔇 Muted";
+      renderAll();
+    }
+
+    init();
+  </script>
+</body>
+</html>
