@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ezra's Planet Lab</title>
+  <style>
+    :root {
+      --bg: #0a0729;
+      --bg2: #1e1a4e;
+      --paper: #f4f6fb;
+      --ink: #1f2a3d;
+      --accent: #3b82f6;
+      --accent-deep: #1e40af;
+      --warm: #f5b400;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 10%, #1a1145 0%, transparent 40%),
+        radial-gradient(circle at 80% 80%, #2a1b5c 0%, transparent 45%),
+        var(--bg);
+      padding: 12px;
+    }
+    /* twinkling stars */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(1px 1px at 20px 30px, white, transparent),
+        radial-gradient(1px 1px at 60px 80px, white, transparent),
+        radial-gradient(1.5px 1.5px at 120px 200px, white, transparent),
+        radial-gradient(1px 1px at 200px 50px, white, transparent),
+        radial-gradient(1px 1px at 300px 150px, white, transparent),
+        radial-gradient(2px 2px at 80px 350px, white, transparent),
+        radial-gradient(1px 1px at 250px 250px, white, transparent),
+        radial-gradient(1px 1px at 400px 80px, white, transparent),
+        radial-gradient(1.5px 1.5px at 500px 200px, white, transparent),
+        radial-gradient(1px 1px at 600px 350px, white, transparent),
+        radial-gradient(1px 1px at 100px 500px, white, transparent),
+        radial-gradient(1.5px 1.5px at 350px 450px, white, transparent),
+        radial-gradient(1px 1px at 550px 500px, white, transparent),
+        radial-gradient(1px 1px at 700px 100px, white, transparent),
+        radial-gradient(1.5px 1.5px at 800px 300px, white, transparent),
+        radial-gradient(1px 1px at 50px 700px, white, transparent),
+        radial-gradient(1px 1px at 450px 650px, white, transparent),
+        radial-gradient(1.5px 1.5px at 750px 600px, white, transparent);
+      background-size: 900px 800px;
+      opacity: 0.7;
+      animation: twinkle 4s ease-in-out infinite alternate;
+      z-index: 0;
+    }
+    @keyframes twinkle {
+      from { opacity: 0.5; }
+      to   { opacity: 0.9; }
+    }
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 22px;
+      box-shadow: 0 14px 40px rgba(0, 0, 30, 0.5);
+      padding: clamp(14px, 2.5vw, 22px);
+      position: relative;
+      z-index: 1;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(1.5rem, 4.4vw, 2.1rem);
+      text-align: center;
+      color: var(--accent-deep);
+    }
+    .subtitle {
+      text-align: center;
+      opacity: 0.85;
+      margin: 4px 0 12px;
+      font-size: 0.9rem;
+    }
+
+    .mode-tabs {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 14px;
+    }
+    .mode-tabs button {
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: bold;
+      padding: 9px 18px;
+      border-radius: 14px;
+      border: 2px solid #cdd9f0;
+      background: #f4f7ff;
+      cursor: pointer;
+      color: var(--ink);
+    }
+    .mode-tabs button.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ============ LAB ============ */
+    .lab {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    @media (min-width: 720px) {
+      .lab { grid-template-columns: minmax(260px, 320px) 1fr; }
+    }
+    .preview-wrap {
+      background: radial-gradient(circle at center, #1a1145 0%, #0a0729 100%);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    .preview-svg {
+      width: 100%;
+      max-width: 260px;
+      aspect-ratio: 1 / 1;
+      position: relative;
+    }
+    .preview-svg svg {
+      width: 100%;
+      height: 100%;
+      animation: planetRotate 30s linear infinite;
+    }
+    @keyframes planetRotate {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    .moon-host {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+    }
+    .moon-orbit {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 0; height: 0;
+    }
+    .moon-orbit.m1 { animation: moonOrbit 6s linear infinite; }
+    .moon-orbit.m2 { animation: moonOrbit 10s linear infinite reverse; }
+    .moon-orbit.m3 { animation: moonOrbit 14s linear infinite; }
+    @keyframes moonOrbit {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    .moon {
+      position: absolute;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #d1d5db, #6b7280);
+      box-shadow: inset -2px -2px 3px rgba(0,0,0,0.35);
+    }
+    .moon-orbit.m1 .moon { left: 105px; top: -7px; }
+    .moon-orbit.m2 .moon { left: 125px; top: -7px; width: 12px; height: 12px; }
+    .moon-orbit.m3 .moon { left: 145px; top: -7px; width: 16px; height: 16px; }
+
+    .planet-name {
+      color: white;
+      font-weight: bold;
+      font-size: 1.1rem;
+      letter-spacing: 0.5px;
+      margin-top: 6px;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    }
+
+    .controls-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .group {
+      background: #f4f7ff;
+      border: 2px solid #cdd9f0;
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+    .group-title {
+      font-size: 0.78rem;
+      font-weight: bold;
+      color: var(--accent-deep);
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    .swatches {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .swatch {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+    .swatch:hover { transform: scale(1.15); }
+    .swatch.active { border-color: var(--ink); transform: scale(1.15); box-shadow: 0 0 0 2px white inset; }
+    .biomes {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+    }
+    .biome {
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: bold;
+      padding: 6px 4px;
+      border-radius: 8px;
+      border: 2px solid #cdd9f0;
+      background: white;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+    }
+    .biome .em { font-size: 1.3rem; line-height: 1; }
+    .biome.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    .toggles {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+    }
+    .toggles button {
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: bold;
+      padding: 6px 4px;
+      border-radius: 8px;
+      border: 2px solid #cdd9f0;
+      background: white;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+    }
+    .toggles button .em { font-size: 1.2rem; line-height: 1; }
+    .toggles button.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    .moons-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+    }
+    .moons-row button {
+      font-family: inherit;
+      font-weight: bold;
+      padding: 8px;
+      border-radius: 8px;
+      border: 2px solid #cdd9f0;
+      background: white;
+      cursor: pointer;
+    }
+    .moons-row button.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    .name-input {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 2px solid #cdd9f0;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: bold;
+    }
+    .actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .actions button {
+      flex: 1;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: bold;
+      padding: 9px 10px;
+      border-radius: 10px;
+      border: 2px solid var(--accent);
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+    }
+    .actions button.secondary {
+      background: white;
+      color: var(--accent);
+    }
+
+    /* SAVED PLANETS COLLECTION */
+    .collection {
+      margin-top: 14px;
+      background: #f4f7ff;
+      border: 2px solid #cdd9f0;
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .collection-title {
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: var(--accent-deep);
+      margin-bottom: 8px;
+    }
+    .saved-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 8px;
+    }
+    .saved-card {
+      background: linear-gradient(135deg, #1a1145, #0a0729);
+      border-radius: 10px;
+      padding: 6px 4px;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.1s ease;
+    }
+    .saved-card:hover { transform: translateY(-2px); }
+    .saved-card svg { width: 60px; height: 60px; }
+    .saved-card .nm {
+      color: white;
+      font-size: 0.72rem;
+      font-weight: bold;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .saved-card .del-btn {
+      position: absolute;
+      top: 2px; right: 2px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: rgba(228, 74, 74, 0.85);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 0.7rem;
+      font-weight: bold;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    .saved-card:hover .del-btn { display: flex; }
+    .empty-msg { color: #6a7390; font-style: italic; font-size: 0.85rem; padding: 8px; }
+
+    /* ============ SOLAR SYSTEM ============ */
+    .solar-wrap {
+      position: relative;
+      background: radial-gradient(circle at center, #1a1145 0%, #0a0729 100%);
+      border-radius: 16px;
+      aspect-ratio: 1 / 1;
+      max-height: 600px;
+      overflow: hidden;
+      width: 100%;
+    }
+    .solar-canvas {
+      position: absolute;
+      inset: 0;
+    }
+    .sun {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 70px; height: 70px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fff7a8, #ffb84a 60%, #d97706 100%);
+      box-shadow: 0 0 40px #ffb84a, 0 0 80px #f59e0b;
+      animation: sunPulse 4s ease-in-out infinite alternate;
+      z-index: 5;
+    }
+    @keyframes sunPulse {
+      from { box-shadow: 0 0 30px #ffb84a, 0 0 60px #f59e0b; }
+      to   { box-shadow: 0 0 50px #ffb84a, 0 0 100px #f59e0b; }
+    }
+    .orbit-ring {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      border: 1px dashed rgba(255, 255, 255, 0.18);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .orbit-spinner {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 0; height: 0;
+      animation-name: orbitSpin;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+    }
+    @keyframes orbitSpin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    .orbit-spinner.paused { animation-play-state: paused; }
+    .orbit-planet {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      pointer-events: auto;
+    }
+    .orbit-planet svg {
+      animation: planetRotate 24s linear infinite;
+    }
+    .orbit-planet .label {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translate(-50%, 4px);
+      background: rgba(255,255,255,0.9);
+      color: var(--ink);
+      font-size: 0.7rem;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      pointer-events: none;
+    }
+    .orbit-planet:hover .label { opacity: 1; }
+    .orbit-slot-btn {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px dashed rgba(255, 255, 255, 0.35);
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 1.4rem;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: inherit;
+      pointer-events: auto;
+    }
+    .orbit-slot-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      border-color: white;
+    }
+
+    .solar-controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 12px;
+    }
+    .solar-controls button {
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: bold;
+      padding: 7px 12px;
+      border-radius: 10px;
+      border: 2px solid #cdd9f0;
+      background: white;
+      cursor: pointer;
+    }
+    .solar-controls button.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    .solar-controls .sep {
+      width: 2px;
+      background: #cdd9f0;
+      align-self: stretch;
+    }
+
+    /* PICKER MODAL */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 5, 30, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 14px;
+    }
+    .modal-backdrop.show { display: flex; }
+    .picker-card {
+      background: white;
+      border-radius: 18px;
+      padding: 18px;
+      max-width: 480px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 14px 40px rgba(0,0,0,0.4);
+    }
+    .picker-card h3 { margin: 0 0 8px; color: var(--accent-deep); }
+    .picker-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .picker-grid .pick {
+      background: linear-gradient(135deg, #1a1145, #0a0729);
+      border-radius: 10px;
+      padding: 8px 4px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+    .picker-grid .pick:hover { transform: translateY(-2px); }
+    .picker-grid .pick svg { width: 64px; height: 64px; }
+    .picker-grid .pick .nm { color: white; font-size: 0.75rem; font-weight: bold; margin-top: 2px; }
+    .picker-card .close-row {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .picker-card button {
+      font-family: inherit;
+      font-weight: bold;
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: 2px solid #cdd9f0;
+      background: white;
+      cursor: pointer;
+    }
+
+    /* CELEBRATION */
+    .celeb {
+      background: linear-gradient(160deg, #fff, #cfe2ff);
+      border-radius: 20px;
+      padding: 24px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 14px 40px rgba(0,0,0,0.3);
+      border: 4px solid var(--accent);
+      position: relative;
+      overflow: hidden;
+    }
+    .celeb h2 { margin: 0 0 6px; color: var(--accent-deep); }
+    .celeb .big { font-size: 3rem; margin: 10px 0; }
+    .celeb button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: inherit;
+      margin-top: 10px;
+    }
+    .confetti { position: absolute; width: 8px; height: 8px; pointer-events: none; }
+
+    a.back-link {
+      display: inline-block;
+      margin-top: 16px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: bold;
+    }
+    a.back-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>🪐 Ezra's Planet Lab</h1>
+    <p class="subtitle">Design your own planets, then arrange them into your very own solar system.</p>
+
+    <div class="mode-tabs">
+      <button data-mode="lab" class="active" type="button">🧪 Planet Lab</button>
+      <button data-mode="solar" type="button">☀️ Solar System</button>
+    </div>
+
+    <!-- LAB PANEL -->
+    <section class="panel active" id="labPanel">
+      <div class="lab">
+        <div class="preview-wrap">
+          <div class="preview-svg" id="preview">
+            <div class="moon-host" id="moonHost"></div>
+          </div>
+          <div class="planet-name" id="planetName">Planet</div>
+        </div>
+        <div class="controls-panel">
+          <div class="group">
+            <div class="group-title">Base Colour</div>
+            <div class="swatches" id="color1Swatches"></div>
+          </div>
+          <div class="group">
+            <div class="group-title">Accent / Edge</div>
+            <div class="swatches" id="color2Swatches"></div>
+          </div>
+          <div class="group">
+            <div class="group-title">Biome</div>
+            <div class="biomes" id="biomeButtons"></div>
+          </div>
+          <div class="group">
+            <div class="group-title">Features</div>
+            <div class="toggles" id="toggles"></div>
+          </div>
+          <div class="group">
+            <div class="group-title">Moons</div>
+            <div class="moons-row" id="moonsRow"></div>
+          </div>
+          <div class="group">
+            <div class="group-title">Name</div>
+            <input class="name-input" id="nameInput" type="text" maxlength="18" placeholder="Name your planet..." />
+          </div>
+          <div class="actions">
+            <button id="saveBtn" type="button">💾 Save Planet</button>
+            <button id="randomBtn" class="secondary" type="button">🎲 Random</button>
+            <button id="newBtn" class="secondary" type="button">✨ New</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="collection">
+        <div class="collection-title">📚 My Planets <span id="savedCount" style="font-weight:normal; color:#6a7390;">(0)</span></div>
+        <div class="saved-grid" id="savedGrid"></div>
+      </div>
+    </section>
+
+    <!-- SOLAR SYSTEM PANEL -->
+    <section class="panel" id="solarPanel">
+      <div class="solar-wrap">
+        <div class="solar-canvas" id="solarCanvas">
+          <div class="sun" id="sun"></div>
+        </div>
+      </div>
+      <div class="solar-controls">
+        <button data-speed="0" type="button">⏸️ Pause</button>
+        <button data-speed="0.4" type="button">🐢 Slow</button>
+        <button data-speed="1" class="active" type="button">▶️ Normal</button>
+        <button data-speed="2.5" type="button">⚡ Fast</button>
+        <div class="sep"></div>
+        <button id="clearOrbitsBtn" type="button">🗑️ Clear Orbits</button>
+      </div>
+    </section>
+
+    <a class="back-link" href="index.html">← Back to Game Hub</a>
+  </main>
+
+  <div class="modal-backdrop" id="modal">
+    <div id="modalContent"></div>
+  </div>
+
+  <script>
+    // ============ DATA ============
+    const COLORS = [
+      // lots of blue for Ezra
+      "#1e3a8a", "#1e40af", "#2563eb", "#3b82f6", "#60a5fa", "#93c5fd",
+      // warm
+      "#dc2626", "#ea580c", "#f59e0b", "#eab308",
+      // cool / others
+      "#16a34a", "#10b981", "#06b6d4", "#0891b2",
+      // purples/pinks
+      "#7c3aed", "#a855f7", "#d946ef", "#ec4899",
+      // neutrals
+      "#f9fafb", "#9ca3af", "#4b5563", "#1f2937"
+    ];
+
+    const BIOMES = [
+      { id: "rocky",  name: "Rocky",  emoji: "🪨" },
+      { id: "ocean",  name: "Ocean",  emoji: "🌊" },
+      { id: "gas",    name: "Gas",    emoji: "🌫️" },
+      { id: "ice",    name: "Ice",    emoji: "❄️" },
+      { id: "lava",   name: "Lava",   emoji: "🔥" }
+    ];
+
+    const TOGGLES = [
+      { id: "ring",    label: "Rings",     emoji: "💍" },
+      { id: "iceCaps", label: "Ice Caps",  emoji: "❄️" },
+      { id: "glow",    label: "Glow",      emoji: "✨" }
+    ];
+
+    const PLANET_NAMES = [
+      "Nebulon", "Astra", "Zorbo", "Lumix", "Quasar", "Vexx",
+      "Bloop", "Cosmix", "Vandar", "Pippo", "Cometra", "Aurorin",
+      "Sproot", "Brizzle", "Nuckopia", "Hotdoggia"
+    ];
+
+    // ============ STORAGE ============
+    const STORAGE = "ezraPlanetLab_v1";
+    let state;
+    function freshState() {
+      return {
+        current: defaultPlanet(),
+        saved: [],
+        orbits: [null, null, null, null, null, null],
+        speed: 1,
+        celebShown: { firstSaved: false, fivePlanets: false, ezraNamed: false }
+      };
+    }
+    function defaultPlanet() {
+      return {
+        color1: "#3b82f6",
+        color2: "#1e40af",
+        biome: "ocean",
+        ring: false,
+        iceCaps: true,
+        glow: true,
+        moonCount: 1,
+        name: "Bluey",
+        seed: Math.floor(Math.random() * 100000)
+      };
+    }
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE);
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return null;
+    }
+    function saveState() {
+      try { localStorage.setItem(STORAGE, JSON.stringify(state)); }
+      catch (e) {}
+    }
+
+    // ============ PET ROLL ============
+    function bumpPetRoll() {
+      try {
+        const raw = localStorage.getItem("ezraPetTriggers_v1");
+        const data = raw ? JSON.parse(raw) : { pendingRolls: 0 };
+        data.pendingRolls = (data.pendingRolls || 0) + 1;
+        localStorage.setItem("ezraPetTriggers_v1", JSON.stringify(data));
+      } catch (e) {}
+    }
+
+    // ============ SEEDED RANDOM ============
+    function seededRng(seed) {
+      let s = seed || 1;
+      return () => {
+        s = (s * 9301 + 49297) % 233280;
+        return s / 233280;
+      };
+    }
+    function lighten(hex, pct) {
+      const h = hex.replace("#", "");
+      const num = parseInt(h, 16);
+      const r = Math.min(255, ((num >> 16) & 0xff) + pct);
+      const g = Math.min(255, ((num >> 8)  & 0xff) + pct);
+      const b = Math.min(255, ( num        & 0xff) + pct);
+      return "#" + ((r << 16) | (g << 8) | b).toString(16).padStart(6, "0");
+    }
+    function darken(hex, pct) {
+      const h = hex.replace("#", "");
+      const num = parseInt(h, 16);
+      const r = Math.max(0, ((num >> 16) & 0xff) - pct);
+      const g = Math.max(0, ((num >> 8)  & 0xff) - pct);
+      const b = Math.max(0, ( num        & 0xff) - pct);
+      return "#" + ((r << 16) | (g << 8) | b).toString(16).padStart(6, "0");
+    }
+
+    // ============ PLANET SVG ============
+    let _svgCounter = 0;
+    function planetSVG(p, size) {
+      size = size || 240;
+      const r = size / 2 - 4;
+      const cx = size / 2, cy = size / 2;
+      const id = "p" + (_svgCounter++);
+      const rnd = seededRng(p.seed || 1);
+      let defs = `
+        <radialGradient id="grad_${id}" cx="35%" cy="32%">
+          <stop offset="0%" stop-color="${lighten(p.color1, 40)}"/>
+          <stop offset="60%" stop-color="${p.color1}"/>
+          <stop offset="100%" stop-color="${darken(p.color2, 10)}"/>
+        </radialGradient>
+        <clipPath id="clip_${id}"><circle cx="${cx}" cy="${cy}" r="${r}"/></clipPath>
+      `;
+      let body = "";
+
+      // GLOW (behind planet)
+      if (p.glow) {
+        body += `<circle cx="${cx}" cy="${cy}" r="${r + 8}" fill="${p.color1}" opacity="0.18"/>`;
+        body += `<circle cx="${cx}" cy="${cy}" r="${r + 4}" fill="${p.color1}" opacity="0.28"/>`;
+      }
+
+      // RING — back half (behind planet body)
+      if (p.ring) {
+        const ringColor = lighten(p.color2, 30);
+        body += `<ellipse cx="${cx}" cy="${cy + r * 0.05}" rx="${r * 1.55}" ry="${r * 0.35}" fill="none" stroke="${ringColor}" stroke-width="3" opacity="0.55"/>`;
+      }
+
+      // PLANET BODY
+      body += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#grad_${id})"/>`;
+
+      // BIOME OVERLAY — clipped to planet
+      body += `<g clip-path="url(#clip_${id})">`;
+      body += biomeOverlay(p, cx, cy, r, rnd);
+      body += `</g>`;
+
+      // ICE CAPS
+      if (p.iceCaps) {
+        body += `<ellipse cx="${cx}" cy="${cy - r * 0.85}" rx="${r * 0.55}" ry="${r * 0.18}" fill="white" opacity="0.85"/>`;
+        body += `<ellipse cx="${cx}" cy="${cy + r * 0.85}" rx="${r * 0.5}"  ry="${r * 0.15}" fill="white" opacity="0.85"/>`;
+      }
+
+      // shading
+      body += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="black" opacity="0.18" style="mix-blend-mode:multiply"/>`;
+      body += `<ellipse cx="${cx - r * 0.3}" cy="${cy - r * 0.35}" rx="${r * 0.45}" ry="${r * 0.3}" fill="white" opacity="0.15" style="mix-blend-mode:screen"/>`;
+
+      // RING — front half (in front of planet body)
+      if (p.ring) {
+        const ringColor = lighten(p.color2, 50);
+        body += `<path d="M ${cx - r * 1.55} ${cy + r * 0.05} a ${r * 1.55} ${r * 0.35} 0 0 0 ${r * 3.1} 0" fill="none" stroke="${ringColor}" stroke-width="3" opacity="0.9"/>`;
+      }
+
+      return `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg"><defs>${defs}</defs>${body}</svg>`;
+    }
+
+    function biomeOverlay(p, cx, cy, r, rnd) {
+      const accent = lighten(p.color2, 20);
+      const dark = darken(p.color2, 30);
+      let s = "";
+      switch (p.biome) {
+        case "rocky": {
+          // 6-10 small craters
+          for (let i = 0; i < 8; i++) {
+            const angle = rnd() * Math.PI * 2;
+            const dist = rnd() * r * 0.85;
+            const x = cx + Math.cos(angle) * dist;
+            const y = cy + Math.sin(angle) * dist;
+            const sz = 4 + rnd() * 8;
+            s += `<circle cx="${x}" cy="${y}" r="${sz}" fill="${darken(p.color1, 30)}" opacity="0.55"/>`;
+            s += `<circle cx="${x - sz * 0.3}" cy="${y - sz * 0.3}" r="${sz * 0.5}" fill="${lighten(p.color1, 15)}" opacity="0.4"/>`;
+          }
+          break;
+        }
+        case "ocean": {
+          // 3-5 continent blobs
+          for (let i = 0; i < 4; i++) {
+            const angle = rnd() * Math.PI * 2;
+            const dist = rnd() * r * 0.6;
+            const x = cx + Math.cos(angle) * dist;
+            const y = cy + Math.sin(angle) * dist;
+            const rx = r * (0.18 + rnd() * 0.18);
+            const ry = r * (0.12 + rnd() * 0.12);
+            const rot = rnd() * 360;
+            s += `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${accent}" opacity="0.75" transform="rotate(${rot} ${x} ${y})"/>`;
+          }
+          break;
+        }
+        case "gas": {
+          // horizontal bands
+          for (let i = 0; i < 6; i++) {
+            const t = -1 + (i + 0.5) * (2 / 6);
+            const bandY = cy + t * r;
+            const bandH = (r * 2) / 6 * 0.9;
+            const c = i % 2 === 0 ? lighten(p.color1, 20) : darken(p.color1, 20);
+            s += `<rect x="${cx - r}" y="${bandY - bandH/2}" width="${r*2}" height="${bandH}" fill="${c}" opacity="0.55"/>`;
+          }
+          // a "storm" spot like Jupiter
+          if (rnd() > 0.4) {
+            const sx = cx + (rnd() - 0.5) * r * 0.6;
+            const sy = cy + (rnd() - 0.5) * r * 0.4;
+            s += `<ellipse cx="${sx}" cy="${sy}" rx="${r*0.18}" ry="${r*0.1}" fill="${lighten(p.color2, 30)}" opacity="0.85"/>`;
+          }
+          break;
+        }
+        case "ice": {
+          // light streaks
+          for (let i = 0; i < 6; i++) {
+            const angle = rnd() * Math.PI * 2;
+            const dist = rnd() * r * 0.7;
+            const x = cx + Math.cos(angle) * dist;
+            const y = cy + Math.sin(angle) * dist;
+            const rx = r * (0.2 + rnd() * 0.15);
+            const ry = r * (0.04 + rnd() * 0.05);
+            const rot = rnd() * 360;
+            s += `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="white" opacity="0.55" transform="rotate(${rot} ${x} ${y})"/>`;
+          }
+          break;
+        }
+        case "lava": {
+          // glowing cracks
+          for (let i = 0; i < 7; i++) {
+            const a1 = rnd() * Math.PI * 2;
+            const x1 = cx + Math.cos(a1) * r * (rnd() * 0.7);
+            const y1 = cy + Math.sin(a1) * r * (rnd() * 0.7);
+            const a2 = a1 + (rnd() - 0.5) * 1.2;
+            const len = r * (0.25 + rnd() * 0.3);
+            const x2 = x1 + Math.cos(a2) * len;
+            const y2 = y1 + Math.sin(a2) * len;
+            s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#ffeb3b" stroke-width="${2 + rnd() * 2}" stroke-linecap="round" opacity="0.85"/>`;
+            s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#ff5722" stroke-width="${5 + rnd() * 2}" stroke-linecap="round" opacity="0.4"/>`;
+          }
+          break;
+        }
+      }
+      return s;
+    }
+
+    // ============ RENDER LAB ============
+    const previewEl = document.getElementById("preview");
+    const moonHostEl = document.getElementById("moonHost");
+    const planetNameEl = document.getElementById("planetName");
+    const nameInputEl = document.getElementById("nameInput");
+    const color1El = document.getElementById("color1Swatches");
+    const color2El = document.getElementById("color2Swatches");
+    const biomeEl = document.getElementById("biomeButtons");
+    const togglesEl = document.getElementById("toggles");
+    const moonsRowEl = document.getElementById("moonsRow");
+    const savedGridEl = document.getElementById("savedGrid");
+    const savedCountEl = document.getElementById("savedCount");
+
+    function renderSwatches(host, prop) {
+      host.innerHTML = "";
+      COLORS.forEach(c => {
+        const sw = document.createElement("button");
+        sw.className = "swatch" + (state.current[prop] === c ? " active" : "");
+        sw.style.background = c;
+        sw.type = "button";
+        sw.addEventListener("click", () => {
+          state.current[prop] = c;
+          saveState();
+          renderLab();
+        });
+        host.appendChild(sw);
+      });
+    }
+    function renderBiomes() {
+      biomeEl.innerHTML = "";
+      BIOMES.forEach(b => {
+        const btn = document.createElement("button");
+        btn.className = "biome" + (state.current.biome === b.id ? " active" : "");
+        btn.type = "button";
+        btn.innerHTML = `<span class="em">${b.emoji}</span><span>${b.name}</span>`;
+        btn.addEventListener("click", () => {
+          state.current.biome = b.id;
+          state.current.seed = Math.floor(Math.random() * 100000);
+          saveState();
+          renderLab();
+        });
+        biomeEl.appendChild(btn);
+      });
+    }
+    function renderToggles() {
+      togglesEl.innerHTML = "";
+      TOGGLES.forEach(t => {
+        const btn = document.createElement("button");
+        btn.className = state.current[t.id] ? "active" : "";
+        btn.type = "button";
+        btn.innerHTML = `<span class="em">${t.emoji}</span><span>${t.label}</span>`;
+        btn.addEventListener("click", () => {
+          state.current[t.id] = !state.current[t.id];
+          saveState();
+          renderLab();
+        });
+        togglesEl.appendChild(btn);
+      });
+    }
+    function renderMoonsRow() {
+      moonsRowEl.innerHTML = "";
+      for (let i = 0; i <= 3; i++) {
+        const btn = document.createElement("button");
+        btn.className = state.current.moonCount === i ? "active" : "";
+        btn.type = "button";
+        btn.textContent = i;
+        btn.addEventListener("click", () => {
+          state.current.moonCount = i;
+          saveState();
+          renderLab();
+        });
+        moonsRowEl.appendChild(btn);
+      }
+    }
+    function renderPreview() {
+      previewEl.innerHTML = planetSVG(state.current, 240);
+      // re-add moon host
+      moonHostEl.remove();
+      previewEl.appendChild(moonHostEl);
+      renderMoons();
+      planetNameEl.textContent = state.current.name || "Unnamed";
+    }
+    function renderMoons() {
+      moonHostEl.innerHTML = "";
+      const count = state.current.moonCount || 0;
+      for (let i = 0; i < count; i++) {
+        const orbit = document.createElement("div");
+        orbit.className = "moon-orbit m" + (i + 1);
+        const moon = document.createElement("div");
+        moon.className = "moon";
+        orbit.appendChild(moon);
+        moonHostEl.appendChild(orbit);
+      }
+    }
+    function renderSaved() {
+      savedGridEl.innerHTML = "";
+      savedCountEl.textContent = `(${state.saved.length})`;
+      if (!state.saved.length) {
+        const m = document.createElement("div");
+        m.className = "empty-msg";
+        m.style.gridColumn = "1 / -1";
+        m.textContent = "No planets saved yet — design one above and tap Save!";
+        savedGridEl.appendChild(m);
+        return;
+      }
+      state.saved.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "saved-card";
+        card.innerHTML = planetSVG(p, 60) + `<div class="nm">${escapeHTML(p.name || "Unnamed")}</div>`;
+        const del = document.createElement("button");
+        del.className = "del-btn";
+        del.type = "button";
+        del.textContent = "✕";
+        del.title = "Delete planet";
+        del.addEventListener("click", e => {
+          e.stopPropagation();
+          if (confirm(`Delete planet "${p.name || "Unnamed"}"?`)) {
+            // remove from orbits too
+            state.orbits = state.orbits.map(o => (o && o.planetId === p.id) ? null : o);
+            state.saved = state.saved.filter(s => s.id !== p.id);
+            saveState();
+            renderSaved();
+            renderSolar();
+          }
+        });
+        card.appendChild(del);
+        card.addEventListener("click", () => {
+          state.current = JSON.parse(JSON.stringify(p));
+          // give it a new seed if user edits & saves again
+          delete state.current.id;
+          nameInputEl.value = state.current.name || "";
+          saveState();
+          renderLab();
+        });
+        savedGridEl.appendChild(card);
+      });
+    }
+    function renderLab() {
+      renderSwatches(color1El, "color1");
+      renderSwatches(color2El, "color2");
+      renderBiomes();
+      renderToggles();
+      renderMoonsRow();
+      renderPreview();
+      if (nameInputEl.value !== state.current.name) {
+        nameInputEl.value = state.current.name || "";
+      }
+      renderSaved();
+    }
+
+    // ============ SOLAR SYSTEM ============
+    const solarCanvas = document.getElementById("solarCanvas");
+    const ORBIT_COUNT = 6;
+    const BASE_SPEEDS = [10, 16, 24, 34, 48, 65]; // seconds per revolution (inner = faster)
+
+    function renderSolar() {
+      // wipe existing orbit rings/spinners (keep sun)
+      [...solarCanvas.children].forEach(c => {
+        if (c.id !== "sun") c.remove();
+      });
+      const w = solarCanvas.clientWidth || 400;
+      const minR = 60;
+      const maxR = (Math.min(w, solarCanvas.clientHeight || w) / 2) - 30;
+      const step = (maxR - minR) / (ORBIT_COUNT - 1);
+      for (let i = 0; i < ORBIT_COUNT; i++) {
+        const radius = minR + step * i;
+        // ring
+        const ring = document.createElement("div");
+        ring.className = "orbit-ring";
+        ring.style.width = (radius * 2) + "px";
+        ring.style.height = (radius * 2) + "px";
+        solarCanvas.appendChild(ring);
+        // spinner
+        const spin = document.createElement("div");
+        spin.className = "orbit-spinner";
+        const speed = state.speed === 0 ? 1 : (BASE_SPEEDS[i] / state.speed);
+        spin.style.animationDuration = speed + "s";
+        if (state.speed === 0) spin.classList.add("paused");
+        // alternating direction makes it feel more solar-system-like
+        if (i % 2 === 1) spin.style.animationDirection = "reverse";
+
+        const orbit = state.orbits[i];
+        if (orbit) {
+          const planet = state.saved.find(p => p.id === orbit.planetId);
+          if (planet) {
+            const pl = document.createElement("div");
+            pl.className = "orbit-planet";
+            const psize = 36 + i * 4;
+            pl.style.left = radius + "px";
+            pl.style.top = "0";
+            pl.style.width = psize + "px";
+            pl.style.height = psize + "px";
+            pl.innerHTML = planetSVG(planet, psize) + `<div class="label">${escapeHTML(planet.name || "Planet")}</div>`;
+            pl.addEventListener("click", e => {
+              e.stopPropagation();
+              if (confirm(`Remove "${planet.name}" from this orbit?`)) {
+                state.orbits[i] = null;
+                saveState();
+                renderSolar();
+              }
+            });
+            spin.appendChild(pl);
+          }
+        } else {
+          // empty slot button
+          const btn = document.createElement("button");
+          btn.className = "orbit-slot-btn";
+          btn.type = "button";
+          btn.textContent = "+";
+          btn.title = "Add a planet";
+          btn.style.left = radius + "px";
+          btn.style.top = "0";
+          btn.addEventListener("click", e => {
+            e.stopPropagation();
+            openPicker(i);
+          });
+          spin.appendChild(btn);
+        }
+        solarCanvas.appendChild(spin);
+      }
+    }
+
+    function openPicker(orbitIndex) {
+      const modal = document.getElementById("modal");
+      const content = document.getElementById("modalContent");
+      content.innerHTML = "";
+      const card = document.createElement("div");
+      card.className = "picker-card";
+      let html = `<h3>Choose a planet for orbit ${orbitIndex + 1}</h3>`;
+      if (!state.saved.length) {
+        html += `<p style="font-style:italic; opacity:0.7;">You haven't designed any planets yet! Switch to 🧪 Planet Lab to make one.</p>`;
+      } else {
+        html += `<div class="picker-grid">`;
+        state.saved.forEach(p => {
+          // skip planets already placed on another orbit
+          const placedElsewhere = state.orbits.some((o, i) => o && o.planetId === p.id && i !== orbitIndex);
+          if (placedElsewhere) return;
+          html += `<div class="pick" data-id="${p.id}">${planetSVG(p, 64)}<div class="nm">${escapeHTML(p.name || "Unnamed")}</div></div>`;
+        });
+        html += `</div>`;
+      }
+      html += `<div class="close-row"><button id="closePickerBtn" type="button">Cancel</button></div>`;
+      card.innerHTML = html;
+      content.appendChild(card);
+      modal.classList.add("show");
+      card.querySelectorAll(".pick").forEach(el => {
+        el.addEventListener("click", () => {
+          state.orbits[orbitIndex] = { planetId: el.dataset.id };
+          saveState();
+          renderSolar();
+          modal.classList.remove("show");
+        });
+      });
+      card.querySelector("#closePickerBtn").addEventListener("click", () => {
+        modal.classList.remove("show");
+      });
+    }
+
+    // ============ ACTIONS ============
+    function makeId() {
+      return "pl_" + Math.random().toString(36).slice(2, 9);
+    }
+    function escapeHTML(s) {
+      return String(s).replace(/[&<>"']/g, ch => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[ch]);
+    }
+
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      const nameRaw = (nameInputEl.value || "").trim();
+      const name = nameRaw || "Planet";
+      const planet = JSON.parse(JSON.stringify(state.current));
+      planet.id = makeId();
+      planet.name = name;
+      state.saved.push(planet);
+      // celebrations
+      if (!state.celebShown.firstSaved) {
+        state.celebShown.firstSaved = true;
+        showCelebration({ big: "🪐", title: "First planet saved!", text: `"${name}" is now part of your collection. Build up a galaxy!` });
+        bumpPetRoll();
+      }
+      if (state.saved.length === 5 && !state.celebShown.fivePlanets) {
+        state.celebShown.fivePlanets = true;
+        showCelebration({ big: "✨", title: "Five planets!", text: "You've designed a whole mini galaxy! +1 pet roll for your binder." });
+        bumpPetRoll();
+      }
+      if (/^ezra$/i.test(name) && !state.celebShown.ezraNamed) {
+        state.celebShown.ezraNamed = true;
+        showCelebration({ big: "🌟", title: "The Planet Ezra", text: "A whole planet named after you. The galaxy salutes!" });
+        bumpPetRoll();
+      }
+      // every 5 planets (after the first) earn a pet roll
+      if (state.saved.length > 5 && state.saved.length % 5 === 0) {
+        bumpPetRoll();
+        showFloatToast(`+1 pet roll for ${state.saved.length} planets!`);
+      }
+      // start fresh on a new planet so it's clear the previous was saved
+      state.current = newRandomPlanet();
+      nameInputEl.value = state.current.name;
+      saveState();
+      renderLab();
+    });
+
+    document.getElementById("randomBtn").addEventListener("click", () => {
+      state.current = newRandomPlanet();
+      nameInputEl.value = state.current.name;
+      saveState();
+      renderLab();
+    });
+    document.getElementById("newBtn").addEventListener("click", () => {
+      state.current = defaultPlanet();
+      state.current.name = "Planet";
+      state.current.seed = Math.floor(Math.random() * 100000);
+      nameInputEl.value = state.current.name;
+      saveState();
+      renderLab();
+    });
+    nameInputEl.addEventListener("input", e => {
+      state.current.name = e.target.value;
+      planetNameEl.textContent = state.current.name || "Unnamed";
+      saveState();
+    });
+
+    function newRandomPlanet() {
+      const rndIdx = arr => arr[Math.floor(Math.random() * arr.length)];
+      return {
+        color1: rndIdx(COLORS),
+        color2: rndIdx(COLORS),
+        biome: rndIdx(BIOMES).id,
+        ring: Math.random() < 0.4,
+        iceCaps: Math.random() < 0.4,
+        glow: Math.random() < 0.6,
+        moonCount: Math.floor(Math.random() * 4),
+        name: rndIdx(PLANET_NAMES),
+        seed: Math.floor(Math.random() * 100000)
+      };
+    }
+
+    // mode tabs
+    document.querySelectorAll(".mode-tabs button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const mode = btn.dataset.mode;
+        document.querySelectorAll(".mode-tabs button").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("labPanel").classList.toggle("active", mode === "lab");
+        document.getElementById("solarPanel").classList.toggle("active", mode === "solar");
+        if (mode === "solar") renderSolar();
+      });
+    });
+
+    // speed buttons
+    document.querySelectorAll(".solar-controls button[data-speed]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".solar-controls button[data-speed]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        state.speed = parseFloat(btn.dataset.speed);
+        saveState();
+        renderSolar();
+      });
+    });
+    document.getElementById("clearOrbitsBtn").addEventListener("click", () => {
+      const has = state.orbits.some(Boolean);
+      if (!has) return;
+      if (confirm("Remove all planets from their orbits?")) {
+        state.orbits = state.orbits.map(() => null);
+        saveState();
+        renderSolar();
+      }
+    });
+
+    // celebration helpers
+    function showCelebration({ big, title, text }) {
+      const modal = document.getElementById("modal");
+      const content = document.getElementById("modalContent");
+      content.innerHTML = "";
+      const card = document.createElement("div");
+      card.className = "celeb";
+      card.innerHTML = `
+        <div class="big">${big}</div>
+        <h2>${title}</h2>
+        <p>${text}</p>
+        <button id="closeCelebBtn" type="button">Cool!</button>
+      `;
+      content.appendChild(card);
+      modal.classList.add("show");
+      spawnConfetti(card);
+      card.querySelector("#closeCelebBtn").addEventListener("click", () => modal.classList.remove("show"));
+    }
+    function spawnConfetti(host) {
+      const colors = ["#3b82f6", "#f5b400", "#e44a4a", "#a855f7", "#45c265"];
+      for (let i = 0; i < 30; i++) {
+        const c = document.createElement("div");
+        c.className = "confetti";
+        c.style.background = colors[i % colors.length];
+        c.style.left = (Math.random() * 100) + "%";
+        c.style.top = "-10px";
+        c.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+        host.appendChild(c);
+        const dx = (Math.random() - 0.5) * 220;
+        const dy = 260 + Math.random() * 180;
+        const dur = 1400 + Math.random() * 800;
+        c.animate(
+          [{ transform: "rotate(0deg)", opacity: 1 },
+           { transform: `translate(${dx}px, ${dy}px) rotate(${Math.random()*720}deg)`, opacity: 0 }],
+          { duration: dur, easing: "cubic-bezier(0.2, 0.6, 0.4, 1)", fill: "forwards" }
+        );
+        setTimeout(() => c.remove(), dur);
+      }
+    }
+    function showFloatToast(text) {
+      const t = document.createElement("div");
+      t.textContent = text;
+      t.style.position = "fixed";
+      t.style.bottom = "20px";
+      t.style.left = "50%";
+      t.style.transform = "translateX(-50%)";
+      t.style.background = "var(--accent)";
+      t.style.color = "white";
+      t.style.padding = "10px 16px";
+      t.style.borderRadius = "12px";
+      t.style.fontWeight = "bold";
+      t.style.zIndex = "300";
+      t.style.boxShadow = "0 6px 20px rgba(0,0,0,0.3)";
+      document.body.appendChild(t);
+      setTimeout(() => {
+        t.style.transition = "opacity 0.6s ease";
+        t.style.opacity = "0";
+        setTimeout(() => t.remove(), 700);
+      }, 2200);
+    }
+
+    // resize redraws solar system
+    let resizeTimer;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (document.getElementById("solarPanel").classList.contains("active")) renderSolar();
+      }, 200);
+    });
+
+    // ============ INIT ============
+    state = loadState() || freshState();
+    // backfill any missing fields on saved planets
+    if (!state.orbits || state.orbits.length !== 6) state.orbits = [null,null,null,null,null,null];
+    if (typeof state.speed !== "number") state.speed = 1;
+    if (!state.celebShown) state.celebShown = { firstSaved: false, fivePlanets: false, ezraNamed: false };
+    nameInputEl.value = state.current.name || "";
+    renderLab();
+  </script>
+</body>
+</html>
