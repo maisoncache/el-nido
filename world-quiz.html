@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ezra's World Quiz</title>
+  <style>
+    :root {
+      --paper: #ffffff;
+      --bg: #e0f0ff;
+      --ink: #1f2a3d;
+      --accent: #2563eb;
+      --accent-deep: #1e3a8a;
+      --gold: #f5b400;
+      --silver: #9aa3b2;
+      --bronze: #cd7f32;
+      --good: #12a150;
+      --bad: #cc3344;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 30% 0%, #c8e0ff 0%, transparent 50%),
+        radial-gradient(circle at 100% 100%, #d4eaff 0%, transparent 45%),
+        var(--bg);
+      padding: 14px;
+      display: grid;
+      place-items: start center;
+    }
+    .page {
+      width: min(820px, 100%);
+      background: var(--paper);
+      border-radius: 22px;
+      box-shadow: 0 14px 36px rgba(20, 40, 80, 0.15);
+      padding: clamp(16px, 3vw, 28px);
+    }
+    h1 {
+      margin: 0;
+      text-align: center;
+      font-size: clamp(1.6rem, 4.5vw, 2.2rem);
+      color: var(--accent-deep);
+    }
+    .subtitle {
+      text-align: center;
+      opacity: 0.85;
+      margin: 6px 0 14px;
+      font-size: 0.95rem;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .pill {
+      background: #eef3ff;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+    .pill.streak { background: #fff3cd; color: #6b5a20; }
+
+    /* MENU */
+    .menu-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .menu-grid button {
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: bold;
+      padding: 14px;
+      border-radius: 14px;
+      border: 3px solid #cdd9f0;
+      background: linear-gradient(160deg, #fff, #f0f7ff);
+      cursor: pointer;
+      color: var(--ink);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .menu-grid button:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .menu-grid button .em { font-size: 2rem; line-height: 1; }
+    .menu-grid button .sub { font-size: 0.82rem; opacity: 0.7; font-weight: normal; }
+    .menu-grid button[data-mode="easy"]   { background: linear-gradient(160deg, #e7f5ec, #d5edda); border-color: var(--good); }
+    .menu-grid button[data-mode="medium"] { background: linear-gradient(160deg, #fff3cd, #ffe590); border-color: var(--gold); }
+    .menu-grid button[data-mode="hard"]   { background: linear-gradient(160deg, #fde4e4, #f9c4c4); border-color: var(--bad); }
+    .menu-grid button[data-mode="all"]    { background: linear-gradient(160deg, #e0eaff, #c8d8ff); border-color: var(--accent); }
+
+    /* QUIZ */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .progress-bar {
+      height: 8px;
+      background: #e3e9f7;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 4px 0 12px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--gold));
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .qtype-badge {
+      display: inline-block;
+      background: var(--accent);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+    .question {
+      font-size: clamp(1.05rem, 3vw, 1.35rem);
+      font-weight: bold;
+      margin: 10px 0;
+      line-height: 1.4;
+    }
+    .big-visual {
+      font-size: clamp(3.5rem, 12vw, 5rem);
+      text-align: center;
+      margin: 14px 0;
+      line-height: 1;
+      letter-spacing: 4px;
+    }
+    .big-visual.letters {
+      font-family: "Menlo", "Courier New", monospace;
+      letter-spacing: 6px;
+    }
+    .answers {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .answers.flags {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .answer-btn {
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: bold;
+      padding: 14px;
+      border-radius: 12px;
+      border: 3px solid #cdd9f0;
+      background: white;
+      cursor: pointer;
+      color: var(--ink);
+      text-align: left;
+      transition: transform 0.1s ease, border-color 0.15s ease;
+    }
+    .answer-btn:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .answer-btn.flag-option {
+      font-size: 2.6rem;
+      text-align: center;
+      padding: 16px;
+    }
+    .answer-btn.correct { background: #d8f5dc; border-color: var(--good); }
+    .answer-btn.wrong   { background: #fde4e4; border-color: var(--bad); }
+    .answer-btn:disabled { cursor: default; }
+
+    .status-msg {
+      min-height: 22px;
+      margin-top: 10px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .status-msg.good { color: var(--good); }
+    .status-msg.bad  { color: var(--bad); }
+
+    .next-row {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    .next-row button {
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: bold;
+      padding: 10px 18px;
+      border-radius: 10px;
+      border: 2px solid var(--accent);
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+    }
+    .next-row button.secondary {
+      background: white;
+      color: var(--accent);
+    }
+
+    /* END SCREEN */
+    .end-card {
+      text-align: center;
+      padding: 14px 0;
+    }
+    .end-card .badge-glyph {
+      font-size: 4.5rem;
+      margin: 10px 0;
+    }
+    .end-card h2 {
+      margin: 6px 0;
+      font-size: 1.5rem;
+    }
+    .end-card .score-big {
+      font-size: 1.4rem;
+      font-weight: bold;
+      margin: 6px 0 4px;
+    }
+    .end-card .stats {
+      color: #6a7390;
+      font-size: 0.92rem;
+      margin-bottom: 10px;
+    }
+    .end-card .actions {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+    .end-card button {
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: bold;
+      padding: 11px 22px;
+      border-radius: 12px;
+      border: 2px solid var(--accent);
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+    }
+    .end-card button.secondary { background: white; color: var(--accent); }
+
+    a.back-link {
+      display: inline-block;
+      margin-top: 14px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: bold;
+    }
+    a.back-link:hover { text-decoration: underline; }
+
+    .sound-btn {
+      background: transparent;
+      border: 2px solid #cdd9f0;
+      padding: 5px 10px;
+      font-size: 0.82rem;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 999px;
+      font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>🌍 Ezra's World Quiz</h1>
+    <p class="subtitle">Flags, capitals, landmarks, missing letters and more — across over 50 countries.</p>
+
+    <!-- MENU -->
+    <section id="menuPanel" class="panel active">
+      <div class="top-bar">
+        <div class="pill">🏆 Best: <span id="bestEasy">0</span> easy · <span id="bestMedium">0</span> medium · <span id="bestHard">0</span> hard</div>
+        <button class="sound-btn" id="soundBtn" type="button">🔊 Sound</button>
+      </div>
+      <div class="menu-grid">
+        <button data-mode="easy" type="button">
+          <span class="em">🌱</span>
+          <span>Easy — Big Countries</span>
+          <span class="sub">USA, France, Japan, Australia... 20 famous countries</span>
+        </button>
+        <button data-mode="medium" type="button">
+          <span class="em">🚀</span>
+          <span>Medium — Around the World</span>
+          <span class="sub">Adds Morocco, Thailand, Peru, Switzerland and more</span>
+        </button>
+        <button data-mode="hard" type="button">
+          <span class="em">🔥</span>
+          <span>Hard — Globe Trotter</span>
+          <span class="sub">Bhutan, Mongolia, Cambodia... for real flag experts</span>
+        </button>
+        <button data-mode="all" type="button">
+          <span class="em">🌐</span>
+          <span>All Countries Mixed</span>
+          <span class="sub">Anywhere on Earth — the full challenge</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- QUIZ -->
+    <section id="quizPanel" class="panel">
+      <div class="top-bar">
+        <div class="pill">🏆 Score: <span id="score">0</span></div>
+        <div class="pill streak">🔥 Streak: <span id="streak">0</span></div>
+        <div class="pill">Q <span id="qNum">1</span> / <span id="qTotal">10</span></div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <span class="qtype-badge" id="qtypeBadge">Question</span>
+      <p class="question" id="questionText"></p>
+      <div class="big-visual" id="bigVisual"></div>
+      <div class="answers" id="answers"></div>
+      <p class="status-msg" id="statusMsg"></p>
+      <div class="next-row">
+        <button id="nextBtn" class="hidden" type="button">Next ➡️</button>
+        <button id="quitBtn" class="secondary" type="button">Quit</button>
+      </div>
+    </section>
+
+    <!-- END -->
+    <section id="endPanel" class="panel">
+      <div class="end-card">
+        <div class="badge-glyph" id="endBadge">🥈</div>
+        <h2 id="endTitle">Round Complete!</h2>
+        <div class="score-big" id="endScore">10 / 10</div>
+        <div class="stats" id="endStats"></div>
+        <div class="actions">
+          <button id="replayBtn" class="secondary" type="button">🔁 Play Again</button>
+          <button id="menuBtn" type="button">🏠 Pick Mode</button>
+        </div>
+      </div>
+    </section>
+
+    <a class="back-link" href="index.html">← Back to Game Hub</a>
+  </main>
+
+  <script>
+    // ============ COUNTRIES ============
+    const COUNTRIES = [
+      // === Tier 1 (easy) ===
+      { name: "United States", flag: "🇺🇸", capital: "Washington DC", continent: "North America", landmark: "Statue of Liberty", food: "burgers",         borders: ["Canada","Mexico"], tier: 1 },
+      { name: "United Kingdom",flag: "🇬🇧", capital: "London",        continent: "Europe",        landmark: "Big Ben",           food: "fish and chips",  borders: ["Ireland"], tier: 1 },
+      { name: "France",        flag: "🇫🇷", capital: "Paris",         continent: "Europe",        landmark: "Eiffel Tower",      food: "croissants",      borders: ["Spain","Germany","Italy","Belgium","Switzerland"], tier: 1 },
+      { name: "Germany",       flag: "🇩🇪", capital: "Berlin",        continent: "Europe",        landmark: "Brandenburg Gate",  food: "sausages",        borders: ["France","Poland","Czechia","Netherlands","Belgium","Austria"], tier: 1 },
+      { name: "Italy",         flag: "🇮🇹", capital: "Rome",          continent: "Europe",        landmark: "the Colosseum",     food: "pizza and pasta", borders: ["France","Switzerland","Austria"], tier: 1 },
+      { name: "Spain",         flag: "🇪🇸", capital: "Madrid",        continent: "Europe",        landmark: "Sagrada Familia",   food: "paella",          borders: ["France","Portugal"], tier: 1 },
+      { name: "Japan",         flag: "🇯🇵", capital: "Tokyo",         continent: "Asia",          landmark: "Mount Fuji",        food: "sushi",           borders: [], tier: 1 },
+      { name: "China",         flag: "🇨🇳", capital: "Beijing",       continent: "Asia",          landmark: "the Great Wall",    food: "dumplings",       borders: ["Russia","Mongolia","India","Vietnam","Nepal"], tier: 1 },
+      { name: "Australia",     flag: "🇦🇺", capital: "Canberra",      continent: "Oceania",       landmark: "Sydney Opera House",food: "meat pies",       borders: [], tier: 1 },
+      { name: "Canada",        flag: "🇨🇦", capital: "Ottawa",        continent: "North America", landmark: "CN Tower",          food: "maple syrup",     borders: ["United States"], tier: 1 },
+      { name: "Brazil",        flag: "🇧🇷", capital: "Brasilia",      continent: "South America", landmark: "Christ the Redeemer",food: "feijoada",       borders: ["Argentina","Peru","Colombia","Venezuela","Uruguay"], tier: 1 },
+      { name: "Mexico",        flag: "🇲🇽", capital: "Mexico City",   continent: "North America", landmark: "Chichen Itza",      food: "tacos",           borders: ["United States","Guatemala"], tier: 1 },
+      { name: "Russia",        flag: "🇷🇺", capital: "Moscow",        continent: "Europe",        landmark: "Red Square",        food: "borscht",         borders: ["China","Mongolia","Finland","Poland","Ukraine"], tier: 1 },
+      { name: "India",         flag: "🇮🇳", capital: "New Delhi",     continent: "Asia",          landmark: "Taj Mahal",         food: "curry",           borders: ["Pakistan","China","Nepal","Bhutan","Bangladesh"], tier: 1 },
+      { name: "Egypt",         flag: "🇪🇬", capital: "Cairo",         continent: "Africa",        landmark: "the Pyramids of Giza", food: "falafel",      borders: ["Libya","Sudan","Israel"], tier: 1 },
+      { name: "Greece",        flag: "🇬🇷", capital: "Athens",        continent: "Europe",        landmark: "the Acropolis",     food: "moussaka",        borders: ["Turkey","Bulgaria","Albania"], tier: 1 },
+      { name: "Netherlands",   flag: "🇳🇱", capital: "Amsterdam",     continent: "Europe",        landmark: "windmills",         food: "cheese",          borders: ["Germany","Belgium"], tier: 1 },
+      { name: "Sweden",        flag: "🇸🇪", capital: "Stockholm",     continent: "Europe",        landmark: "Vasa Museum",       food: "meatballs",       borders: ["Norway","Finland"], tier: 1 },
+      { name: "Norway",        flag: "🇳🇴", capital: "Oslo",          continent: "Europe",        landmark: "the Fjords",        food: "salmon",          borders: ["Sweden","Finland","Russia"], tier: 1 },
+      { name: "Argentina",     flag: "🇦🇷", capital: "Buenos Aires",  continent: "South America", landmark: "Iguazu Falls",      food: "asado",           borders: ["Chile","Bolivia","Paraguay","Brazil","Uruguay"], tier: 1 },
+
+      // === Tier 2 (medium) ===
+      { name: "Turkey",        flag: "🇹🇷", capital: "Ankara",        continent: "Asia",          landmark: "Hagia Sophia",      food: "kebabs",          borders: ["Greece","Bulgaria","Syria","Iraq","Iran"], tier: 2 },
+      { name: "South Korea",   flag: "🇰🇷", capital: "Seoul",         continent: "Asia",          landmark: "Gyeongbokgung Palace", food: "kimchi",       borders: ["North Korea"], tier: 2 },
+      { name: "Thailand",      flag: "🇹🇭", capital: "Bangkok",       continent: "Asia",          landmark: "the Grand Palace",  food: "pad thai",        borders: ["Myanmar","Laos","Cambodia","Malaysia"], tier: 2 },
+      { name: "Vietnam",       flag: "🇻🇳", capital: "Hanoi",         continent: "Asia",          landmark: "Ha Long Bay",       food: "pho",             borders: ["China","Laos","Cambodia"], tier: 2 },
+      { name: "Indonesia",     flag: "🇮🇩", capital: "Jakarta",       continent: "Asia",          landmark: "Borobudur",         food: "nasi goreng",     borders: ["Malaysia","Papua New Guinea"], tier: 2 },
+      { name: "South Africa",  flag: "🇿🇦", capital: "Pretoria",      continent: "Africa",        landmark: "Table Mountain",    food: "biltong",         borders: ["Namibia","Botswana","Zimbabwe","Mozambique"], tier: 2 },
+      { name: "Kenya",         flag: "🇰🇪", capital: "Nairobi",       continent: "Africa",        landmark: "Maasai Mara",       food: "ugali",           borders: ["Tanzania","Uganda","Ethiopia","Somalia"], tier: 2 },
+      { name: "Nigeria",       flag: "🇳🇬", capital: "Abuja",         continent: "Africa",        landmark: "Zuma Rock",         food: "jollof rice",     borders: ["Niger","Chad","Cameroon","Benin"], tier: 2 },
+      { name: "Morocco",       flag: "🇲🇦", capital: "Rabat",         continent: "Africa",        landmark: "Marrakech medina",  food: "tagine",          borders: ["Algeria"], tier: 2 },
+      { name: "Saudi Arabia",  flag: "🇸🇦", capital: "Riyadh",        continent: "Asia",          landmark: "Mecca",             food: "kabsa",           borders: ["Jordan","Iraq","Kuwait","Yemen","Oman","UAE"], tier: 2 },
+      { name: "Israel",        flag: "🇮🇱", capital: "Jerusalem",     continent: "Asia",          landmark: "Western Wall",      food: "hummus",          borders: ["Egypt","Jordan","Syria","Lebanon"], tier: 2 },
+      { name: "UAE",           flag: "🇦🇪", capital: "Abu Dhabi",     continent: "Asia",          landmark: "Burj Khalifa",      food: "shawarma",        borders: ["Saudi Arabia","Oman"], tier: 2 },
+      { name: "Peru",          flag: "🇵🇪", capital: "Lima",          continent: "South America", landmark: "Machu Picchu",      food: "ceviche",         borders: ["Ecuador","Colombia","Brazil","Bolivia","Chile"], tier: 2 },
+      { name: "Chile",         flag: "🇨🇱", capital: "Santiago",      continent: "South America", landmark: "Easter Island",     food: "empanadas",       borders: ["Peru","Bolivia","Argentina"], tier: 2 },
+      { name: "Colombia",      flag: "🇨🇴", capital: "Bogota",        continent: "South America", landmark: "Cartagena",         food: "arepas",          borders: ["Ecuador","Peru","Brazil","Venezuela","Panama"], tier: 2 },
+      { name: "Cuba",          flag: "🇨🇺", capital: "Havana",        continent: "North America", landmark: "Old Havana",        food: "ropa vieja",      borders: [], tier: 2 },
+      { name: "Switzerland",   flag: "🇨🇭", capital: "Bern",          continent: "Europe",        landmark: "the Matterhorn",    food: "chocolate",       borders: ["France","Germany","Italy","Austria"], tier: 2 },
+      { name: "Portugal",      flag: "🇵🇹", capital: "Lisbon",        continent: "Europe",        landmark: "Belem Tower",       food: "pastel de nata",  borders: ["Spain"], tier: 2 },
+      { name: "Belgium",       flag: "🇧🇪", capital: "Brussels",      continent: "Europe",        landmark: "Atomium",           food: "waffles",         borders: ["France","Netherlands","Germany","Luxembourg"], tier: 2 },
+      { name: "Denmark",       flag: "🇩🇰", capital: "Copenhagen",    continent: "Europe",        landmark: "the Little Mermaid",food: "smorrebrod",      borders: ["Germany"], tier: 2 },
+      { name: "Finland",       flag: "🇫🇮", capital: "Helsinki",      continent: "Europe",        landmark: "Helsinki Cathedral",food: "rye bread",       borders: ["Sweden","Norway","Russia"], tier: 2 },
+      { name: "Iceland",       flag: "🇮🇸", capital: "Reykjavik",     continent: "Europe",        landmark: "the Blue Lagoon",   food: "skyr",            borders: [], tier: 2 },
+      { name: "Poland",        flag: "🇵🇱", capital: "Warsaw",        continent: "Europe",        landmark: "Wawel Castle",      food: "pierogi",         borders: ["Germany","Czechia","Slovakia","Ukraine","Belarus","Lithuania"], tier: 2 },
+      { name: "Ireland",       flag: "🇮🇪", capital: "Dublin",        continent: "Europe",        landmark: "the Cliffs of Moher", food: "soda bread",    borders: ["United Kingdom"], tier: 2 },
+      { name: "New Zealand",   flag: "🇳🇿", capital: "Wellington",    continent: "Oceania",       landmark: "Milford Sound",     food: "pavlova",         borders: [], tier: 2 },
+
+      // === Tier 3 (hard) ===
+      { name: "Bhutan",        flag: "🇧🇹", capital: "Thimphu",       continent: "Asia",          landmark: "Tiger's Nest Monastery", food: "ema datshi", borders: ["China","India"], tier: 3 },
+      { name: "Nepal",         flag: "🇳🇵", capital: "Kathmandu",     continent: "Asia",          landmark: "Mount Everest",     food: "momo",            borders: ["China","India"], tier: 3 },
+      { name: "Sri Lanka",     flag: "🇱🇰", capital: "Colombo",       continent: "Asia",          landmark: "Sigiriya",          food: "rice and curry",  borders: [], tier: 3 },
+      { name: "Pakistan",      flag: "🇵🇰", capital: "Islamabad",     continent: "Asia",          landmark: "Badshahi Mosque",   food: "biryani",         borders: ["India","China","Afghanistan","Iran"], tier: 3 },
+      { name: "Cambodia",      flag: "🇰🇭", capital: "Phnom Penh",    continent: "Asia",          landmark: "Angkor Wat",        food: "amok",            borders: ["Thailand","Laos","Vietnam"], tier: 3 },
+      { name: "Philippines",   flag: "🇵🇭", capital: "Manila",        continent: "Asia",          landmark: "Chocolate Hills",   food: "adobo",           borders: [], tier: 3 },
+      { name: "Malaysia",      flag: "🇲🇾", capital: "Kuala Lumpur",  continent: "Asia",          landmark: "Petronas Towers",   food: "nasi lemak",      borders: ["Thailand","Indonesia","Brunei"], tier: 3 },
+      { name: "Singapore",     flag: "🇸🇬", capital: "Singapore",     continent: "Asia",          landmark: "Marina Bay Sands",  food: "chicken rice",    borders: [], tier: 3 },
+      { name: "Mongolia",      flag: "🇲🇳", capital: "Ulaanbaatar",   continent: "Asia",          landmark: "the Gobi Desert",   food: "khorkhog",        borders: ["Russia","China"], tier: 3 },
+      { name: "Ukraine",       flag: "🇺🇦", capital: "Kyiv",          continent: "Europe",        landmark: "Kyiv Pechersk Lavra",food: "varenyky",       borders: ["Russia","Belarus","Poland","Slovakia","Hungary","Romania"], tier: 3 },
+      { name: "Romania",       flag: "🇷🇴", capital: "Bucharest",     continent: "Europe",        landmark: "Bran Castle",       food: "sarmale",         borders: ["Hungary","Ukraine","Moldova","Bulgaria","Serbia"], tier: 3 },
+      { name: "Hungary",       flag: "🇭🇺", capital: "Budapest",      continent: "Europe",        landmark: "the Parliament Building", food: "goulash",   borders: ["Austria","Slovakia","Ukraine","Romania","Serbia","Croatia"], tier: 3 },
+      { name: "Croatia",       flag: "🇭🇷", capital: "Zagreb",        continent: "Europe",        landmark: "Dubrovnik",         food: "cevapi",          borders: ["Slovenia","Hungary","Serbia","Bosnia","Montenegro"], tier: 3 },
+      { name: "Czechia",       flag: "🇨🇿", capital: "Prague",        continent: "Europe",        landmark: "Prague Castle",     food: "svickova",        borders: ["Germany","Poland","Slovakia","Austria"], tier: 3 },
+      { name: "Austria",       flag: "🇦🇹", capital: "Vienna",        continent: "Europe",        landmark: "Schonbrunn Palace", food: "schnitzel",       borders: ["Germany","Czechia","Slovakia","Hungary","Slovenia","Italy","Switzerland"], tier: 3 }
+    ];
+
+    const CONTINENTS = ["North America", "South America", "Europe", "Africa", "Asia", "Oceania"];
+
+    // ============ STATE ============
+    const STORAGE = "ezraWorldQuiz_v1";
+    let state;
+    function freshState() {
+      return {
+        bestByMode: { easy: 0, medium: 0, hard: 0, all: 0 },
+        soundOn: true
+      };
+    }
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE);
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return null;
+    }
+    function saveState() {
+      try { localStorage.setItem(STORAGE, JSON.stringify(state)); }
+      catch (e) {}
+    }
+
+    // ============ PET ROLL ============
+    function bumpPetRoll() {
+      try {
+        const raw = localStorage.getItem("ezraPetTriggers_v1");
+        const data = raw ? JSON.parse(raw) : { pendingRolls: 0 };
+        data.pendingRolls = (data.pendingRolls || 0) + 1;
+        localStorage.setItem("ezraPetTriggers_v1", JSON.stringify(data));
+      } catch (e) {}
+    }
+
+    // ============ HELPERS ============
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+    function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function poolForMode(mode) {
+      if (mode === "easy") return COUNTRIES.filter(c => c.tier === 1);
+      if (mode === "medium") return COUNTRIES.filter(c => c.tier <= 2);
+      if (mode === "hard") return COUNTRIES.filter(c => c.tier === 3);
+      return COUNTRIES;
+    }
+
+    function pickDistractors(target, key, count, allPool, predicate) {
+      const candidates = allPool.filter(c => c.name !== target.name && (!predicate || predicate(c)));
+      const shuffled = shuffle(candidates);
+      const out = [];
+      const seen = new Set([target[key]]);
+      for (const c of shuffled) {
+        if (out.length >= count) break;
+        if (!seen.has(c[key])) {
+          out.push(c);
+          seen.add(c[key]);
+        }
+      }
+      // backfill if we couldn't find enough
+      if (out.length < count) {
+        for (const c of shuffle(allPool)) {
+          if (out.length >= count) break;
+          if (!seen.has(c[key])) {
+            out.push(c);
+            seen.add(c[key]);
+          }
+        }
+      }
+      return out;
+    }
+
+    function maskLetters(name) {
+      // Replace 30-50% of letters (not spaces) with underscores
+      const chars = name.split("");
+      const letterIdxs = chars.map((c, i) => /[A-Za-z]/.test(c) ? i : -1).filter(i => i >= 0);
+      const hideCount = Math.max(2, Math.floor(letterIdxs.length * 0.4));
+      const toHide = shuffle(letterIdxs).slice(0, hideCount);
+      const hideSet = new Set(toHide);
+      return chars.map((c, i) => {
+        if (c === " ") return " ";
+        return hideSet.has(i) ? "_" : c.toUpperCase();
+      }).join(" ");
+    }
+
+    function scrambleLetters(name) {
+      // letters only, keep spaces in
+      const noSpace = name.replace(/\s+/g, "");
+      let scrambled;
+      // try a few times to ensure it's actually different
+      for (let i = 0; i < 6; i++) {
+        scrambled = shuffle(noSpace.split("")).join("");
+        if (scrambled.toUpperCase() !== noSpace.toUpperCase()) break;
+      }
+      return scrambled.toUpperCase();
+    }
+
+    // ============ QUESTION GENERATOR ============
+    const QTYPES = [
+      { id: "flag-to-country", label: "Flag → Country", weight: 1.2 },
+      { id: "country-to-flag", label: "Country → Flag", weight: 1.2 },
+      { id: "letters-missing", label: "Missing Letters", weight: 1.5 },
+      { id: "unscramble",      label: "Unscramble",      weight: 1.2 },
+      { id: "capital",         label: "Capital City",    weight: 1.4 },
+      { id: "continent",       label: "Continent",       weight: 1 },
+      { id: "landmark",        label: "Famous Landmark", weight: 1.2 },
+      { id: "food",            label: "Famous Food",     weight: 1.2 },
+      { id: "borders",         label: "Neighbour",       weight: 1 }
+    ];
+
+    function pickQtype() {
+      const total = QTYPES.reduce((a, q) => a + q.weight, 0);
+      let r = Math.random() * total;
+      for (const q of QTYPES) {
+        r -= q.weight;
+        if (r <= 0) return q;
+      }
+      return QTYPES[0];
+    }
+
+    function makeQuestion(country, pool) {
+      // Pick a question type — but some types need extra data, retry up to 3 times if not applicable
+      let tries = 0;
+      let qtype;
+      while (tries < 4) {
+        qtype = pickQtype();
+        if (qtype.id === "borders" && (!country.borders || country.borders.length === 0)) {
+          tries++; continue;
+        }
+        break;
+      }
+      switch (qtype.id) {
+        case "flag-to-country": {
+          const distractors = pickDistractors(country, "name", 3, pool);
+          return {
+            label: "Which country?",
+            qtype: "Flag → Country",
+            prompt: "Which country has this flag?",
+            visual: country.flag,
+            visualClass: "",
+            options: shuffle([country.name, ...distractors.map(c => c.name)]),
+            correct: country.name,
+            type: "text"
+          };
+        }
+        case "country-to-flag": {
+          const distractors = pickDistractors(country, "flag", 3, pool);
+          return {
+            label: "Pick the flag",
+            qtype: "Country → Flag",
+            prompt: `Which flag belongs to ${country.name}?`,
+            visual: "",
+            visualClass: "",
+            options: shuffle([country.flag, ...distractors.map(c => c.flag)]),
+            correct: country.flag,
+            type: "flag"
+          };
+        }
+        case "letters-missing": {
+          const masked = maskLetters(country.name);
+          // distractors: similar-length country names
+          const distractors = pickDistractors(country, "name", 3, pool);
+          return {
+            label: "Fill the letters",
+            qtype: "Missing Letters",
+            prompt: `${country.flag}  Which country is this?`,
+            visual: masked,
+            visualClass: "letters",
+            options: shuffle([country.name, ...distractors.map(c => c.name)]),
+            correct: country.name,
+            type: "text"
+          };
+        }
+        case "unscramble": {
+          const scrambled = scrambleLetters(country.name);
+          const distractors = pickDistractors(country, "name", 3, pool);
+          return {
+            label: "Unscramble!",
+            qtype: "Unscramble",
+            prompt: `${country.flag}  Unscramble these letters into a country:`,
+            visual: scrambled,
+            visualClass: "letters",
+            options: shuffle([country.name, ...distractors.map(c => c.name)]),
+            correct: country.name,
+            type: "text"
+          };
+        }
+        case "capital": {
+          const distractors = pickDistractors(country, "capital", 3, pool);
+          return {
+            label: "Capital City",
+            qtype: "Capital City",
+            prompt: `What's the capital of ${country.name}?`,
+            visual: country.flag,
+            visualClass: "",
+            options: shuffle([country.capital, ...distractors.map(c => c.capital)]),
+            correct: country.capital,
+            type: "text"
+          };
+        }
+        case "continent": {
+          const others = CONTINENTS.filter(c => c !== country.continent);
+          const distractors = shuffle(others).slice(0, 3);
+          return {
+            label: "Continent",
+            qtype: "Continent",
+            prompt: `Which continent is ${country.name} in?`,
+            visual: country.flag,
+            visualClass: "",
+            options: shuffle([country.continent, ...distractors]),
+            correct: country.continent,
+            type: "text"
+          };
+        }
+        case "landmark": {
+          const distractors = pickDistractors(country, "landmark", 3, pool);
+          return {
+            label: "Famous Landmark",
+            qtype: "Landmark",
+            prompt: `Where would you find ${country.landmark}?`,
+            visual: "🗺️",
+            visualClass: "",
+            options: shuffle([country.name, ...distractors.map(c => c.name)]),
+            correct: country.name,
+            type: "text"
+          };
+        }
+        case "food": {
+          const distractors = pickDistractors(country, "food", 3, pool);
+          return {
+            label: "Famous Food",
+            qtype: "Food",
+            prompt: `Where does ${country.food} come from?`,
+            visual: "🍽️",
+            visualClass: "",
+            options: shuffle([country.name, ...distractors.map(c => c.name)]),
+            correct: country.name,
+            type: "text"
+          };
+        }
+        case "borders": {
+          // correct = one of country.borders; distractors = countries NOT in border list & not the target
+          const trueNeighbour = rand(country.borders);
+          const exclude = new Set([country.name, ...country.borders]);
+          const candidates = pool.filter(c => !exclude.has(c.name));
+          const distractors = shuffle(candidates).slice(0, 3).map(c => c.name);
+          return {
+            label: "Neighbour",
+            qtype: "Neighbour",
+            prompt: `Which country shares a border with ${country.name}?`,
+            visual: country.flag,
+            visualClass: "",
+            options: shuffle([trueNeighbour, ...distractors]),
+            correct: trueNeighbour,
+            type: "text"
+          };
+        }
+      }
+    }
+
+    // ============ SOUND ============
+    let audioCtx = null;
+    function ensureAudio() {
+      if (!audioCtx) {
+        try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        catch (e) { audioCtx = null; }
+      }
+      return audioCtx;
+    }
+    function tone(freq, dur, type, vol, delay, fin) {
+      if (!state.soundOn) return;
+      const ctx = ensureAudio(); if (!ctx) return;
+      const t = ctx.currentTime + (delay || 0);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, t);
+      if (fin) osc.frequency.exponentialRampToValueAtTime(fin, t + dur);
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(vol || 0.14, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t); osc.stop(t + dur + 0.05);
+    }
+    const sfx = {
+      good:    () => { tone(660, 0.1, "triangle", 0.16); tone(880, 0.14, "triangle", 0.16, 0.08); },
+      bad:     () => tone(220, 0.25, "sine", 0.15, 0, 140),
+      streak:  () => { [1318, 1568, 1976].forEach((f, i) => tone(f, 0.08, "triangle", 0.14, i*0.05)); },
+      fanfare: () => { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.18, "triangle", 0.18, i*0.1)); },
+      tap:     () => tone(600, 0.05, "square", 0.08)
+    };
+
+    // ============ DOM ============
+    const menuPanel = document.getElementById("menuPanel");
+    const quizPanel = document.getElementById("quizPanel");
+    const endPanel = document.getElementById("endPanel");
+    const qtypeBadge = document.getElementById("qtypeBadge");
+    const questionText = document.getElementById("questionText");
+    const bigVisual = document.getElementById("bigVisual");
+    const answersEl = document.getElementById("answers");
+    const statusMsg = document.getElementById("statusMsg");
+    const nextBtn = document.getElementById("nextBtn");
+    const quitBtn = document.getElementById("quitBtn");
+    const scoreEl = document.getElementById("score");
+    const streakEl = document.getElementById("streak");
+    const qNumEl = document.getElementById("qNum");
+    const qTotalEl = document.getElementById("qTotal");
+    const progressFill = document.getElementById("progressFill");
+    const soundBtn = document.getElementById("soundBtn");
+
+    // ============ ROUND STATE ============
+    const ROUND_LENGTH = 10;
+    let round = null;
+
+    function showPanel(name) {
+      menuPanel.classList.toggle("active", name === "menu");
+      quizPanel.classList.toggle("active", name === "quiz");
+      endPanel.classList.toggle("active", name === "end");
+    }
+
+    function startRound(mode) {
+      const pool = poolForMode(mode);
+      const shuffledCountries = shuffle(pool);
+      const questions = [];
+      for (let i = 0; i < ROUND_LENGTH; i++) {
+        const c = shuffledCountries[i % shuffledCountries.length];
+        questions.push({ country: c, q: makeQuestion(c, pool) });
+      }
+      round = {
+        mode,
+        questions,
+        idx: 0,
+        score: 0,
+        streak: 0,
+        maxStreak: 0,
+        correctCount: 0,
+        locked: false
+      };
+      showPanel("quiz");
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      const { q } = round.questions[round.idx];
+      round.locked = false;
+      qtypeBadge.textContent = q.qtype;
+      questionText.textContent = q.prompt;
+      bigVisual.textContent = q.visual;
+      bigVisual.className = "big-visual " + (q.visualClass || "");
+      answersEl.className = "answers" + (q.type === "flag" ? " flags" : "");
+      answersEl.innerHTML = "";
+      q.options.forEach(opt => {
+        const btn = document.createElement("button");
+        btn.className = "answer-btn" + (q.type === "flag" ? " flag-option" : "");
+        btn.type = "button";
+        btn.textContent = opt;
+        btn.addEventListener("click", () => onAnswer(opt, btn, q));
+        answersEl.appendChild(btn);
+      });
+      statusMsg.textContent = "";
+      statusMsg.className = "status-msg";
+      nextBtn.classList.add("hidden");
+      nextBtn.style.display = "none";
+      scoreEl.textContent = round.score;
+      streakEl.textContent = round.streak;
+      qNumEl.textContent = round.idx + 1;
+      qTotalEl.textContent = ROUND_LENGTH;
+      progressFill.style.width = `${(round.idx / ROUND_LENGTH) * 100}%`;
+    }
+
+    function onAnswer(picked, btn, q) {
+      if (round.locked) return;
+      round.locked = true;
+      const correct = picked === q.correct;
+      [...answersEl.querySelectorAll("button")].forEach(b => {
+        b.disabled = true;
+        if (b.textContent === q.correct) b.classList.add("correct");
+        else if (b === btn && !correct) b.classList.add("wrong");
+      });
+      if (correct) {
+        round.correctCount++;
+        round.streak++;
+        if (round.streak > round.maxStreak) round.maxStreak = round.streak;
+        const base = 10;
+        const streakBonus = Math.max(0, round.streak - 2) * 2;
+        const earned = base + streakBonus;
+        round.score += earned;
+        statusMsg.textContent = `✅ Correct! +${earned}${streakBonus ? ` (+${streakBonus} streak)` : ""}`;
+        statusMsg.className = "status-msg good";
+        sfx.good();
+        if (round.streak >= 5 && round.streak % 5 === 0) sfx.streak();
+      } else {
+        round.streak = 0;
+        const correctText = q.correct;
+        statusMsg.textContent = `❌ Not quite. The answer was "${correctText}".`;
+        statusMsg.className = "status-msg bad";
+        sfx.bad();
+      }
+      scoreEl.textContent = round.score;
+      streakEl.textContent = round.streak;
+      progressFill.style.width = `${((round.idx + 1) / ROUND_LENGTH) * 100}%`;
+      nextBtn.textContent = round.idx === ROUND_LENGTH - 1 ? "See Results 🎉" : "Next ➡️";
+      nextBtn.classList.remove("hidden");
+      nextBtn.style.display = "inline-block";
+    }
+
+    function nextQuestion() {
+      sfx.tap();
+      if (round.idx < ROUND_LENGTH - 1) {
+        round.idx++;
+        renderQuestion();
+      } else {
+        finishRound();
+      }
+    }
+
+    function finishRound() {
+      const { mode, score, correctCount, maxStreak } = round;
+      // best score
+      if (score > (state.bestByMode[mode] || 0)) {
+        state.bestByMode[mode] = score;
+      }
+      // pet roll thresholds
+      if (correctCount === ROUND_LENGTH) {
+        bumpPetRoll(); // perfect round
+      } else if (correctCount >= 8) {
+        // silver/gold-ish — soft reward
+        bumpPetRoll();
+      }
+      saveState();
+      // determine badge
+      let badge, title;
+      if (correctCount === ROUND_LENGTH) {
+        badge = "🥇"; title = "Perfect round!";
+      } else if (correctCount >= 7) {
+        badge = "🥈"; title = "Great work!";
+      } else if (correctCount >= 4) {
+        badge = "🥉"; title = "Nice try!";
+      } else {
+        badge = "🎯"; title = "Keep practising!";
+      }
+      document.getElementById("endBadge").textContent = badge;
+      document.getElementById("endTitle").textContent = title;
+      document.getElementById("endScore").textContent = `${correctCount} / ${ROUND_LENGTH} correct · ${score} points`;
+      document.getElementById("endStats").textContent =
+        `Best streak: ${maxStreak} · Best ${mode} score: ${state.bestByMode[mode]}`;
+      sfx.fanfare();
+      showPanel("end");
+      renderMenu();
+    }
+
+    // ============ MENU ============
+    function renderMenu() {
+      document.getElementById("bestEasy").textContent = state.bestByMode.easy || 0;
+      document.getElementById("bestMedium").textContent = state.bestByMode.medium || 0;
+      document.getElementById("bestHard").textContent = state.bestByMode.hard || 0;
+    }
+
+    // ============ EVENTS ============
+    document.querySelectorAll(".menu-grid button[data-mode]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        sfx.tap();
+        startRound(btn.dataset.mode);
+      });
+    });
+    nextBtn.addEventListener("click", nextQuestion);
+    quitBtn.addEventListener("click", () => {
+      if (round && round.idx > 0 && !confirm("Quit this round? Your progress will be lost.")) return;
+      showPanel("menu");
+    });
+    document.getElementById("replayBtn").addEventListener("click", () => {
+      sfx.tap();
+      startRound(round.mode);
+    });
+    document.getElementById("menuBtn").addEventListener("click", () => {
+      sfx.tap();
+      showPanel("menu");
+    });
+    soundBtn.addEventListener("click", () => {
+      state.soundOn = !state.soundOn;
+      soundBtn.textContent = state.soundOn ? "🔊 Sound" : "🔇 Muted";
+      saveState();
+    });
+
+    // ============ INIT ============
+    state = loadState() || freshState();
+    if (!state.bestByMode) state.bestByMode = { easy: 0, medium: 0, hard: 0, all: 0 };
+    soundBtn.textContent = state.soundOn ? "🔊 Sound" : "🔇 Muted";
+    renderMenu();
+  </script>
+</body>
+</html>
