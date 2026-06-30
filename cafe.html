@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ezra's Café</title>
+  <style>
+    :root {
+      --paper: #fffaf0;
+      --warm-bg: #fde4b8;
+      --ink: #2a2014;
+      --wood: #8a5a2b;
+      --wood-dark: #5e3a18;
+      --accent: #ef4444;
+      --good: #12a150;
+      --bad: #cc3344;
+      --gold: #f5b400;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 30% 0%, #ffe0a8 0%, transparent 45%),
+        radial-gradient(circle at 80% 100%, #ffc8aa 0%, transparent 45%),
+        var(--warm-bg);
+      padding: 12px;
+    }
+    .page {
+      max-width: 920px;
+      margin: 0 auto;
+      background: var(--paper);
+      border-radius: 20px;
+      box-shadow: 0 14px 40px rgba(80, 40, 10, 0.2);
+      padding: clamp(12px, 2.5vw, 22px);
+      border: 4px solid var(--wood);
+    }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    h1 { margin: 0; font-size: clamp(1.4rem, 4vw, 1.9rem); color: var(--wood-dark); }
+    .scoreboard {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .score-pill {
+      background: white;
+      border: 2px solid var(--wood);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-weight: bold;
+      font-size: 0.9rem;
+      color: var(--wood-dark);
+    }
+    .score-pill.score-now { background: var(--gold); color: #4a3500; border-color: var(--gold); }
+
+    .shift-label {
+      text-align: center;
+      font-weight: bold;
+      color: var(--wood-dark);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      margin: 4px 0 8px;
+    }
+
+    /* CUSTOMER CARD */
+    .customer {
+      background: linear-gradient(160deg, #fff, #fff0c8);
+      border-radius: 16px;
+      padding: 14px;
+      border: 3px solid var(--wood);
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+      position: relative;
+    }
+    .customer.happy { animation: bounceCust 0.6s ease; }
+    .customer.sad { animation: shakeCust 0.5s ease; }
+    @keyframes bounceCust {
+      0%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-10px); }
+    }
+    @keyframes shakeCust {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-8px); }
+      75% { transform: translateX(8px); }
+    }
+    .customer-emoji {
+      font-size: 4rem;
+      text-align: center;
+      filter: drop-shadow(0 3px 4px rgba(0,0,0,0.15));
+    }
+    .speech {
+      background: white;
+      border: 2px solid var(--wood);
+      border-radius: 16px;
+      padding: 10px 14px;
+      position: relative;
+      font-weight: bold;
+      color: var(--wood-dark);
+    }
+    .speech::before {
+      content: "";
+      position: absolute;
+      left: -10px;
+      top: 18px;
+      border: 8px solid transparent;
+      border-right-color: var(--wood);
+    }
+    .speech::after {
+      content: "";
+      position: absolute;
+      left: -7px;
+      top: 19px;
+      border: 7px solid transparent;
+      border-right-color: white;
+    }
+    .speech .order {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+      font-size: 1.05rem;
+    }
+    .speech .order .dish-emoji {
+      font-size: 1.6rem;
+    }
+    .recipe-list {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+      font-size: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .recipe-list .req {
+      background: white;
+      border: 2px solid #e0d0a0;
+      border-radius: 10px;
+      padding: 4px 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+    .recipe-list .req .name {
+      font-size: 0.7rem;
+      color: #6b5a20;
+      font-weight: bold;
+    }
+    .recipe-list .req.have {
+      background: #d8f5dc;
+      border-color: var(--good);
+    }
+
+    /* PLATE */
+    .plate-section {
+      background: #f9efd6;
+      border-radius: 14px;
+      padding: 12px;
+      border: 3px solid var(--wood-dark);
+      margin-bottom: 12px;
+    }
+    .plate-label {
+      font-weight: bold;
+      color: var(--wood-dark);
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+    }
+    .plate {
+      background: white;
+      border-radius: 999px;
+      min-height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      flex-wrap: wrap;
+      border: 3px solid var(--wood);
+      font-size: 2rem;
+    }
+    .plate .placed {
+      cursor: pointer;
+      transition: transform 0.15s ease;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));
+      animation: popIn 0.25s cubic-bezier(0.5, 1.5, 0.6, 1);
+    }
+    @keyframes popIn {
+      0% { transform: scale(0); }
+      100% { transform: scale(1); }
+    }
+    .plate .placed:hover { transform: scale(1.15) rotate(-6deg); }
+    .plate .empty-hint { color: #b5a070; font-size: 0.95rem; font-style: italic; font-weight: bold; }
+    .plate-actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    .plate-actions button {
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: bold;
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: 3px solid;
+      cursor: pointer;
+    }
+    .serve-btn {
+      background: var(--good);
+      color: white;
+      border-color: var(--good);
+    }
+    .serve-btn:hover { background: #0a8a40; border-color: #0a8a40; }
+    .clear-btn {
+      background: white;
+      color: var(--wood-dark);
+      border-color: var(--wood);
+    }
+
+    /* PANTRY */
+    .pantry-label {
+      font-weight: bold;
+      color: var(--wood-dark);
+      font-size: 0.9rem;
+      margin: 8px 0 6px;
+      text-align: center;
+    }
+    .pantry {
+      background: #f4e4be;
+      border: 3px solid var(--wood);
+      border-radius: 14px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+      gap: 6px;
+    }
+    .pantry-item {
+      background: white;
+      border: 2px solid #d8c490;
+      border-radius: 10px;
+      padding: 6px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 1.7rem;
+      transition: transform 0.1s ease;
+      min-height: 64px;
+    }
+    .pantry-item:hover { transform: translateY(-3px); border-color: var(--wood); }
+    .pantry-item:active { transform: translateY(0); }
+    .pantry-item .nm {
+      font-size: 0.6rem;
+      color: #6b5a20;
+      font-weight: bold;
+      line-height: 1;
+    }
+
+    /* MESSAGE BAR */
+    .msg-bar {
+      text-align: center;
+      font-weight: bold;
+      margin: 8px 0;
+      min-height: 22px;
+      font-size: 1rem;
+    }
+    .msg-bar.good { color: var(--good); }
+    .msg-bar.bad { color: var(--bad); }
+
+    /* CONTROLS */
+    .controls {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .controls button {
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: bold;
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: 2px solid #d8c490;
+      background: white;
+      cursor: pointer;
+      color: var(--wood-dark);
+    }
+    .controls button.danger { border-color: var(--bad); color: var(--bad); }
+
+    a.back-link {
+      display: inline-block;
+      margin-top: 16px;
+      color: var(--wood-dark);
+      text-decoration: none;
+      font-weight: bold;
+    }
+    a.back-link:hover { text-decoration: underline; }
+
+    /* COIN FLY */
+    .coin {
+      position: fixed;
+      font-size: 1.5rem;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* CELEB MODAL */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(40, 20, 0, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 14px;
+    }
+    .modal-backdrop.show { display: flex; }
+    .celeb {
+      background: linear-gradient(160deg, #fff, #ffe7a8);
+      border-radius: 20px;
+      padding: 24px;
+      max-width: 360px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 14px 40px rgba(0,0,0,0.3);
+      border: 4px solid var(--gold);
+      position: relative;
+      overflow: hidden;
+      animation: modalIn 0.4s cubic-bezier(0.5, 1.5, 0.6, 1);
+    }
+    @keyframes modalIn {
+      from { transform: scale(0.6); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+    .celeb h2 { margin: 0 0 6px; color: var(--wood-dark); }
+    .celeb .big { font-size: 3rem; margin: 8px 0; }
+    .celeb button {
+      background: var(--gold);
+      color: #4a3500;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: inherit;
+      margin-top: 10px;
+    }
+    .confetti { position: absolute; width: 8px; height: 8px; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="top">
+      <h1>🍳 Ezra's Café</h1>
+      <div class="scoreboard">
+        <div class="score-pill score-now">Score: <span id="score">0</span></div>
+        <div class="score-pill">🏆 Best: <span id="best">0</span></div>
+        <div class="score-pill">🍽️ Served: <span id="served">0</span></div>
+      </div>
+    </div>
+    <div class="shift-label" id="shiftLabel">Breakfast Time</div>
+
+    <div class="customer" id="customerCard">
+      <div class="customer-emoji" id="customerEmoji">🧑</div>
+      <div class="speech">
+        <div id="customerLine">Hi! Can I have a Cheese Sandwich please?</div>
+        <div class="order">
+          <span class="dish-emoji" id="dishEmoji">🥪</span>
+          <span id="dishName">Cheese Sandwich</span>
+        </div>
+        <div class="recipe-list" id="recipeList"></div>
+      </div>
+    </div>
+
+    <div class="plate-section">
+      <div class="plate-label">Your Plate:</div>
+      <div class="plate" id="plate"></div>
+      <div class="plate-actions">
+        <button class="serve-btn" id="serveBtn" type="button">🍴 Serve</button>
+        <button class="clear-btn" id="clearBtn" type="button">🗑️ Clear Plate</button>
+      </div>
+    </div>
+
+    <div class="msg-bar" id="msgBar"></div>
+
+    <div class="pantry-label">🍅 Pantry — tap to add to plate</div>
+    <div class="pantry" id="pantry"></div>
+
+    <div class="controls">
+      <button id="skipBtn" type="button">⏭️ Skip Customer (-5)</button>
+      <button id="newDayBtn" class="danger" type="button">↻ New Day</button>
+      <button id="soundBtn" type="button">🔊 Sound</button>
+    </div>
+
+    <a class="back-link" href="index.html">← Back to Game Hub</a>
+  </main>
+
+  <div class="modal-backdrop" id="modal">
+    <div id="modalContent"></div>
+  </div>
+
+  <script>
+    // ============ INGREDIENTS ============
+    const INGREDIENTS = {
+      // breakfast staples
+      bread:      { emoji: "🍞", name: "Bread" },
+      butter:     { emoji: "🧈", name: "Butter" },
+      cheese:     { emoji: "🧀", name: "Cheese" },
+      milk:       { emoji: "🥛", name: "Milk" },
+      egg:        { emoji: "🥚", name: "Egg" },
+      pancake:    { emoji: "🥞", name: "Pancake" },
+      syrup:      { emoji: "🍯", name: "Syrup" },
+      yogurt:     { emoji: "🍦", name: "Yogurt" },
+      // veg
+      avocado:    { emoji: "🥑", name: "Avocado" },
+      lettuce:    { emoji: "🥬", name: "Lettuce" },
+      tomato:     { emoji: "🍅", name: "Tomato" },
+      cucumber:   { emoji: "🥒", name: "Cucumber" },
+      carrot:     { emoji: "🥕", name: "Carrot" },
+      potato:     { emoji: "🥔", name: "Potato" },
+      broccoli:   { emoji: "🥦", name: "Broccoli" },
+      onion:      { emoji: "🧅", name: "Onion" },
+      // fruit
+      banana:     { emoji: "🍌", name: "Banana" },
+      strawberry: { emoji: "🍓", name: "Strawberry" },
+      blueberry:  { emoji: "🫐", name: "Blueberry" },
+      apple:      { emoji: "🍎", name: "Apple" },
+      lemon:      { emoji: "🍋", name: "Lemon" },
+      // proteins / extras
+      bun:        { emoji: "🥖", name: "Bun" },
+      sausage:    { emoji: "🌭", name: "Sausage" },
+      meat:       { emoji: "🥩", name: "Meat" },
+      chicken:    { emoji: "🍗", name: "Chicken" },
+      fish:       { emoji: "🐟", name: "Fish" },
+      // grains/sauces
+      pasta:      { emoji: "🍝", name: "Pasta" },
+      rice:       { emoji: "🍚", name: "Rice" },
+      curry:      { emoji: "🍛", name: "Curry" },
+      noodles:    { emoji: "🍜", name: "Noodles" },
+      tortilla:   { emoji: "🌯", name: "Wrap" }
+    };
+
+    // ============ RECIPES ============
+    // points: 10 per ingredient + small bonus for harder ones
+    const RECIPES = [
+      // Breakfast
+      { id: "toast",     dish: "🍞", name: "Buttered Toast", meal: "breakfast", ingredients: ["bread", "butter"], points: 10 },
+      { id: "pancakes",  dish: "🥞", name: "Pancakes",       meal: "breakfast", ingredients: ["pancake", "syrup"], points: 10 },
+      { id: "avotoast",  dish: "🥑", name: "Avo Toast",      meal: "breakfast", ingredients: ["bread", "avocado"], points: 15 },
+      { id: "eggsontoast", dish: "🍳", name: "Eggs on Toast",meal: "breakfast", ingredients: ["bread", "egg"], points: 15 },
+      { id: "berrybowl", dish: "🍓", name: "Berry Bowl",     meal: "breakfast", ingredients: ["strawberry", "blueberry", "yogurt"], points: 20 },
+      { id: "smoothie",  dish: "🥤", name: "Fruit Smoothie", meal: "breakfast", ingredients: ["milk", "banana", "strawberry"], points: 20 },
+      // Lunch
+      { id: "sandwich",  dish: "🥪", name: "Cheese Sandwich",meal: "lunch", ingredients: ["bread", "cheese", "bread"], points: 20 },
+      { id: "hotdog",    dish: "🌭", name: "Hot Dog",        meal: "lunch", ingredients: ["bun", "sausage", "tomato"], points: 25 },
+      { id: "salad",     dish: "🥗", name: "Garden Salad",   meal: "lunch", ingredients: ["lettuce", "tomato", "cucumber"], points: 20 },
+      { id: "pizza",     dish: "🍕", name: "Pizza Slice",    meal: "lunch", ingredients: ["bread", "cheese", "tomato"], points: 25 },
+      { id: "burger",    dish: "🍔", name: "Burger",         meal: "lunch", ingredients: ["bun", "meat", "cheese"], points: 25 },
+      { id: "taco",      dish: "🌮", name: "Taco",           meal: "lunch", ingredients: ["tortilla", "meat", "lettuce"], points: 25 },
+      { id: "fruitcup",  dish: "🍇", name: "Fruit Cup",      meal: "lunch", ingredients: ["apple", "banana", "strawberry"], points: 20 },
+      // Dinner
+      { id: "pasta",     dish: "🍝", name: "Tomato Pasta",   meal: "dinner", ingredients: ["pasta", "tomato", "cheese"], points: 25 },
+      { id: "stew",      dish: "🥘", name: "Hearty Stew",    meal: "dinner", ingredients: ["meat", "carrot", "potato"], points: 30 },
+      { id: "fishplate", dish: "🐟", name: "Fish Plate",     meal: "dinner", ingredients: ["fish", "lemon", "potato"], points: 30 },
+      { id: "chicken",   dish: "🍗", name: "Roast Chicken",  meal: "dinner", ingredients: ["chicken", "rice", "broccoli"], points: 30 },
+      { id: "curry",     dish: "🍛", name: "Curry & Rice",   meal: "dinner", ingredients: ["curry", "rice", "onion"], points: 30 },
+      { id: "soup",      dish: "🍲", name: "Veggie Soup",    meal: "dinner", ingredients: ["noodles", "carrot", "broccoli"], points: 25 }
+    ];
+
+    const CUSTOMERS = ["🧑", "👨", "👩", "👧", "👦", "🧒", "👵", "👴", "🧑‍🦰", "👩‍🦱", "👨‍🦳"];
+    const SPECIAL_CUSTOMERS = ["🦆", "🐈", "🦖", "🦉", "🐶"]; // rare easter-egg customers
+    const LINES = [
+      "Hi! Can I have a [DISH] please?",
+      "One [DISH], coming right up?",
+      "I'd love a [DISH], thanks!",
+      "Could I get a [DISH]?",
+      "Yes please, a nice [DISH].",
+      "I've been dreaming about a [DISH]!",
+      "Hello chef! A [DISH] would be perfect."
+    ];
+
+    // ============ STATE ============
+    const STORAGE = "ezraCafe_v1";
+    let state;
+    function freshState() {
+      return {
+        score: 0,
+        best: 0,
+        served: 0,
+        plate: [],
+        currentRecipeId: null,
+        currentCustomer: null,
+        currentLine: null,
+        soundOn: true,
+        hotdogStreak: 0,
+        celebShown: { first: false, hundred: false, hotdogChampion: false }
+      };
+    }
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE);
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return null;
+    }
+    function saveState() {
+      try { localStorage.setItem(STORAGE, JSON.stringify(state)); }
+      catch (e) {}
+    }
+
+    // ============ PET ROLL ============
+    function bumpPetRoll() {
+      try {
+        const raw = localStorage.getItem("ezraPetTriggers_v1");
+        const data = raw ? JSON.parse(raw) : { pendingRolls: 0 };
+        data.pendingRolls = (data.pendingRolls || 0) + 1;
+        localStorage.setItem("ezraPetTriggers_v1", JSON.stringify(data));
+      } catch (e) {}
+    }
+
+    // ============ SOUND ============
+    let audioCtx = null;
+    function ensureAudio() {
+      if (!audioCtx) {
+        try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        catch (e) { audioCtx = null; }
+      }
+      return audioCtx;
+    }
+    function tone(freq, dur, type, vol, delay, fin) {
+      if (!state.soundOn) return;
+      const ctx = ensureAudio(); if (!ctx) return;
+      const t = ctx.currentTime + (delay || 0);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, t);
+      if (fin) osc.frequency.exponentialRampToValueAtTime(fin, t + dur);
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(vol || 0.14, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t); osc.stop(t + dur + 0.05);
+    }
+    const sfx = {
+      tap:     () => tone(600, 0.05, "square", 0.08),
+      pop:     () => tone(900, 0.05, "sine", 0.1),
+      bell:    () => { tone(880, 0.18, "triangle", 0.14); tone(1175, 0.22, "triangle", 0.14, 0.05); },
+      correct: () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.16, "triangle", 0.18, i*0.08)); },
+      wrong:   () => { tone(330, 0.2, "sine", 0.16, 0, 220); tone(220, 0.35, "sine", 0.14, 0.15, 110); },
+      reset:   () => { tone(440, 0.15, "sawtooth", 0.16, 0, 110); tone(220, 0.4, "sawtooth", 0.14, 0.12, 80); },
+      cha:     () => { tone(1500, 0.05, "square", 0.16); tone(1800, 0.08, "square", 0.16, 0.05); tone(2200, 0.1, "square", 0.16, 0.12); },
+      fanfare: () => { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.2, "triangle", 0.18, i*0.1)); }
+    };
+
+    // ============ DOM ============
+    const customerCardEl = document.getElementById("customerCard");
+    const customerEmojiEl = document.getElementById("customerEmoji");
+    const customerLineEl = document.getElementById("customerLine");
+    const dishEmojiEl = document.getElementById("dishEmoji");
+    const dishNameEl = document.getElementById("dishName");
+    const recipeListEl = document.getElementById("recipeList");
+    const plateEl = document.getElementById("plate");
+    const pantryEl = document.getElementById("pantry");
+    const scoreEl = document.getElementById("score");
+    const bestEl = document.getElementById("best");
+    const servedEl = document.getElementById("served");
+    const msgBarEl = document.getElementById("msgBar");
+    const shiftLabelEl = document.getElementById("shiftLabel");
+    const serveBtn = document.getElementById("serveBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const skipBtn = document.getElementById("skipBtn");
+    const newDayBtn = document.getElementById("newDayBtn");
+    const soundBtn = document.getElementById("soundBtn");
+
+    // ============ NEW CUSTOMER ============
+    function pickCustomerEmoji() {
+      // 1 in 12 chance of a special easter-egg customer
+      if (Math.random() < 0.08) return SPECIAL_CUSTOMERS[Math.floor(Math.random() * SPECIAL_CUSTOMERS.length)];
+      return CUSTOMERS[Math.floor(Math.random() * CUSTOMERS.length)];
+    }
+    function pickRecipe() {
+      // gentle progression — first 3 customers easier
+      const pool = state.served < 3
+        ? RECIPES.filter(r => r.ingredients.length <= 2)
+        : RECIPES;
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+    function nextCustomer() {
+      state.plate = [];
+      const recipe = pickRecipe();
+      state.currentRecipeId = recipe.id;
+      state.currentCustomer = pickCustomerEmoji();
+      state.currentLine = LINES[Math.floor(Math.random() * LINES.length)];
+      // Special-customer lines (cute easter eggs)
+      const specialLines = {
+        "🦆": "QUACK! One [DISH] for Nucky please!",
+        "🐈": "Meow! I'd like a [DISH], dear chef.",
+        "🦖": "ROAR! Vanda demands a [DISH]!",
+        "🦉": "Hoo hoo! May I have a [DISH]?",
+        "🐶": "Woof! A [DISH] for this cosmic pup!"
+      };
+      if (specialLines[state.currentCustomer]) {
+        state.currentLine = specialLines[state.currentCustomer];
+      }
+      saveState();
+      renderCustomer();
+    }
+
+    function renderCustomer() {
+      const recipe = RECIPES.find(r => r.id === state.currentRecipeId);
+      customerEmojiEl.textContent = state.currentCustomer || "🧑";
+      const line = (state.currentLine || LINES[0]).replace("[DISH]", recipe.name);
+      customerLineEl.textContent = line;
+      dishEmojiEl.textContent = recipe.dish;
+      dishNameEl.textContent = recipe.name;
+      renderRecipeList(recipe);
+      renderShiftLabel(recipe);
+      renderPlate();
+      msgBarEl.textContent = "";
+      msgBarEl.className = "msg-bar";
+    }
+
+    function renderShiftLabel(recipe) {
+      const map = { breakfast: "🌅 Breakfast Time", lunch: "🌞 Lunch Time", dinner: "🌙 Dinner Time" };
+      shiftLabelEl.textContent = map[recipe.meal] || "Mealtime";
+    }
+
+    function renderRecipeList(recipe) {
+      recipeListEl.innerHTML = "";
+      // count how many of each ingredient we have on the plate
+      const plateCount = countItems(state.plate);
+      recipe.ingredients.forEach((ing, idx) => {
+        const def = INGREDIENTS[ing];
+        const slot = document.createElement("span");
+        slot.className = "req";
+        // mark "have" for the first N of this ingredient that we've already placed
+        const neededSoFar = recipe.ingredients.slice(0, idx + 1).filter(x => x === ing).length;
+        const haveSoFar = plateCount[ing] || 0;
+        if (haveSoFar >= neededSoFar) slot.classList.add("have");
+        slot.innerHTML = `<span>${def.emoji}</span><span class="name">${def.name}</span>`;
+        recipeListEl.appendChild(slot);
+      });
+    }
+
+    function countItems(arr) {
+      const c = {};
+      arr.forEach(x => c[x] = (c[x] || 0) + 1);
+      return c;
+    }
+
+    function renderPlate() {
+      plateEl.innerHTML = "";
+      if (!state.plate.length) {
+        const h = document.createElement("span");
+        h.className = "empty-hint";
+        h.textContent = "Empty plate — add ingredients!";
+        plateEl.appendChild(h);
+        return;
+      }
+      state.plate.forEach((ing, idx) => {
+        const def = INGREDIENTS[ing];
+        if (!def) return;
+        const sp = document.createElement("span");
+        sp.className = "placed";
+        sp.textContent = def.emoji;
+        sp.title = "Tap to remove " + def.name;
+        sp.addEventListener("click", () => removeFromPlate(idx));
+        plateEl.appendChild(sp);
+      });
+    }
+
+    function renderPantry() {
+      pantryEl.innerHTML = "";
+      Object.entries(INGREDIENTS).forEach(([id, def]) => {
+        const el = document.createElement("button");
+        el.className = "pantry-item";
+        el.type = "button";
+        el.innerHTML = `<span>${def.emoji}</span><span class="nm">${def.name}</span>`;
+        el.addEventListener("click", () => addToPlate(id));
+        pantryEl.appendChild(el);
+      });
+    }
+
+    function renderScore() {
+      scoreEl.textContent = state.score;
+      bestEl.textContent = state.best;
+      servedEl.textContent = state.served;
+    }
+
+    // ============ ACTIONS ============
+    function addToPlate(ingId) {
+      state.plate.push(ingId);
+      saveState();
+      sfx.tap();
+      renderPlate();
+      renderRecipeList(RECIPES.find(r => r.id === state.currentRecipeId));
+    }
+    function removeFromPlate(idx) {
+      state.plate.splice(idx, 1);
+      saveState();
+      sfx.pop();
+      renderPlate();
+      renderRecipeList(RECIPES.find(r => r.id === state.currentRecipeId));
+    }
+    function clearPlate() {
+      state.plate = [];
+      saveState();
+      sfx.pop();
+      renderPlate();
+      renderRecipeList(RECIPES.find(r => r.id === state.currentRecipeId));
+    }
+
+    function plateMatches(recipe) {
+      const a = countItems(state.plate);
+      const b = countItems(recipe.ingredients);
+      const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+      for (const k of keys) {
+        if ((a[k] || 0) !== (b[k] || 0)) return false;
+      }
+      return true;
+    }
+
+    function serve() {
+      const recipe = RECIPES.find(r => r.id === state.currentRecipeId);
+      if (!state.plate.length) {
+        showMsg("The plate is empty!", "bad");
+        return;
+      }
+      if (plateMatches(recipe)) {
+        // CORRECT!
+        let points = recipe.points;
+        let bonus = "";
+        if (recipe.id === "hotdog") {
+          state.hotdogStreak++;
+          points += 5; // Ezra's favourite bonus
+          bonus = " (+5 hotdog bonus!)";
+        }
+        state.score += points;
+        state.served++;
+        if (state.score > state.best) state.best = state.score;
+        sfx.correct();
+        sfx.cha();
+        customerCardEl.classList.remove("happy", "sad");
+        void customerCardEl.offsetWidth;
+        customerCardEl.classList.add("happy");
+        spawnCoins(points);
+        showMsg(`✅ +${points} points!${bonus} Customer happy!`, "good");
+        // celebrations
+        if (!state.celebShown.first) {
+          state.celebShown.first = true;
+          showCelebration({ big: "🍴", title: "First customer served!", text: "Welcome to Ezra's Café. Keep that score going!" });
+          bumpPetRoll();
+        }
+        if (state.score >= 100 && !state.celebShown.hundred) {
+          state.celebShown.hundred = true;
+          showCelebration({ big: "💯", title: "100-point chef!", text: "You're cooking! +1 pet roll for your binder." });
+          bumpPetRoll();
+        }
+        if (state.hotdogStreak >= 10 && !state.celebShown.hotdogChampion) {
+          state.celebShown.hotdogChampion = true;
+          showCelebration({ big: "🌭🌭🌭", title: "Hotdog Champion!", text: "10 hot dogs served — Ezra's culinary specialty!" });
+          bumpPetRoll();
+        }
+        // pet roll every 100 points crossed (above the celebration threshold)
+        if (state.score >= 200 && Math.floor(state.score / 100) > Math.floor((state.score - points) / 100)) {
+          bumpPetRoll();
+        }
+        saveState();
+        setTimeout(() => { nextCustomer(); renderScore(); }, 900);
+      } else {
+        // WRONG — RESET SCORE
+        const wasScore = state.score;
+        state.score = 0;
+        state.hotdogStreak = 0;
+        sfx.reset();
+        customerCardEl.classList.remove("happy", "sad");
+        void customerCardEl.offsetWidth;
+        customerCardEl.classList.add("sad");
+        // tell them what they should have made
+        const ingList = recipe.ingredients.map(i => INGREDIENTS[i].emoji).join(" ");
+        showMsg(`❌ That wasn't right! Score reset from ${wasScore} → 0. Recipe was: ${ingList}`, "bad");
+        saveState();
+        renderScore();
+        setTimeout(() => { state.plate = []; nextCustomer(); renderScore(); }, 2200);
+      }
+      renderScore();
+    }
+
+    function skipCustomer() {
+      state.score = Math.max(0, state.score - 5);
+      sfx.pop();
+      showMsg("Skipped (-5 points).", "bad");
+      saveState();
+      renderScore();
+      setTimeout(() => nextCustomer(), 400);
+    }
+
+    function newDay() {
+      if (!confirm("Start a new day? Your score will reset to 0 (best score is saved).")) return;
+      state.score = 0;
+      state.served = 0;
+      state.plate = [];
+      state.hotdogStreak = 0;
+      state.celebShown = { first: false, hundred: false, hotdogChampion: false };
+      saveState();
+      renderScore();
+      nextCustomer();
+      sfx.bell();
+    }
+
+    function showMsg(text, kind) {
+      msgBarEl.textContent = text;
+      msgBarEl.className = "msg-bar " + (kind || "");
+    }
+
+    // ============ COIN ANIMATION ============
+    function spawnCoins(points) {
+      const scoreRect = scoreEl.getBoundingClientRect();
+      const customerRect = customerCardEl.getBoundingClientRect();
+      const startX = customerRect.right - 30;
+      const startY = customerRect.top + 20;
+      const endX = scoreRect.left + 20;
+      const endY = scoreRect.top + 10;
+      const count = Math.min(8, Math.ceil(points / 5));
+      for (let i = 0; i < count; i++) {
+        const c = document.createElement("div");
+        c.className = "coin";
+        c.textContent = "🪙";
+        c.style.left = startX + "px";
+        c.style.top = startY + "px";
+        document.body.appendChild(c);
+        const dur = 700 + Math.random() * 400;
+        const midX = (startX + endX) / 2 + (Math.random() - 0.5) * 80;
+        const midY = Math.min(startY, endY) - 60 - Math.random() * 40;
+        c.animate(
+          [
+            { left: startX + "px", top: startY + "px", opacity: 1, offset: 0 },
+            { left: midX + "px",   top: midY + "px",   opacity: 1, offset: 0.5 },
+            { left: endX + "px",   top: endY + "px",   opacity: 0, offset: 1 }
+          ],
+          { duration: dur, easing: "cubic-bezier(0.3, 0.7, 0.4, 1)", fill: "forwards", delay: i * 50 }
+        );
+        setTimeout(() => c.remove(), dur + i * 50 + 100);
+      }
+    }
+
+    // ============ CELEB ============
+    function showCelebration({ big, title, text }) {
+      const modal = document.getElementById("modal");
+      const content = document.getElementById("modalContent");
+      content.innerHTML = "";
+      const card = document.createElement("div");
+      card.className = "celeb";
+      card.innerHTML = `
+        <div class="big">${big}</div>
+        <h2>${title}</h2>
+        <p>${text}</p>
+        <button id="celebClose" type="button">Yum!</button>
+      `;
+      content.appendChild(card);
+      modal.classList.add("show");
+      sfx.fanfare();
+      spawnConfetti(card);
+      card.querySelector("#celebClose").addEventListener("click", () => modal.classList.remove("show"));
+    }
+    function spawnConfetti(host) {
+      const colors = ["#f5b400", "#ef4444", "#12a150", "#3b82f6", "#a855f7"];
+      for (let i = 0; i < 30; i++) {
+        const c = document.createElement("div");
+        c.className = "confetti";
+        c.style.background = colors[i % colors.length];
+        c.style.left = (Math.random() * 100) + "%";
+        c.style.top = "-10px";
+        c.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+        host.appendChild(c);
+        const dx = (Math.random() - 0.5) * 220;
+        const dy = 260 + Math.random() * 180;
+        const dur = 1400 + Math.random() * 800;
+        c.animate(
+          [{ transform: "rotate(0deg)", opacity: 1 },
+           { transform: `translate(${dx}px, ${dy}px) rotate(${Math.random()*720}deg)`, opacity: 0 }],
+          { duration: dur, easing: "cubic-bezier(0.2, 0.6, 0.4, 1)", fill: "forwards" }
+        );
+        setTimeout(() => c.remove(), dur);
+      }
+    }
+
+    // ============ EVENTS ============
+    serveBtn.addEventListener("click", serve);
+    clearBtn.addEventListener("click", clearPlate);
+    skipBtn.addEventListener("click", skipCustomer);
+    newDayBtn.addEventListener("click", newDay);
+    soundBtn.addEventListener("click", () => {
+      state.soundOn = !state.soundOn;
+      soundBtn.textContent = state.soundOn ? "🔊 Sound" : "🔇 Muted";
+      saveState();
+    });
+
+    // ============ INIT ============
+    function init() {
+      state = loadState() || freshState();
+      // backfill any new fields
+      if (typeof state.hotdogStreak !== "number") state.hotdogStreak = 0;
+      if (!state.celebShown) state.celebShown = { first: false, hundred: false, hotdogChampion: false };
+      soundBtn.textContent = state.soundOn ? "🔊 Sound" : "🔇 Muted";
+      renderPantry();
+      if (!state.currentRecipeId) {
+        nextCustomer();
+      } else {
+        renderCustomer();
+      }
+      renderScore();
+    }
+    init();
+  </script>
+</body>
+</html>
