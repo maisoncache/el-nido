@@ -70,6 +70,7 @@ Pages:
 - `index.html` → Ezra's Game Hub (landing page)
 - `kps-jumper.html` → KPS Jumper
 - `brain-quest.html` → Brain Quest
+- `draw.html` → Doodle Pad (free drawing with brushes, rainbow, eraser, and emoji stamps)
 
 ## Deployment
 
