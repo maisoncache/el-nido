@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Doodle Pad – Ezra's Game Hub</title>
+  <style>
+    :root {
+      --bg: #f3f8ff;
+      --card: #ffffff;
+      --text: #1f2a3d;
+      --accent: #2f6df3;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at top, #ffeede 0%, var(--bg) 55%);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 12px;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .app {
+      width: min(1040px, 100%);
+      background: var(--card);
+      border-radius: 24px;
+      box-shadow: 0 12px 36px rgba(24, 37, 69, 0.15);
+      padding: clamp(12px, 2.4vw, 26px);
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: clamp(1.4rem, 3.4vw, 2.1rem);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .back-link a {
+      color: var(--accent);
+      font-weight: bold;
+      text-decoration: none;
+      font-size: 0.95rem;
+    }
+    .back-link a:hover { text-decoration: underline; }
+
+    /* Toolbar rows */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      align-items: center;
+      padding: 12px;
+      border: 2px solid #e6eeff;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #fff, #f7fbff);
+      margin-bottom: 12px;
+    }
+    .group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .group-label {
+      font-size: 0.78rem;
+      font-weight: bold;
+      opacity: 0.55;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-right: 2px;
+    }
+
+    /* Colour swatches */
+    .swatch {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      box-shadow: 0 0 0 2px #d7e2f5, 0 2px 5px rgba(0,0,0,0.12);
+      cursor: pointer;
+      padding: 0;
+      transition: transform 0.08s ease;
+    }
+    .swatch:hover { transform: scale(1.08); }
+    .swatch.active {
+      box-shadow: 0 0 0 3px var(--accent), 0 2px 6px rgba(0,0,0,0.2);
+      transform: scale(1.12);
+    }
+    .swatch.rainbow {
+      background: conic-gradient(#ff5e5e, #ff9a3c, #f2d600, #5bbf67, #4dd0e1, #4d96ff, #a66cff, #ff5e5e);
+    }
+
+    /* Tool + action buttons */
+    .tool, .action {
+      min-height: 44px;
+      padding: 8px 14px;
+      border-radius: 12px;
+      border: 2px solid #d7e2f5;
+      background: #fff;
+      color: var(--text);
+      font-family: inherit;
+      font-weight: bold;
+      font-size: 0.98rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.08s ease, background 0.12s ease;
+    }
+    .tool:hover, .action:hover { transform: translateY(-1px); }
+    .tool.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .action.warn { color: #c0392b; }
+
+    /* Brush size dots */
+    .size {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      border: 2px solid #d7e2f5;
+      background: #fff;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .size.active { border-color: var(--accent); background: #eaf1ff; }
+    .size .dot { background: #1f2a3d; border-radius: 50%; display: block; }
+
+    /* Stamp buttons */
+    .stamp {
+      width: 46px;
+      height: 46px;
+      font-size: 1.6rem;
+      border-radius: 12px;
+      border: 2px solid #d7e2f5;
+      background: #fff;
+      cursor: pointer;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .stamp.active { border-color: var(--accent); background: #eaf1ff; transform: scale(1.06); }
+
+    /* Canvas */
+    .canvas-wrap {
+      position: relative;
+      width: 100%;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 3px #e6eeff;
+      touch-action: none;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      cursor: crosshair;
+      background: #fff;
+    }
+    .hint {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 0.92rem;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>🎨 Doodle Pad</h1>
+      <p class="back-link"><a href="index.html">← Back to Game Hub</a></p>
+    </header>
+
+    <div class="toolbar">
+      <div class="group" id="colors" aria-label="Colours">
+        <span class="group-label">Colours</span>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="group" aria-label="Brush sizes">
+        <span class="group-label">Size</span>
+        <button class="size" data-size="6" aria-label="Small brush"><span class="dot" style="width:8px;height:8px;"></span></button>
+        <button class="size active" data-size="14" aria-label="Medium brush"><span class="dot" style="width:16px;height:16px;"></span></button>
+        <button class="size" data-size="26" aria-label="Large brush"><span class="dot" style="width:26px;height:26px;"></span></button>
+      </div>
+      <div class="group" aria-label="Tools">
+        <span class="group-label">Tools</span>
+        <button class="tool active" id="brushTool">🖌️ Brush</button>
+        <button class="tool" id="eraserTool">🧽 Eraser</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="group" id="stamps" aria-label="Stamps">
+        <span class="group-label">Stamps</span>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="group" aria-label="Actions">
+        <button class="action" id="undoBtn">↩️ Undo</button>
+        <button class="action warn" id="clearBtn">🗑️ Clear</button>
+        <button class="action" id="saveBtn">💾 Save</button>
+        <button class="action" id="soundBtn">🔊 Sound</button>
+      </div>
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="pad"></canvas>
+    </div>
+    <p class="hint" id="hint">Pick a colour and draw! Tap a stamp to add stickers. 🌟</p>
+  </div>
+
+  <script>
+  (function () {
+    const canvas = document.getElementById("pad");
+    const ctx = canvas.getContext("2d");
+    const wrap = canvas.parentElement;
+
+    // Logical drawing size (kept crisp with devicePixelRatio scaling).
+    const BASE_W = 1000;
+    const BASE_H = 640;
+
+    const state = {
+      color: "#e8443b",
+      size: 14,
+      tool: "brush",      // brush | eraser | stamp
+      stamp: null,
+      rainbow: false,
+      hue: 0,
+      soundOn: true,
+    };
+
+    /* ---------- Canvas sizing (retina-crisp) ---------- */
+    function fitCanvas() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const cssW = wrap.clientWidth;
+      const cssH = Math.round(cssW * (BASE_H / BASE_W));
+      // Preserve current drawing while resizing.
+      let snapshot = null;
+      if (canvas.width) {
+        snapshot = document.createElement("canvas");
+        snapshot.width = canvas.width;
+        snapshot.height = canvas.height;
+        snapshot.getContext("2d").drawImage(canvas, 0, 0);
+      }
+      canvas.style.height = cssH + "px";
+      canvas.width = Math.round(cssW * dpr);
+      canvas.height = Math.round(cssH * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // White background so Save gives a clean picture.
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (snapshot) ctx.drawImage(snapshot, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+    }
+
+    // Map a pointer event to CSS-pixel coordinates on the canvas.
+    function pointFromEvent(e) {
+      const r = canvas.getBoundingClientRect();
+      return {
+        x: (e.clientX - r.left) * (canvas.clientWidth / r.width),
+        y: (e.clientY - r.top) * (canvas.clientHeight / r.height),
+      };
+    }
+
+    /* ---------- Undo stack ---------- */
+    const undoStack = [];
+    const MAX_UNDO = 25;
+    function pushUndo() {
+      try {
+        if (undoStack.length >= MAX_UNDO) undoStack.shift();
+        undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+      } catch (_) { /* ignore */ }
+    }
+    function undo() {
+      const img = undoStack.pop();
+      if (!img) return;
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.putImageData(img, 0, 0);
+      ctx.restore();
+      blip(320);
+    }
+
+    /* ---------- Sound (gentle) ---------- */
+    let audioCtx = null;
+    function blip(freq, dur) {
+      if (!state.soundOn) return;
+      try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = "sine";
+        o.frequency.value = freq;
+        g.gain.value = 0.06;
+        o.connect(g); g.connect(audioCtx.destination);
+        const t = audioCtx.currentTime;
+        g.gain.setValueAtTime(0.06, t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + (dur || 0.12));
+        o.start(t);
+        o.stop(t + (dur || 0.12));
+      } catch (_) { /* ignore */ }
+    }
+
+    /* ---------- Drawing ---------- */
+    let drawing = false;
+    let last = null;
+
+    function currentStroke() {
+      if (state.rainbow) return "hsl(" + state.hue + ", 85%, 55%)";
+      return state.color;
+    }
+
+    function drawDot(p) {
+      ctx.beginPath();
+      ctx.fillStyle = state.tool === "eraser" ? "#ffffff" : currentStroke();
+      ctx.arc(p.x, p.y, state.size / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawLine(a, b) {
+      ctx.strokeStyle = state.tool === "eraser" ? "#ffffff" : currentStroke();
+      ctx.lineWidth = state.size;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+    }
+
+    function placeStamp(p) {
+      const px = Math.max(state.size * 2.4, 34);
+      ctx.font = px + "px 'Segoe UI Emoji','Apple Color Emoji',sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(state.stamp, p.x, p.y);
+      blip(620, 0.09);
+    }
+
+    function onDown(e) {
+      e.preventDefault();
+      const p = pointFromEvent(e);
+      pushUndo();
+      if (state.tool === "stamp" && state.stamp) {
+        placeStamp(p);
+        return;
+      }
+      drawing = true;
+      last = p;
+      if (state.rainbow) state.hue = (state.hue + 12) % 360;
+      drawDot(p);
+      try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+    }
+
+    function onMove(e) {
+      if (!drawing) return;
+      e.preventDefault();
+      // Use coalesced events for smoother, faster strokes when available.
+      const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+      for (const ev of (events.length ? events : [e])) {
+        const p = pointFromEvent(ev);
+        if (state.rainbow) state.hue = (state.hue + 4) % 360;
+        drawLine(last, p);
+        last = p;
+      }
+    }
+
+    function onUp(e) {
+      if (!drawing) return;
+      drawing = false;
+      last = null;
+    }
+
+    canvas.addEventListener("pointerdown", onDown);
+    canvas.addEventListener("pointermove", onMove);
+    canvas.addEventListener("pointerup", onUp);
+    canvas.addEventListener("pointercancel", onUp);
+    canvas.addEventListener("pointerleave", onUp);
+
+    /* ---------- Colours ---------- */
+    const COLORS = [
+      "#e8443b", "#ff8a3d", "#ffd23f", "#66bb4b", "#2dc4c9",
+      "#3d7bff", "#8a5cf6", "#ff6fb5", "#7a4a24", "#101820", "#ffffff"
+    ];
+    const colorsEl = document.getElementById("colors");
+    function selectColorSwatch(btn) {
+      colorsEl.querySelectorAll(".swatch").forEach(s => s.classList.remove("active"));
+      btn.classList.add("active");
+    }
+    COLORS.forEach((c, i) => {
+      const b = document.createElement("button");
+      b.className = "swatch" + (i === 0 ? " active" : "");
+      b.style.background = c;
+      b.setAttribute("aria-label", "Colour " + c);
+      b.addEventListener("click", () => {
+        state.color = c;
+        state.rainbow = false;
+        setTool("brush");
+        selectColorSwatch(b);
+        blip(500, 0.07);
+      });
+      colorsEl.appendChild(b);
+    });
+    // Rainbow magic brush.
+    const rainbowBtn = document.createElement("button");
+    rainbowBtn.className = "swatch rainbow";
+    rainbowBtn.setAttribute("aria-label", "Rainbow brush");
+    rainbowBtn.title = "Rainbow brush";
+    rainbowBtn.addEventListener("click", () => {
+      state.rainbow = true;
+      setTool("brush");
+      selectColorSwatch(rainbowBtn);
+      blip(700, 0.08);
+    });
+    colorsEl.appendChild(rainbowBtn);
+
+    /* ---------- Sizes ---------- */
+    document.querySelectorAll(".size").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".size").forEach(s => s.classList.remove("active"));
+        btn.classList.add("active");
+        state.size = parseInt(btn.dataset.size, 10);
+      });
+    });
+
+    /* ---------- Tools ---------- */
+    const brushToolBtn = document.getElementById("brushTool");
+    const eraserToolBtn = document.getElementById("eraserTool");
+    function setTool(tool) {
+      state.tool = tool;
+      brushToolBtn.classList.toggle("active", tool === "brush");
+      eraserToolBtn.classList.toggle("active", tool === "eraser");
+      if (tool !== "stamp") {
+        state.stamp = null;
+        document.querySelectorAll(".stamp").forEach(s => s.classList.remove("active"));
+        canvas.style.cursor = "crosshair";
+      }
+    }
+    brushToolBtn.addEventListener("click", () => setTool("brush"));
+    eraserToolBtn.addEventListener("click", () => setTool("eraser"));
+
+    /* ---------- Stamps ---------- */
+    const STAMPS = ["⭐", "❤️", "🌈", "☀️", "🌸", "🐱", "🐶", "🦆", "🚀", "🪐", "🦖", "🍦", "🎈", "😀"];
+    const stampsEl = document.getElementById("stamps");
+    STAMPS.forEach(s => {
+      const b = document.createElement("button");
+      b.className = "stamp";
+      b.textContent = s;
+      b.setAttribute("aria-label", "Stamp " + s);
+      b.addEventListener("click", () => {
+        state.tool = "stamp";
+        state.stamp = s;
+        brushToolBtn.classList.remove("active");
+        eraserToolBtn.classList.remove("active");
+        document.querySelectorAll(".stamp").forEach(x => x.classList.remove("active"));
+        b.classList.add("active");
+        canvas.style.cursor = "pointer";
+        blip(560, 0.07);
+      });
+      stampsEl.appendChild(b);
+    });
+
+    /* ---------- Actions ---------- */
+    document.getElementById("undoBtn").addEventListener("click", undo);
+
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      pushUndo();
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      blip(280, 0.14);
+    });
+
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      try {
+        const url = canvas.toDataURL("image/png");
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "ezra-doodle.png";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        blip(760, 0.1);
+      } catch (_) {
+        alert("Couldn't save the picture on this device.");
+      }
+    });
+
+    const soundBtn = document.getElementById("soundBtn");
+    soundBtn.addEventListener("click", () => {
+      state.soundOn = !state.soundOn;
+      soundBtn.textContent = state.soundOn ? "🔊 Sound" : "🔇 Sound";
+      if (state.soundOn) blip(600, 0.1);
+    });
+
+    /* ---------- Init ---------- */
+    fitCanvas();
+    let resizeTimer = null;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(fitCanvas, 150);
+    });
+  })();
+  </script>
+</body>
+</html>
