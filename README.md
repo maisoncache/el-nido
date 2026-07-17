@@ -71,7 +71,7 @@ Pages:
 - `kps-jumper.html` → KPS Jumper
 - `brain-quest.html` → Brain Quest
 - `draw.html` → Doodle Pad (free drawing with brushes, rainbow, eraser, and emoji stamps)
-- `planet-house.html` → Planet House (create and name a planet, gather its resources, then build and decorate a house on it)
+- `planet-house.html` → Planet House (create and name a planet, gather its resources, then build and decorate a house on it — every planet is saved in a "My Planets" gallery you can revisit)
 
 ## Deployment
 
