@@ -226,6 +226,59 @@
     }
     .go-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #b34410; }
 
+    /* ---------- Planet gallery ---------- */
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+    }
+    .planet-card {
+      position: relative;
+      border: 3px solid #cdd9f0;
+      background: linear-gradient(180deg, #171243, #2a2060);
+      border-radius: 16px;
+      padding: 12px 8px 10px;
+      text-align: center;
+      color: white;
+      font-weight: bold;
+      font-size: 0.9rem;
+      transition: transform 0.1s;
+    }
+    .planet-card:active { transform: scale(0.96); }
+    .planet-card .mini-ball {
+      display: block;
+      width: 58px; height: 58px;
+      border-radius: 50%;
+      margin: 0 auto 8px;
+      position: relative;
+    }
+    .planet-card .mini-ball .mini-house {
+      position: absolute;
+      right: -6px; bottom: -4px;
+      font-size: 1.2rem;
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.4));
+    }
+    .planet-card .card-sub {
+      display: block;
+      font-weight: normal;
+      font-size: 0.72rem;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+    .planet-card .del-btn {
+      position: absolute;
+      top: -8px; right: -8px;
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      border: 2px solid white;
+      background: #e44a4a;
+      color: white;
+      font-weight: bold;
+      font-size: 0.8rem;
+      line-height: 1;
+      padding: 0;
+    }
+
     /* ---------- Play screen ---------- */
     .hud {
       display: flex;
@@ -520,6 +573,13 @@
     <!-- ========== SCREEN 1: CREATE YOUR PLANET ========== -->
     <section id="screenCreate">
       <p class="subtitle">Make your very own planet, give it a name, then blast off and build a house on it!</p>
+
+      <div id="galleryWrap" hidden>
+        <span class="step-label" style="margin-top:0;">🌌 My Planets — tap one to visit</span>
+        <div class="gallery" id="gallery"></div>
+        <span class="step-label" style="margin-top:16px;">…or make a brand new planet:</span>
+      </div>
+
       <div class="create-grid">
         <div class="preview-box">
           <div id="planetBall"></div>
@@ -556,7 +616,7 @@
         <span class="pill" id="invCrystal">💎 0</span>
         <span class="spacer"></span>
         <button class="pill pill-btn" id="soundBtn">🔊</button>
-        <button class="pill pill-btn" id="newPlanetBtn">🌟 New Planet</button>
+        <button class="pill pill-btn" id="myPlanetsBtn">🌌 My Planets</button>
       </div>
 
       <div class="hint" id="hint"></div>
@@ -666,14 +726,18 @@
     const NAME_STARTS = ["Zor", "Glim", "Wob", "Ezra", "Blip", "Snor", "Puff", "Krak", "Mel", "Twin", "Flor", "Jub", "Nova", "Ziggy"];
     const NAME_ENDS   = ["bia", "tron 9", "ulon", "opolis", "zork", "milo", "topia", "nova", "doodle", "berry", "ius", "aroo", "star", "world"];
 
-    const SAVE_KEY = "planet-house-save-v1";
+    const SAVE_KEY = "planet-house-planets-v2";
+    const OLD_SAVE_KEY = "planet-house-save-v1";
 
     /* ================= State ================= */
 
+    // All saved planets live in the store; `state` is the planet being played.
+    let store = { planets: [], currentId: null, soundOn: true };
     let state = defaultState();
 
     function defaultState() {
       return {
+        id: null,
         name: "",
         biome: "grass",
         ground: BIOMES.grass.ground,
@@ -749,25 +813,130 @@
     }
 
     function save() {
-      try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) { /* private mode */ }
+      if (state.started && state.id) {
+        const snap = JSON.parse(JSON.stringify(state));
+        const i = store.planets.findIndex((p) => p.id === state.id);
+        if (i >= 0) store.planets[i] = snap; else store.planets.push(snap);
+        store.currentId = state.id;
+      }
+      store.soundOn = state.soundOn;
+      try { localStorage.setItem(SAVE_KEY, JSON.stringify(store)); } catch (e) { /* private mode */ }
     }
-    function load() {
+
+    function sanitizePlanet(p) {
+      const s = Object.assign(defaultState(), p);
+      s.inv = Object.assign({ wood: 0, brick: 0, stone: 0, crystal: 0 }, p.inv);
+      s.decos = Array.isArray(p.decos) ? p.decos.filter((d) => d && DECOS.some((x) => x.id === d.t)) : [];
+      return s;
+    }
+
+    function loadStore() {
       try {
         const raw = localStorage.getItem(SAVE_KEY);
-        if (!raw) return false;
-        const s = JSON.parse(raw);
-        if (!s || !s.started || !BIOMES[s.biome]) return false;
-        state = Object.assign(defaultState(), s);
-        state.inv = Object.assign({ wood: 0, brick: 0, stone: 0, crystal: 0 }, s.inv);
-        state.decos = Array.isArray(s.decos) ? s.decos.filter(d => DECOS.some(x => x.id === d.t)) : [];
-        return true;
-      } catch (e) { return false; }
+        if (raw) {
+          const s = JSON.parse(raw);
+          if (s && Array.isArray(s.planets)) {
+            store.planets = s.planets.filter((p) => p && p.started && p.id && BIOMES[p.biome]);
+            store.currentId = s.currentId || null;
+            store.soundOn = s.soundOn !== false;
+          }
+          return;
+        }
+        // Migrate the old single-planet save into the new list.
+        const oldRaw = localStorage.getItem(OLD_SAVE_KEY);
+        if (oldRaw) {
+          const old = JSON.parse(oldRaw);
+          if (old && old.started && BIOMES[old.biome]) {
+            old.id = newId();
+            store.planets = [old];
+            store.currentId = old.id;
+            store.soundOn = old.soundOn !== false;
+            localStorage.setItem(SAVE_KEY, JSON.stringify(store));
+          }
+          localStorage.removeItem(OLD_SAVE_KEY);
+        }
+      } catch (e) { /* corrupted save — start fresh */ }
+    }
+
+    function newId() {
+      return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     }
 
     function randomName() {
       const a = NAME_STARTS[Math.floor(Math.random() * NAME_STARTS.length)];
       const b = NAME_ENDS[Math.floor(Math.random() * NAME_ENDS.length)];
       return a + b;
+    }
+
+    /* ================= Planet gallery ================= */
+
+    function planetGradient(p) {
+      return "radial-gradient(circle at 35% 30%, " + lighten(p.ground, 60) + ", " +
+        p.ground + " 55%, " + darken(p.ground, 60) + ")";
+    }
+
+    function renderGallery() {
+      const wrap = $("galleryWrap");
+      const gal = $("gallery");
+      if (store.planets.length === 0) {
+        wrap.hidden = true;
+        return;
+      }
+      wrap.hidden = false;
+      gal.innerHTML = "";
+      store.planets.forEach((p) => {
+        const card = document.createElement("button");
+        card.className = "planet-card";
+        card.innerHTML =
+          '<span class="mini-ball" style="background:' + planetGradient(p) +
+          ";box-shadow:0 0 16px " + p.sky + '88;">' +
+          (p.house ? '<span class="mini-house">🏠</span>' : "") + "</span>" +
+          p.name +
+          '<span class="card-sub">' + BIOMES[p.biome].emoji + " " + BIOMES[p.biome].label +
+          " planet · " + (p.house ? "house built" : "no house yet") + "</span>";
+        card.addEventListener("click", () => visitPlanet(p.id));
+        const del = document.createElement("button");
+        del.className = "del-btn";
+        del.textContent = "✕";
+        del.setAttribute("aria-label", "delete " + p.name);
+        del.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          deletePlanet(p.id);
+        });
+        card.appendChild(del);
+        gal.appendChild(card);
+      });
+    }
+
+    function visitPlanet(id) {
+      const p = store.planets.find((x) => x.id === id);
+      if (!p) return;
+      state = sanitizePlanet(p);
+      state.soundOn = store.soundOn;
+      store.currentId = id;
+      wallChoice = "wood";
+      roofChoice = "brick";
+      doorChoice = DOOR_COLORS[0];
+      sWoosh();
+      save();
+      enterPlay();
+    }
+
+    function deletePlanet(id) {
+      const p = store.planets.find((x) => x.id === id);
+      if (!p) return;
+      if (!confirm("Delete " + p.name + " forever? Its house and decorations will be gone.")) return;
+      store.planets = store.planets.filter((x) => x.id !== id);
+      if (store.currentId === id) store.currentId = null;
+      sTrash();
+      save();
+      renderGallery();
+    }
+
+    function resetSceneDom() {
+      scene().querySelectorAll(".res-node, .deco-item, .float-gain").forEach((n) => n.remove());
+      $("houseWrap").innerHTML = "";
+      $("houseSign").style.display = "none";
     }
 
     /* ================= Creator screen ================= */
@@ -836,6 +1005,7 @@
     /* ================= Play screen ================= */
 
     function enterPlay() {
+      resetSceneDom();
       $("screenCreate").hidden = true;
       $("screenPlay").hidden = false;
       $("hudName").textContent = "🪐 " + state.name;
@@ -1212,8 +1382,13 @@
     });
 
     $("blastOffBtn").addEventListener("click", () => {
+      state.id = newId();
       state.name = $("planetName").value.trim() || randomName();
       state.started = true;
+      state.soundOn = store.soundOn;
+      wallChoice = "wood";
+      roofChoice = "brick";
+      doorChoice = DOOR_COLORS[0];
       sWoosh();
       save();
       enterPlay();
@@ -1236,27 +1411,31 @@
       save();
     });
 
-    $("newPlanetBtn").addEventListener("click", () => {
-      if (!confirm("Start a brand new planet? Your current planet and house will be gone.")) return;
-      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+    $("myPlanetsBtn").addEventListener("click", () => {
+      // Snapshot the current planet, then head back to the gallery.
+      save();
+      sClick();
       state = defaultState();
-      wallChoice = "wood";
-      roofChoice = "brick";
-      doorChoice = DOOR_COLORS[0];
-      // reset scene
-      scene().querySelectorAll(".res-node, .deco-item, .float-gain").forEach((n) => n.remove());
-      $("houseWrap").innerHTML = "";
-      $("houseSign").style.display = "none";
+      state.soundOn = store.soundOn;
+      store.currentId = null;
+      save();
+      resetSceneDom();
       $("screenPlay").hidden = true;
       $("screenCreate").hidden = false;
       $("planetName").value = "";
       initCreator();
+      renderGallery();
     });
 
     /* ================= Start ================= */
 
+    loadStore();
     initCreator();
-    if (load()) {
+    renderGallery();
+    const current = store.currentId && store.planets.find((p) => p.id === store.currentId);
+    if (current) {
+      state = sanitizePlanet(current);
+      state.soundOn = store.soundOn;
       enterPlay();
     } else {
       $("planetName").value = "";

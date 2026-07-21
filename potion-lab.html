@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ezra's Potion Lab</title>
+  <style>
+    :root {
+      --bg: #140b26;
+      --paper: #f4f6fb;
+      --ink: #1f2a3d;
+      --accent: #8b3df0;
+      --accent-deep: #5b21b6;
+      --warm: #f5b400;
+      --good: #22a34a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 10%, #2a1145 0%, transparent 40%),
+        radial-gradient(circle at 80% 80%, #451b5c 0%, transparent 45%),
+        var(--bg);
+      padding: 12px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* floating sparkles */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(1px 1px at 20px 30px, #e9d5ff, transparent),
+        radial-gradient(1.5px 1.5px at 120px 200px, #e9d5ff, transparent),
+        radial-gradient(1px 1px at 300px 150px, white, transparent),
+        radial-gradient(2px 2px at 80px 350px, #c4b5fd, transparent),
+        radial-gradient(1px 1px at 250px 250px, white, transparent),
+        radial-gradient(1.5px 1.5px at 500px 200px, #e9d5ff, transparent),
+        radial-gradient(1px 1px at 600px 350px, white, transparent),
+        radial-gradient(1.5px 1.5px at 350px 450px, #c4b5fd, transparent),
+        radial-gradient(1px 1px at 700px 100px, white, transparent),
+        radial-gradient(1.5px 1.5px at 800px 300px, #e9d5ff, transparent),
+        radial-gradient(1px 1px at 450px 650px, white, transparent);
+      background-size: 900px 700px;
+      opacity: 0.7;
+      animation: twinkle 4s ease-in-out infinite alternate;
+      z-index: 0;
+    }
+    @keyframes twinkle { from { opacity: 0.45; } to { opacity: 0.85; } }
+
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 22px;
+      box-shadow: 0 14px 40px rgba(20, 0, 40, 0.55);
+      padding: clamp(14px, 2.5vw, 22px);
+      position: relative;
+      z-index: 1;
+    }
+    .back-link {
+      display: inline-block;
+      color: var(--accent-deep);
+      font-weight: bold;
+      text-decoration: none;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(1.5rem, 4.4vw, 2.1rem);
+      text-align: center;
+      color: var(--accent-deep);
+    }
+    .subtitle {
+      text-align: center;
+      opacity: 0.85;
+      margin: 4px 0 12px;
+      font-size: 0.92rem;
+    }
+    button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+    .hud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+    .pill {
+      background: #f3ebff;
+      border: 2px solid #d8c6f5;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-weight: bold;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    .pill-btn { transition: transform 0.1s; }
+    .pill-btn:active { transform: scale(0.94); }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+    .tab-btn {
+      font-size: 0.98rem;
+      font-weight: bold;
+      padding: 10px 20px;
+      border-radius: 14px;
+      border: 2px solid #d8c6f5;
+      background: #f8f4ff;
+      color: var(--ink);
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    /* ---------- Mixing area ---------- */
+    .lab {
+      background: linear-gradient(180deg, #2a1550, #170b33);
+      border-radius: 18px;
+      border: 3px solid #1b0d38;
+      padding: 16px 12px 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .slots {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+    .slot {
+      width: clamp(74px, 18vw, 96px);
+      height: clamp(74px, 18vw, 96px);
+      border-radius: 18px;
+      border: 3px dashed #8b6fd0;
+      background: rgba(255, 255, 255, 0.08);
+      color: #c9b8f0;
+      font-size: clamp(2rem, 8vw, 2.8rem);
+      line-height: 1.1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s;
+    }
+    .slot:active { transform: scale(0.95); }
+    .slot .slot-name {
+      font-size: 0.62rem;
+      font-weight: bold;
+      color: #e6dcff;
+      margin-top: 2px;
+    }
+    .slot.filled { border-style: solid; border-color: #c4a5ff; background: rgba(255, 255, 255, 0.16); }
+    .plus-sign {
+      color: #c9b8f0;
+      font-size: 2rem;
+      font-weight: bold;
+    }
+    .cauldron-wrap { position: relative; display: inline-block; margin-top: 6px; }
+    .cauldron-wrap svg { width: clamp(170px, 40vw, 230px); height: auto; display: block; }
+    .cauldron-wrap.mixing { animation: wobble 0.55s ease-in-out 2; }
+    @keyframes wobble {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-4deg); }
+      75% { transform: rotate(4deg); }
+    }
+    .bubble { animation: bubbleUp 2.4s linear infinite; opacity: 0; }
+    .bubble.b2 { animation-delay: 0.8s; }
+    .bubble.b3 { animation-delay: 1.6s; }
+    @keyframes bubbleUp {
+      0% { transform: translateY(0) scale(0.5); opacity: 0; }
+      20% { opacity: 0.9; }
+      100% { transform: translateY(-38px) scale(1.15); opacity: 0; }
+    }
+    .mix-btn {
+      display: block;
+      margin: 12px auto 0;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: white;
+      background: linear-gradient(180deg, #ff8a3d, #f0611a);
+      border: none;
+      border-radius: 16px;
+      padding: 13px 40px;
+      box-shadow: 0 5px 0 #b34410;
+    }
+    .mix-btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 2px 0 #b34410; }
+    .mix-btn:disabled {
+      background: #6b5f85;
+      box-shadow: 0 5px 0 #4a4060;
+      color: #c4bcd6;
+      cursor: not-allowed;
+    }
+    .fail-msg {
+      min-height: 1.5em;
+      margin: 10px 0 0;
+      color: #ffd9a8;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+    .smoke-puff {
+      position: absolute;
+      left: 50%;
+      font-size: 2.4rem;
+      pointer-events: none;
+      animation: puffUp 1.1s ease-out forwards;
+    }
+    @keyframes puffUp {
+      from { transform: translate(-50%, 0) scale(0.5); opacity: 1; }
+      to { transform: translate(-50%, -80px) scale(1.8); opacity: 0; }
+    }
+
+    /* ---------- Shelf ---------- */
+    .shelf-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 14px 0 8px;
+      flex-wrap: wrap;
+    }
+    .shelf-head h3 { margin: 0; font-size: 1.05rem; }
+    .hint-btn {
+      border: 2px solid #f0d896;
+      background: #fff7dc;
+      color: #6b4d00;
+      border-radius: 12px;
+      padding: 8px 14px;
+      font-weight: bold;
+      font-size: 0.85rem;
+    }
+    .hint-msg {
+      width: 100%;
+      background: #fff7dc;
+      border: 2px dashed #f5b400;
+      color: #6b4d00;
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-weight: bold;
+      text-align: center;
+      font-size: 0.92rem;
+      display: none;
+    }
+    .hint-msg.show { display: block; }
+    .shelf {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+      gap: 8px;
+    }
+    .item-btn {
+      position: relative;
+      border: 2px solid #d8c6f5;
+      background: white;
+      border-radius: 14px;
+      padding: 8px 4px 6px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 0.72rem;
+      color: var(--ink);
+      transition: transform 0.1s;
+    }
+    .item-btn .big { font-size: 1.7rem; display: block; line-height: 1.2; }
+    .item-btn:active { transform: scale(0.92); }
+    .item-btn.pop-in { animation: popIn 0.4s; }
+    @keyframes popIn {
+      0% { transform: scale(0); }
+      70% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+    .item-btn .new-badge {
+      position: absolute;
+      top: -7px;
+      right: -6px;
+      background: #e44a4a;
+      color: white;
+      font-size: 0.58rem;
+      font-weight: bold;
+      border-radius: 999px;
+      padding: 2px 6px;
+      animation: newPulse 1.2s ease-in-out infinite;
+    }
+    @keyframes newPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+
+    /* ---------- Potion book ---------- */
+    .book {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 10px;
+    }
+    .potion-card {
+      border: 2px solid #d8c6f5;
+      background: linear-gradient(180deg, #fdfbff, #f4edff);
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .potion-card .p-emoji {
+      font-size: 2.1rem;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2));
+    }
+    .potion-card .p-name { font-weight: bold; font-size: 0.92rem; }
+    .potion-card .p-desc { font-size: 0.78rem; opacity: 0.8; margin-top: 2px; line-height: 1.35; }
+    .potion-card.locked {
+      background: #eef0f5;
+      border-color: #d4d9e4;
+      opacity: 0.85;
+    }
+    .potion-card.locked .p-emoji { filter: grayscale(1); opacity: 0.5; }
+
+    /* ---------- Discovery overlay ---------- */
+    #revealOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 5, 35, 0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    #revealOverlay.show { display: flex; }
+    .reveal-card {
+      background: white;
+      border-radius: 22px;
+      padding: clamp(20px, 5vw, 34px);
+      text-align: center;
+      max-width: 380px;
+      width: 100%;
+      animation: revealPop 0.45s cubic-bezier(0.2, 1.6, 0.4, 1);
+      box-shadow: 0 0 60px rgba(196, 165, 255, 0.8);
+    }
+    @keyframes revealPop {
+      from { transform: scale(0.3); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .reveal-card .r-label {
+      font-weight: bold;
+      color: var(--accent-deep);
+      font-size: 1rem;
+      letter-spacing: 0.06em;
+    }
+    .reveal-card .r-emoji {
+      font-size: 4.2rem;
+      display: block;
+      margin: 10px 0 4px;
+      animation: rSpin 0.7s ease-out;
+    }
+    @keyframes rSpin {
+      from { transform: scale(0) rotate(-360deg); }
+      to { transform: scale(1) rotate(0); }
+    }
+    .reveal-card .r-name { font-size: 1.4rem; font-weight: bold; margin: 0; }
+    .reveal-card .r-recipe { font-size: 1.1rem; margin: 8px 0 0; opacity: 0.8; }
+    .reveal-card .r-desc { font-size: 0.9rem; margin: 8px 0 0; opacity: 0.85; line-height: 1.4; }
+    .reveal-card .r-btn {
+      margin-top: 16px;
+      font-size: 1.05rem;
+      font-weight: bold;
+      color: white;
+      background: var(--accent);
+      border: none;
+      border-radius: 14px;
+      padding: 12px 34px;
+      box-shadow: 0 4px 0 var(--accent-deep);
+    }
+    .reveal-card .r-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--accent-deep); }
+    .confetti-bit {
+      position: fixed;
+      top: -12px;
+      font-size: 1.2rem;
+      pointer-events: none;
+      z-index: 101;
+      animation: confFall linear forwards;
+    }
+    @keyframes confFall {
+      to { transform: translateY(105vh) rotate(540deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <a class="back-link" href="index.html">← Back to Game Hub</a>
+    <h1>🧪 Potion Lab</h1>
+    <p class="subtitle">Mix two ingredients in the cauldron. Discover new ingredients, then brew magical potions!</p>
+
+    <div class="hud">
+      <span class="pill" id="progressPill">⭐ 0/0 discovered</span>
+      <span class="pill" id="potionPill">⚗️ 0/0 potions</span>
+      <button class="pill pill-btn" id="soundBtn">🔊</button>
+      <button class="pill pill-btn" id="resetBtn">🧹 Start Over</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" id="tabMix">🧪 Mixing Table</button>
+      <button class="tab-btn" id="tabBook">📖 Potion Book</button>
+    </div>
+
+    <!-- ========== MIX TAB ========== -->
+    <section id="viewMix">
+      <div class="lab">
+        <div class="slots">
+          <button class="slot" id="slotA" aria-label="ingredient slot 1">❓</button>
+          <span class="plus-sign">+</span>
+          <button class="slot" id="slotB" aria-label="ingredient slot 2">❓</button>
+        </div>
+        <div class="cauldron-wrap" id="cauldronWrap">
+          <svg viewBox="0 0 200 170" role="img" aria-label="bubbling cauldron">
+            <ellipse cx="100" cy="158" rx="62" ry="9" fill="#00000055"/>
+            <path d="M30 62 Q30 140 100 148 Q170 140 170 62 Z" fill="#2b2140" stroke="#171028" stroke-width="5"/>
+            <ellipse cx="100" cy="62" rx="70" ry="16" fill="#171028"/>
+            <ellipse cx="100" cy="60" rx="60" ry="12" id="liquid" fill="#7ee06b"/>
+            <circle class="bubble" cx="80" cy="58" r="6" fill="#b7f5a8"/>
+            <circle class="bubble b2" cx="105" cy="60" r="5" fill="#dcffd2"/>
+            <circle class="bubble b3" cx="125" cy="57" r="7" fill="#b7f5a8"/>
+            <rect x="16" y="52" width="14" height="26" rx="6" fill="#171028"/>
+            <rect x="170" y="52" width="14" height="26" rx="6" fill="#171028"/>
+            <path d="M60 160 l-10 8 M100 162 l0 8 M140 160 l10 8" stroke="#171028" stroke-width="6" stroke-linecap="round"/>
+            <path d="M74 168 q6 -12 16 0 q6 -12 16 0 q6 -12 16 0" stroke="#ff8a3d" stroke-width="4" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <button class="mix-btn" id="mixBtn" disabled>✨ Mix!</button>
+        <p class="fail-msg" id="failMsg">&nbsp;</p>
+      </div>
+
+      <div class="shelf-head">
+        <h3>🗄️ Your ingredients — tap two to mix</h3>
+        <button class="hint-btn" id="hintBtn">💡 Hint</button>
+        <div class="hint-msg" id="hintMsg"></div>
+      </div>
+      <div class="shelf" id="shelf"></div>
+    </section>
+
+    <!-- ========== BOOK TAB ========== -->
+    <section id="viewBook" hidden>
+      <div class="book" id="book"></div>
+    </section>
+  </div>
+
+  <!-- Discovery pop-up -->
+  <div id="revealOverlay">
+    <div class="reveal-card">
+      <div class="r-label" id="rLabel">NEW DISCOVERY!</div>
+      <span class="r-emoji" id="rEmoji">⭐</span>
+      <p class="r-name" id="rName"></p>
+      <p class="r-recipe" id="rRecipe"></p>
+      <p class="r-desc" id="rDesc"></p>
+      <button class="r-btn" id="rBtn">Awesome!</button>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    /* ================= Ingredients & potions ================= */
+
+    const ITEMS = {
+      // starters
+      water:    { emoji: "💧", name: "Water", base: true },
+      lava:     { emoji: "🌋", name: "Lava", base: true },
+      earth:    { emoji: "🪨", name: "Earth", base: true },
+      wood:     { emoji: "🪵", name: "Wood", base: true },
+      air:      { emoji: "💨", name: "Air", base: true },
+      // discovered ingredients
+      fire:      { emoji: "🔥", name: "Fire" },
+      steam:     { emoji: "🌫️", name: "Steam" },
+      mud:       { emoji: "🟤", name: "Mud" },
+      plant:     { emoji: "🌱", name: "Plant" },
+      cloud:     { emoji: "☁️", name: "Cloud" },
+      brick:     { emoji: "🧱", name: "Brick" },
+      tornado:   { emoji: "🌪️", name: "Tornado" },
+      mountain:  { emoji: "🏔️", name: "Mountain" },
+      goo:       { emoji: "💩", name: "Stinky Goo" },
+      flower:    { emoji: "🌸", name: "Flower" },
+      tree:      { emoji: "🌳", name: "Tree" },
+      ice:       { emoji: "❄️", name: "Ice" },
+      storm:     { emoji: "⛈️", name: "Storm" },
+      lightning: { emoji: "⚡", name: "Lightning" },
+      crystal:   { emoji: "💎", name: "Crystal" },
+      mushroom:  { emoji: "🍄", name: "Mushroom" },
+      frog:      { emoji: "🐸", name: "Frog" },
+      star:      { emoji: "⭐", name: "Star" },
+      rainbow:   { emoji: "🌈", name: "Rainbow" },
+      dragon:    { emoji: "🐉", name: "Dragon" },
+      butterfly: { emoji: "🦋", name: "Butterfly" },
+      honey:     { emoji: "🍯", name: "Honey" },
+      castle:    { emoji: "🏰", name: "Castle" },
+      // potions (end of the line — they go in the Potion Book)
+      healing:   { emoji: "💚", name: "Healing Potion", potion: true, desc: "Fixes scraped knees and sad days." },
+      firebreath:{ emoji: "🌶️", name: "Fire Breath Potion", potion: true, desc: "Drink it and your burps come out as flames!" },
+      freeze:    { emoji: "🧊", name: "Freeze Potion", potion: true, desc: "Turns any puddle into an ice-skating rink." },
+      jumping:   { emoji: "🦘", name: "Jumping Potion", potion: true, desc: "One sip and you can bounce right over your house." },
+      unicorn:   { emoji: "🦄", name: "Rainbow Potion", potion: true, desc: "Everything you touch turns rainbow-coloured." },
+      strength:  { emoji: "💪", name: "Strength Potion", potion: true, desc: "Lift a whole mountain with one finger." },
+      invisible: { emoji: "👻", name: "Invisibility Potion", potion: true, desc: "Perfect for hide and seek. Unbeatable, actually." },
+      speed:     { emoji: "🏎️", name: "Speed Potion", potion: true, desc: "Zoom to school and back before breakfast." },
+      wish:      { emoji: "🌠", name: "Wish Potion", potion: true, desc: "Grants one wish. Choose very wisely!" },
+      sleep:     { emoji: "😴", name: "Sleep Potion", potion: true, desc: "The best naps in the galaxy, guaranteed." },
+      dino:      { emoji: "🦖", name: "Dino Potion", potion: true, desc: "ROAR! Turns you into a T-rex for one hour." },
+      love:      { emoji: "💘", name: "Friendship Potion", potion: true, desc: "Everyone you meet becomes your friend." },
+      giant:     { emoji: "🦒", name: "Giant Potion", potion: true, desc: "Grow as tall as a giraffe. Maybe taller." },
+      shrink:    { emoji: "🐜", name: "Shrink Potion", potion: true, desc: "Shrink to ant size and explore the garden jungle." },
+      royal:     { emoji: "👑", name: "Royal Potion", potion: true, desc: "Fit for a king — a crown appears instantly." },
+    };
+
+    // [ingredient, ingredient, result] — order doesn't matter, doubles allowed.
+    const RECIPES = [
+      ["wood", "lava", "fire"],
+      ["water", "lava", "steam"],
+      ["water", "earth", "mud"],
+      ["water", "wood", "plant"],
+      ["air", "water", "cloud"],
+      ["earth", "lava", "brick"],
+      ["air", "air", "tornado"],
+      ["earth", "earth", "mountain"],
+      ["mud", "mud", "goo"],
+      ["plant", "earth", "flower"],
+      ["plant", "wood", "tree"],
+      ["mountain", "cloud", "ice"],
+      ["cloud", "tornado", "storm"],
+      ["storm", "fire", "lightning"],
+      ["mountain", "lava", "crystal"],
+      ["mud", "plant", "mushroom"],
+      ["goo", "flower", "frog"],
+      ["crystal", "lightning", "star"],
+      ["storm", "crystal", "rainbow"],
+      ["frog", "fire", "dragon"],
+      ["flower", "air", "butterfly"],
+      ["flower", "flower", "honey"],
+      ["brick", "brick", "castle"],
+      // potions
+      ["honey", "mushroom", "healing"],
+      ["dragon", "lava", "firebreath"],
+      ["ice", "water", "freeze"],
+      ["frog", "honey", "jumping"],
+      ["rainbow", "water", "unicorn"],
+      ["crystal", "mushroom", "strength"],
+      ["steam", "steam", "invisible"],
+      ["lightning", "water", "speed"],
+      ["star", "water", "wish"],
+      ["flower", "cloud", "sleep"],
+      ["tree", "goo", "dino"],
+      ["butterfly", "honey", "love"],
+      ["tree", "mountain", "giant"],
+      ["mushroom", "tornado", "shrink"],
+      ["castle", "honey", "royal"],
+    ];
+
+    const RECIPE_MAP = {};
+    RECIPES.forEach(([a, b, r]) => { RECIPE_MAP[[a, b].sort().join("+")] = r; });
+
+    const FAIL_MSGS = [
+      "POOF! Nothing but stinky smoke… 🤢",
+      "Eww, that just made grey sludge. Try again!",
+      "The cauldron says: NOPE. 🙅",
+      "Fizzle… fizzle… nothing. Hmm!",
+      "That made a very sad bubble. Try a different mix!",
+      "BLURP! The cauldron burped. No potion though.",
+    ];
+
+    const TOTAL_DISCOVERABLE = Object.keys(ITEMS).filter((k) => !ITEMS[k].base).length;
+    const TOTAL_POTIONS = Object.keys(ITEMS).filter((k) => ITEMS[k].potion).length;
+
+    const SAVE_KEY = "potion-lab-save-v1";
+
+    /* ================= State ================= */
+
+    let found = Object.keys(ITEMS).filter((k) => ITEMS[k].base);
+    let newIds = [];
+    let soundOn = true;
+    let slotA = null;
+    let slotB = null;
+
+    /* ================= Sound ================= */
+
+    let actx = null;
+    function audio() {
+      if (!actx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) actx = new AC();
+      }
+      if (actx && actx.state === "suspended") actx.resume();
+      return actx;
+    }
+    function tone(freq, dur, type, vol, delay, slideTo) {
+      if (!soundOn) return;
+      const ctx = audio();
+      if (!ctx) return;
+      const t0 = ctx.currentTime + (delay || 0);
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, t0);
+      if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+      g.gain.setValueAtTime(vol || 0.12, t0);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.05);
+    }
+    const sClick = () => tone(600, 0.08, "square", 0.06);
+    const sPlop = () => tone(300, 0.12, "sine", 0.15, 0, 520);
+    const sBubble = () => { tone(180, 0.25, "sine", 0.1, 0, 320); tone(240, 0.2, "sine", 0.08, 0.15, 400); };
+    const sFail = () => tone(220, 0.4, "sawtooth", 0.09, 0, 90);
+    const sDiscover = () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, "triangle", 0.14, i * 0.1));
+    const sPotion = () => [392, 523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.25, "triangle", 0.13, i * 0.09));
+
+    /* ================= Save / load ================= */
+
+    const $ = (id) => document.getElementById(id);
+
+    function save() {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({ found, newIds, soundOn }));
+      } catch (e) { /* private mode */ }
+    }
+    function load() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return;
+        const s = JSON.parse(raw);
+        if (s && Array.isArray(s.found)) {
+          found = s.found.filter((k) => ITEMS[k]);
+          Object.keys(ITEMS).forEach((k) => { if (ITEMS[k].base && !found.includes(k)) found.push(k); });
+          newIds = Array.isArray(s.newIds) ? s.newIds.filter((k) => ITEMS[k]) : [];
+          soundOn = s.soundOn !== false;
+        }
+      } catch (e) { /* corrupted save — start fresh */ }
+    }
+
+    /* ================= UI rendering ================= */
+
+    function renderHud() {
+      const nFound = found.filter((k) => !ITEMS[k].base).length;
+      const nPotions = found.filter((k) => ITEMS[k].potion).length;
+      $("progressPill").textContent = "⭐ " + nFound + "/" + TOTAL_DISCOVERABLE + " discovered";
+      $("potionPill").textContent = "⚗️ " + nPotions + "/" + TOTAL_POTIONS + " potions";
+      $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
+    }
+
+    function renderShelf() {
+      const shelf = $("shelf");
+      shelf.innerHTML = "";
+      // Ingredients only — potions live in the book.
+      found.filter((k) => !ITEMS[k].potion).forEach((k) => {
+        const it = ITEMS[k];
+        const btn = document.createElement("button");
+        btn.className = "item-btn";
+        btn.dataset.item = k;
+        btn.innerHTML = '<span class="big">' + it.emoji + "</span>" + it.name +
+          (newIds.includes(k) ? '<span class="new-badge">NEW</span>' : "");
+        btn.addEventListener("click", () => pickItem(k));
+        shelf.appendChild(btn);
+      });
+    }
+
+    function renderSlots() {
+      const paint = (el, id) => {
+        if (id) {
+          el.classList.add("filled");
+          el.innerHTML = ITEMS[id].emoji + '<span class="slot-name">' + ITEMS[id].name + "</span>";
+        } else {
+          el.classList.remove("filled");
+          el.textContent = "❓";
+        }
+      };
+      paint($("slotA"), slotA);
+      paint($("slotB"), slotB);
+      $("mixBtn").disabled = !(slotA && slotB);
+    }
+
+    function renderBook() {
+      const book = $("book");
+      book.innerHTML = "";
+      Object.keys(ITEMS).filter((k) => ITEMS[k].potion).forEach((k) => {
+        const it = ITEMS[k];
+        const got = found.includes(k);
+        const card = document.createElement("div");
+        card.className = "potion-card" + (got ? "" : " locked");
+        card.innerHTML =
+          '<span class="p-emoji">' + (got ? it.emoji : "🧪") + "</span>" +
+          '<div><div class="p-name">' + (got ? it.name : "??? Mystery Potion") + "</div>" +
+          '<div class="p-desc">' + (got ? it.desc : "Keep mixing to unlock this one…") + "</div></div>";
+        book.appendChild(card);
+      });
+    }
+
+    function renderAll() {
+      renderHud();
+      renderShelf();
+      renderSlots();
+      renderBook();
+    }
+
+    /* ================= Game logic ================= */
+
+    function pickItem(k) {
+      // Tapping a shelf item fills the first empty slot.
+      if (!slotA) slotA = k;
+      else if (!slotB) slotB = k;
+      else { slotB = k; } // both full: replace the second one
+      if (newIds.includes(k)) {
+        newIds = newIds.filter((x) => x !== k);
+        renderShelf();
+        save();
+      }
+      sPlop();
+      renderSlots();
+      $("failMsg").innerHTML = "&nbsp;";
+    }
+
+    $("slotA").addEventListener("click", () => { if (slotA) { slotA = null; sClick(); renderSlots(); } });
+    $("slotB").addEventListener("click", () => { if (slotB) { slotB = null; sClick(); renderSlots(); } });
+
+    $("mixBtn").addEventListener("click", () => {
+      if (!slotA || !slotB) return;
+      const wrap = $("cauldronWrap");
+      wrap.classList.remove("mixing");
+      void wrap.offsetWidth;
+      wrap.classList.add("mixing");
+      sBubble();
+      $("mixBtn").disabled = true;
+      const a = slotA, b = slotB;
+      setTimeout(() => resolveMix(a, b), 750);
+    });
+
+    function resolveMix(a, b) {
+      const result = RECIPE_MAP[[a, b].sort().join("+")];
+      if (result && !found.includes(result)) {
+        found.push(result);
+        if (!ITEMS[result].potion) newIds.push(result);
+        slotA = null;
+        slotB = null;
+        save();
+        showReveal(a, b, result);
+        renderAll();
+      } else if (result) {
+        // Already discovered — gentle nudge, keep the slots.
+        $("failMsg").textContent = "You already made " + ITEMS[result].emoji + " " + ITEMS[result].name + " — try something new!";
+        sPlop();
+        renderSlots();
+      } else {
+        $("failMsg").textContent = FAIL_MSGS[Math.floor(Math.random() * FAIL_MSGS.length)];
+        sFail();
+        smokePuff();
+        renderSlots();
+      }
+    }
+
+    function smokePuff() {
+      const wrap = $("cauldronWrap");
+      for (let i = 0; i < 3; i++) {
+        const p = document.createElement("span");
+        p.className = "smoke-puff";
+        p.textContent = "💨";
+        p.style.top = "10px";
+        p.style.marginLeft = (i - 1) * 26 + "px";
+        p.style.animationDelay = i * 0.12 + "s";
+        wrap.appendChild(p);
+        setTimeout(() => p.remove(), 1400);
+      }
+    }
+
+    function showReveal(a, b, result) {
+      const it = ITEMS[result];
+      $("rLabel").textContent = it.potion ? "✨ NEW POTION BREWED! ✨" : "NEW DISCOVERY!";
+      $("rEmoji").textContent = it.emoji;
+      $("rName").textContent = it.name;
+      $("rRecipe").textContent = ITEMS[a].emoji + " + " + ITEMS[b].emoji + " = " + it.emoji;
+      $("rDesc").textContent = it.potion ? it.desc : "Added to your ingredient shelf — try mixing it with other things!";
+      $("revealOverlay").classList.add("show");
+      if (it.potion) { sPotion(); confetti(); } else { sDiscover(); }
+    }
+
+    function confetti() {
+      const bits = ["✨", "⭐", "🎉", "💜", "🧪"];
+      for (let i = 0; i < 18; i++) {
+        const c = document.createElement("span");
+        c.className = "confetti-bit";
+        c.textContent = bits[Math.floor(Math.random() * bits.length)];
+        c.style.left = Math.random() * 100 + "vw";
+        c.style.animationDuration = 1.6 + Math.random() * 1.6 + "s";
+        c.style.animationDelay = Math.random() * 0.4 + "s";
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 4000);
+      }
+    }
+
+    $("rBtn").addEventListener("click", () => {
+      $("revealOverlay").classList.remove("show");
+      sClick();
+      renderSlots();
+    });
+
+    /* ---------- Hints ---------- */
+
+    $("hintBtn").addEventListener("click", () => {
+      sClick();
+      const candidates = RECIPES.filter(([a, b, r]) =>
+        found.includes(a) && found.includes(b) && !found.includes(r));
+      const msg = $("hintMsg");
+      if (candidates.length === 0) {
+        msg.textContent = "No hints needed — you've found everything you can for now. Amazing!";
+      } else {
+        const [a] = candidates[Math.floor(Math.random() * candidates.length)];
+        msg.textContent = "💡 Try mixing " + ITEMS[a].emoji + " " + ITEMS[a].name + " with something…";
+      }
+      msg.classList.add("show");
+      clearTimeout(msg.__t);
+      msg.__t = setTimeout(() => msg.classList.remove("show"), 6000);
+    });
+
+    /* ---------- Tabs, sound, reset ---------- */
+
+    $("tabMix").addEventListener("click", () => switchTab(true));
+    $("tabBook").addEventListener("click", () => switchTab(false));
+    function switchTab(mix) {
+      sClick();
+      $("tabMix").classList.toggle("active", mix);
+      $("tabBook").classList.toggle("active", !mix);
+      $("viewMix").hidden = !mix;
+      $("viewBook").hidden = mix;
+    }
+
+    $("soundBtn").addEventListener("click", () => {
+      soundOn = !soundOn;
+      if (soundOn) sClick();
+      renderHud();
+      save();
+    });
+
+    $("resetBtn").addEventListener("click", () => {
+      if (!confirm("Start over? All your discoveries and potions will be gone.")) return;
+      found = Object.keys(ITEMS).filter((k) => ITEMS[k].base);
+      newIds = [];
+      slotA = null;
+      slotB = null;
+      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+      save();
+      renderAll();
+      $("failMsg").innerHTML = "&nbsp;";
+    });
+
+    /* ================= Start ================= */
+
+    load();
+    renderAll();
+  </script>
+</body>
+</html>
