@@ -72,6 +72,7 @@ Pages:
 - `brain-quest.html` → Brain Quest
 - `draw.html` → Doodle Pad (free drawing with brushes, rainbow, eraser, and emoji stamps)
 - `planet-house.html` → Planet House (create and name a planet, gather its resources, then build and decorate a house on it — every planet is saved in a "My Planets" gallery you can revisit)
+- `potion-lab.html` → Potion Lab (mix two ingredients in a cauldron to discover new ingredients and brew 15 collectible potions, starting from water, lava, earth, wood and air)
 
 ## Deployment
 
