@@ -74,6 +74,7 @@ Pages:
 - `planet-house.html` → Planet House (create and name a planet, gather its resources, then build and decorate a house on it — every planet is saved in a "My Planets" gallery you can revisit)
 - `potion-lab.html` → Potion Lab (mix two ingredients in a cauldron to discover new ingredients and brew 15 collectible potions, starting from water, lava, earth, wood and air)
 - `country-maker.html` → Country Maker (pick a country shape, paint biomes on the land, populate it with people and animals with a live population counter, design a flag, and save countries to a gallery)
+- `space-explorer.html` → Space Explorer (fly a rocket through five scrolling space sectors, follow the radar to find 50 hidden objects, and fill the Explorer's Log — sectors unlock in order and progress saves)
 
 ## Deployment
 
