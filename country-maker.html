@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ezra's Country Maker</title>
+  <style>
+    :root {
+      --bg: #06253d;
+      --paper: #f4f6fb;
+      --ink: #1f2a3d;
+      --accent: #0e9f6e;
+      --accent-deep: #046a4a;
+      --warm: #f5b400;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 10%, #0a3a5c 0%, transparent 45%),
+        radial-gradient(circle at 80% 80%, #0c4a6e 0%, transparent 50%),
+        var(--bg);
+      padding: 12px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* drifting clouds */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(40px 14px at 120px 80px, rgba(255,255,255,0.14), transparent),
+        radial-gradient(60px 18px at 420px 160px, rgba(255,255,255,0.10), transparent),
+        radial-gradient(50px 16px at 700px 60px, rgba(255,255,255,0.12), transparent),
+        radial-gradient(45px 15px at 260px 320px, rgba(255,255,255,0.08), transparent),
+        radial-gradient(55px 17px at 620px 420px, rgba(255,255,255,0.10), transparent);
+      background-size: 900px 600px;
+      animation: drift 40s linear infinite;
+      z-index: 0;
+    }
+    @keyframes drift {
+      from { background-position: 0 0; }
+      to { background-position: 900px 0; }
+    }
+
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 22px;
+      box-shadow: 0 14px 40px rgba(0, 20, 40, 0.55);
+      padding: clamp(14px, 2.5vw, 22px);
+      position: relative;
+      z-index: 1;
+    }
+    .back-link {
+      display: inline-block;
+      color: var(--accent-deep);
+      font-weight: bold;
+      text-decoration: none;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(1.5rem, 4.4vw, 2.1rem);
+      text-align: center;
+      color: var(--accent-deep);
+    }
+    .subtitle {
+      text-align: center;
+      opacity: 0.85;
+      margin: 4px 0 12px;
+      font-size: 0.92rem;
+    }
+    button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+    .step-label {
+      display: block;
+      font-weight: bold;
+      margin: 14px 0 8px;
+      font-size: 1rem;
+    }
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      font-size: 0.85rem;
+      margin-right: 6px;
+    }
+
+    /* ---------- Gallery ---------- */
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+    }
+    .country-card {
+      position: relative;
+      border: 3px solid #bcd8cd;
+      background: linear-gradient(180deg, #0b3653, #0e4a6e);
+      border-radius: 16px;
+      padding: 12px 8px 10px;
+      text-align: center;
+      color: white;
+      font-weight: bold;
+      font-size: 0.9rem;
+      transition: transform 0.1s;
+    }
+    .country-card:active { transform: scale(0.96); }
+    .country-card .card-flag {
+      display: block;
+      width: 64px;
+      margin: 0 auto 8px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.6);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.35);
+    }
+    .country-card .card-flag svg { display: block; width: 100%; height: auto; }
+    .country-card .card-sub {
+      display: block;
+      font-weight: normal;
+      font-size: 0.72rem;
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+    .country-card .del-btn {
+      position: absolute;
+      top: -8px; right: -8px;
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      border: 2px solid white;
+      background: #e44a4a;
+      color: white;
+      font-weight: bold;
+      font-size: 0.8rem;
+      line-height: 1;
+      padding: 0;
+    }
+
+    /* ---------- Shape picker ---------- */
+    .shape-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+      gap: 8px;
+    }
+    .shape-card {
+      border: 3px solid #cde4da;
+      background: linear-gradient(180deg, #eaf7ff, #d3ecfa);
+      border-radius: 14px;
+      padding: 6px 4px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 0.78rem;
+      color: var(--ink);
+      transition: transform 0.1s;
+    }
+    .shape-card svg { display: block; width: 100%; height: 56px; }
+    .shape-card.selected {
+      border-color: var(--accent);
+      background: linear-gradient(180deg, #dcf5ea, #bfe9d8);
+      transform: scale(1.03);
+    }
+    .name-row { display: flex; gap: 8px; }
+    #countryName {
+      flex: 1;
+      font-family: inherit;
+      font-size: 1.05rem;
+      font-weight: bold;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 2px solid #cde4da;
+      min-width: 0;
+    }
+    #countryName:focus { outline: none; border-color: var(--accent); }
+    .dice-btn {
+      font-size: 1.3rem;
+      padding: 6px 14px;
+      border-radius: 12px;
+      border: 2px solid #cde4da;
+      background: #f0faf6;
+    }
+    .go-btn {
+      display: block;
+      width: 100%;
+      margin-top: 18px;
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: white;
+      background: linear-gradient(180deg, #16b981, #0a8a5f);
+      border: none;
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 5px 0 #05593c;
+    }
+    .go-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #05593c; }
+
+    /* ---------- Editor ---------- */
+    .hud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .pill {
+      background: #e8f6f0;
+      border: 2px solid #bcd8cd;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-weight: bold;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pill.name-pill { background: #0b3653; color: white; border-color: #0b3653; }
+    .pill.name-pill .hud-flag {
+      display: inline-block;
+      width: 26px;
+      border-radius: 3px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.7);
+    }
+    .pill.name-pill .hud-flag svg { display: block; width: 100%; height: auto; }
+    .pill-btn { transition: transform 0.1s; }
+    .pill-btn:active { transform: scale(0.94); }
+    .hud .spacer { flex: 1; }
+    .pop-flash { animation: popFlash 0.4s; }
+    @keyframes popFlash {
+      0% { transform: scale(1); background: #fff4c2; }
+      50% { transform: scale(1.15); background: #ffe98a; }
+      100% { transform: scale(1); }
+    }
+
+    #mapWrap {
+      position: relative;
+      max-width: 700px;
+      margin: 0 auto;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 3px solid #0b3653;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      background: linear-gradient(180deg, #6cc2f0, #2f8fd4);
+    }
+    #mapWrap svg.map-svg { display: block; width: 100%; height: auto; }
+    .stamp-item {
+      position: absolute;
+      transform: translate(-50%, -80%);
+      font-size: clamp(1.15rem, 3.6vw, 1.7rem);
+      line-height: 1;
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.35));
+      cursor: grab;
+      touch-action: none;
+      z-index: 20;
+    }
+    .stamp-item.dragging {
+      cursor: grabbing;
+      filter: drop-shadow(0 7px 7px rgba(0,0,0,0.4));
+      z-index: 400 !important;
+    }
+    .stamp-item.pop-in { animation: popIn 0.35s; }
+    @keyframes popIn {
+      0% { transform: translate(-50%, -80%) scale(0); }
+      70% { transform: translate(-50%, -80%) scale(1.25); }
+      100% { transform: translate(-50%, -80%) scale(1); }
+    }
+    .float-gain {
+      position: absolute;
+      transform: translate(-50%, -100%);
+      font-weight: bold;
+      font-size: 1rem;
+      color: white;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+      pointer-events: none;
+      animation: floatUp 0.9s ease-out forwards;
+      z-index: 300;
+    }
+    @keyframes floatUp {
+      from { opacity: 1; margin-top: 0; }
+      to { opacity: 0; margin-top: -40px; }
+    }
+    #trashBin {
+      position: absolute;
+      right: 8px;
+      bottom: 8px;
+      font-size: 1.5rem;
+      background: rgba(255,255,255,0.88);
+      border: 2px dashed #b33;
+      border-radius: 14px;
+      padding: 5px 9px;
+      z-index: 500;
+      display: none;
+      pointer-events: none;
+    }
+    #trashBin.armed { display: block; }
+    #trashBin.hot { background: #ffd4d4; transform: scale(1.15); }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin: 12px 0;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      font-size: 0.95rem;
+      font-weight: bold;
+      padding: 10px 18px;
+      border-radius: 14px;
+      border: 2px solid #bcd8cd;
+      background: #f0faf6;
+      color: var(--ink);
+    }
+    .tab-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+
+    .panel {
+      background: #f0faf6;
+      border: 2px solid #bcd8cd;
+      border-radius: 16px;
+      padding: 12px;
+    }
+    .panel h3 { margin: 0 0 4px; font-size: 1.02rem; }
+    .panel .panel-tip { margin: 0 0 10px; font-size: 0.83rem; opacity: 0.8; }
+    .brush-row, .stamp-tray {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));
+      gap: 8px;
+    }
+    .brush-btn, .stamp-btn {
+      position: relative;
+      border: 3px solid #cde4da;
+      background: white;
+      border-radius: 12px;
+      padding: 7px 3px 6px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 0.72rem;
+      color: var(--ink);
+      transition: transform 0.1s;
+    }
+    .brush-btn .big, .stamp-btn .big { font-size: 1.45rem; display: block; line-height: 1.2; }
+    .brush-btn .chip {
+      display: block;
+      height: 8px;
+      border-radius: 4px;
+      margin: 4px 6px 0;
+      border: 1px solid rgba(0,0,0,0.15);
+    }
+    .brush-btn:active, .stamp-btn:active { transform: scale(0.92); }
+    .brush-btn.selected, .stamp-btn.selected { border-color: var(--accent); background: #dcf5ea; }
+    .stamp-btn .pop-tag {
+      display: block;
+      font-size: 0.66rem;
+      opacity: 0.75;
+    }
+    .tray-heading {
+      grid-column: 1 / -1;
+      font-weight: bold;
+      font-size: 0.8rem;
+      opacity: 0.75;
+      margin: 4px 0 -2px;
+      text-align: left;
+    }
+
+    /* ---------- Flag designer ---------- */
+    .flag-grid {
+      display: grid;
+      grid-template-columns: minmax(150px, 220px) 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 560px) { .flag-grid { grid-template-columns: 1fr; } }
+    .flag-preview {
+      border-radius: 10px;
+      overflow: hidden;
+      border: 3px solid #0b3653;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+    }
+    .flag-preview svg { display: block; width: 100%; height: auto; }
+    .flag-label { font-weight: bold; font-size: 0.85rem; margin: 10px 0 6px; opacity: 0.85; }
+    .flag-label:first-child { margin-top: 0; }
+    .pattern-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+      gap: 8px;
+    }
+    .pattern-btn {
+      border: 3px solid #cde4da;
+      background: white;
+      border-radius: 10px;
+      padding: 5px;
+    }
+    .pattern-btn svg { display: block; width: 100%; height: auto; border-radius: 4px; }
+    .pattern-btn.selected { border-color: var(--accent); background: #dcf5ea; }
+    .swatch-row { display: flex; flex-wrap: wrap; gap: 7px; }
+    .swatch {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      border: 3px solid rgba(0,0,0,0.15);
+      padding: 0;
+    }
+    .swatch.selected {
+      border-color: var(--ink);
+      transform: scale(1.12);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+    }
+    .emblem-row { display: flex; flex-wrap: wrap; gap: 7px; }
+    .emblem-btn {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      border: 3px solid #cde4da;
+      background: white;
+      font-size: 1.2rem;
+      padding: 0;
+    }
+    .emblem-btn.selected { border-color: var(--accent); background: #dcf5ea; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <a class="back-link" href="index.html">← Back to Game Hub</a>
+    <h1>🗺️ Country Maker</h1>
+
+    <!-- ========== SCREEN 1: FOUND A COUNTRY ========== -->
+    <section id="screenCreate">
+      <p class="subtitle">Pick a shape, name your country, then paint the land, raise the population and design your flag!</p>
+
+      <div id="galleryWrap" hidden>
+        <span class="step-label" style="margin-top:0;">🌍 My Countries — tap one to visit</span>
+        <div class="gallery" id="gallery"></div>
+        <span class="step-label" style="margin-top:16px;">…or found a brand new country:</span>
+      </div>
+
+      <span class="step-label"><span class="step-num">1</span>Pick your country's shape</span>
+      <div class="shape-row" id="shapeRow"></div>
+
+      <span class="step-label"><span class="step-num">2</span>Name your country</span>
+      <div class="name-row">
+        <input id="countryName" maxlength="20" placeholder="Country name…" autocomplete="off" />
+        <button class="dice-btn" id="randomNameBtn" title="Random name">🎲</button>
+      </div>
+
+      <button class="go-btn" id="foundBtn">🏳️ Found My Country!</button>
+    </section>
+
+    <!-- ========== SCREEN 2: EDITOR ========== -->
+    <section id="screenEdit" hidden>
+      <div class="hud">
+        <span class="pill name-pill"><span class="hud-flag" id="hudFlag"></span><span id="hudName"></span></span>
+        <span class="pill" id="popPill">🧑 0</span>
+        <span class="pill" id="animalPill">🐾 0</span>
+        <span class="spacer"></span>
+        <button class="pill pill-btn" id="soundBtn">🔊</button>
+        <button class="pill pill-btn" id="myCountriesBtn">🌍 My Countries</button>
+      </div>
+
+      <div id="mapWrap">
+        <div id="trashBin">🗑️</div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" id="tabLand">🖌️ Paint Land</button>
+        <button class="tab-btn" id="tabPeople">🧍 Populate</button>
+        <button class="tab-btn" id="tabFlag">🚩 Flag</button>
+      </div>
+
+      <!-- Land panel -->
+      <div class="panel" id="panelLand">
+        <h3>🖌️ Paint the land</h3>
+        <p class="panel-tip">Pick a biome, then tap or drag across your country to paint it.</p>
+        <div class="brush-row" id="brushRow"></div>
+      </div>
+
+      <!-- Populate panel -->
+      <div class="panel" id="panelPeople" hidden>
+        <h3>🧍 Populate your country</h3>
+        <p class="panel-tip">Pick something, then tap inside your country to add it. Drag things to move them, or drag onto the 🗑️ bin to remove.</p>
+        <div class="stamp-tray" id="stampTray"></div>
+      </div>
+
+      <!-- Flag panel -->
+      <div class="panel" id="panelFlag" hidden>
+        <h3>🚩 Design your flag</h3>
+        <div class="flag-grid">
+          <div class="flag-preview" id="flagPreview"></div>
+          <div>
+            <div class="flag-label">Pattern</div>
+            <div class="pattern-row" id="patternRow"></div>
+            <div class="flag-label">Colour 1</div>
+            <div class="swatch-row" id="flagC1"></div>
+            <div class="flag-label">Colour 2</div>
+            <div class="swatch-row" id="flagC2"></div>
+            <div class="flag-label">Emblem</div>
+            <div class="emblem-row" id="emblemRow"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    "use strict";
+
+    /* ================= Map shapes (viewBox 0 0 520 360) ================= */
+
+    function starPath() {
+      const cx = 260, cy = 200, R = 165, r = 68;
+      const pts = [];
+      for (let i = 0; i < 10; i++) {
+        const a = -Math.PI / 2 + (i * Math.PI) / 5;
+        const rad = i % 2 ? r : R;
+        pts.push((cx + rad * Math.cos(a)).toFixed(1) + " " + (cy + rad * Math.sin(a)).toFixed(1));
+      }
+      return "M " + pts.join(" L ") + " Z";
+    }
+
+    const SHAPES = {
+      island: { name: "Island",      d: "M 90 180 C 70 100 150 40 260 50 C 380 30 470 90 460 180 C 480 260 380 330 260 320 C 150 340 60 270 90 180 Z" },
+      boot:   { name: "The Boot",    d: "M 200 30 C 260 20 305 40 295 95 C 288 145 268 185 280 225 C 292 255 335 262 375 282 C 408 298 396 332 350 332 C 298 332 255 320 235 288 C 205 248 218 180 198 140 C 178 100 158 48 200 30 Z" },
+      star:   { name: "Star Land",   d: starPath() },
+      heart:  { name: "Heart Land",  d: "M 260 330 C 140 240 60 170 80 100 C 95 40 200 30 260 100 C 320 30 425 40 440 100 C 460 170 380 240 260 330 Z" },
+      banana: { name: "Banana Land", d: "M 100 80 C 80 220 200 330 380 322 C 432 318 452 278 420 268 C 300 280 190 210 160 90 C 152 55 105 45 100 80 Z" },
+      fish:   { name: "Fish Isle",   d: "M 60 180 C 120 70 300 60 400 150 L 468 92 C 480 180 480 200 468 278 L 400 215 C 300 305 120 290 60 180 Z" },
+      noodle: { name: "The Noodle",  d: "M 40 140 C 120 95 200 185 280 150 C 360 118 440 165 482 128 L 492 205 C 420 245 340 200 262 232 C 182 262 100 218 38 242 Z" },
+      donut:  { name: "Donut Isle",  d: "M 260 40 A 155 155 0 1 0 260.02 40 Z M 260 135 A 62 62 0 1 1 259.98 135 Z", evenodd: true },
+    };
+
+    const GRID = 20, COLS = 26, ROWS = 18;
+
+    /* ================= Biomes ================= */
+
+    const BIOMES = {
+      grass:    { emoji: "🌾", name: "Grass",    color: "#7ac74f" },
+      forest:   { emoji: "🌲", name: "Forest",   color: "#2e8b46" },
+      desert:   { emoji: "🏜️", name: "Desert",   color: "#eccd7f" },
+      snow:     { emoji: "❄️", name: "Snow",     color: "#eef6fb" },
+      mountain: { emoji: "🏔️", name: "Mountain", color: "#9aa3ad" },
+      lake:     { emoji: "🌊", name: "Lake",     color: "#4aa8e8" },
+      volcano:  { emoji: "🌋", name: "Volcano",  color: "#6b4a44" },
+      candy:    { emoji: "🍬", name: "Candy",    color: "#ff9ad5" },
+    };
+    const DEFAULT_BIOME = "grass";
+
+    /* ================= Stamps ================= */
+
+    const STAMPS = [
+      { id: "person",   emoji: "🧍", label: "Person",   pop: 1 },
+      { id: "kid",      emoji: "🧒", label: "Kid",      pop: 1 },
+      { id: "farmer",   emoji: "👩‍🌾", label: "Farmer",  pop: 1 },
+      { id: "house",    emoji: "🏠", label: "House",    pop: 4 },
+      { id: "castle",   emoji: "🏰", label: "Castle",   pop: 10 },
+      { id: "city",     emoji: "🏙️", label: "City",     pop: 100 },
+      { id: "cow",      emoji: "🐄", label: "Cow",      animal: true },
+      { id: "sheep",    emoji: "🐑", label: "Sheep",    animal: true },
+      { id: "lion",     emoji: "🦁", label: "Lion",     animal: true },
+      { id: "penguin",  emoji: "🐧", label: "Penguin",  animal: true },
+      { id: "kangaroo", emoji: "🦘", label: "Kangaroo", animal: true },
+      { id: "monkey",   emoji: "🐵", label: "Monkey",   animal: true },
+      { id: "dragon",   emoji: "🐉", label: "Dragon",   animal: true },
+      { id: "unicorn",  emoji: "🦄", label: "Unicorn",  animal: true },
+      { id: "tree",     emoji: "🌳", label: "Tree" },
+      { id: "cactus",   emoji: "🌵", label: "Cactus" },
+      { id: "tent",     emoji: "⛺", label: "Tent" },
+      { id: "boat",     emoji: "⛵", label: "Boat" },
+    ];
+
+    /* ================= Flags ================= */
+
+    const FLAG_COLORS = ["#e44a4a", "#f5b400", "#22a34a", "#3b82f6", "#8b3df0", "#ffffff", "#1f2a3d", "#ff8ac2", "#00b8c4", "#ff7a1a"];
+    const PATTERNS = ["solid", "h2", "h3", "v3", "diag", "circle", "cross"];
+    const EMBLEMS = ["", "⭐", "☀️", "🦅", "🐉", "🍀", "⚡", "🌙", "👑", "🦘"];
+
+    function flagSVG(f) {
+      const c1 = f.c1, c2 = f.c2;
+      let inner = '<rect width="60" height="40" fill="' + c1 + '"/>';
+      switch (f.pattern) {
+        case "h2":
+          inner += '<rect y="20" width="60" height="20" fill="' + c2 + '"/>';
+          break;
+        case "h3":
+          inner += '<rect y="0" width="60" height="13.3" fill="' + c2 + '"/>' +
+                   '<rect y="26.7" width="60" height="13.3" fill="' + c2 + '"/>';
+          break;
+        case "v3":
+          inner += '<rect x="0" width="20" height="40" fill="' + c2 + '"/>' +
+                   '<rect x="40" width="20" height="40" fill="' + c2 + '"/>';
+          break;
+        case "diag":
+          inner += '<path d="M0 0 L60 40 L0 40 Z" fill="' + c2 + '"/>';
+          break;
+        case "circle":
+          inner += '<circle cx="30" cy="20" r="12" fill="' + c2 + '"/>';
+          break;
+        case "cross":
+          inner += '<rect x="16" width="10" height="40" fill="' + c2 + '"/>' +
+                   '<rect y="15" width="60" height="10" fill="' + c2 + '"/>';
+          break;
+      }
+      if (f.emblem) {
+        inner += '<text x="30" y="21" text-anchor="middle" dominant-baseline="central" font-size="15">' + f.emblem + "</text>";
+      }
+      return '<svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">' + inner + "</svg>";
+    }
+
+    /* ================= Names ================= */
+
+    const NAME_STARTS = ["Ezra", "Wolf", "Sunny", "Wobble", "Snacky", "Dragon", "Pickle", "Mega", "Tiny", "Rainbow", "Banana", "Thunder"];
+    const NAME_ENDS = ["land", "topia", "ville", "donia", "ia", "burg", "shire", "landia", "covia", "nesia"];
+    function randomName() {
+      return NAME_STARTS[Math.floor(Math.random() * NAME_STARTS.length)] +
+             NAME_ENDS[Math.floor(Math.random() * NAME_ENDS.length)];
+    }
+
+    /* ================= State ================= */
+
+    const SAVE_KEY = "country-maker-saves-v1";
+
+    let store = { countries: [], currentId: null, soundOn: true };
+    let state = defaultState();
+    let currentBrush = "forest";
+    let currentStamp = "person";
+    let currentTab = "land";
+    let insideSet = new Set();
+    let shapePath2D = null;
+    let cellRects = {};
+
+    function defaultState() {
+      return {
+        id: null,
+        name: "",
+        shape: "island",
+        flag: { pattern: "h2", c1: "#e44a4a", c2: "#f5b400", emblem: "⭐" },
+        cells: {},      // "c,r" -> biome id (only non-default stored)
+        pops: [],       // [{ t, x, y }] — percent coords in the map box
+        started: false,
+      };
+    }
+
+    /* ================= Sound ================= */
+
+    let actx = null, soundOn = true;
+    function audio() {
+      if (!actx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) actx = new AC();
+      }
+      if (actx && actx.state === "suspended") actx.resume();
+      return actx;
+    }
+    function tone(freq, dur, type, vol, delay, slideTo) {
+      if (!soundOn) return;
+      const ctx = audio();
+      if (!ctx) return;
+      const t0 = ctx.currentTime + (delay || 0);
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, t0);
+      if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+      g.gain.setValueAtTime(vol || 0.12, t0);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.05);
+    }
+    const sClick = () => tone(600, 0.08, "square", 0.06);
+    const sPaint = () => tone(440 + Math.random() * 120, 0.05, "square", 0.035);
+    const sPlace = () => tone(350, 0.12, "sine", 0.14, 0, 550);
+    const sTrash = () => tone(400, 0.15, "sawtooth", 0.08, 0, 120);
+    const sWoosh = () => tone(200, 0.5, "sawtooth", 0.1, 0, 800);
+    const sNo = () => tone(180, 0.15, "square", 0.07);
+
+    /* ================= Save / load ================= */
+
+    const $ = (id) => document.getElementById(id);
+
+    function save() {
+      if (state.started && state.id) {
+        const snap = JSON.parse(JSON.stringify(state));
+        const i = store.countries.findIndex((c) => c.id === state.id);
+        if (i >= 0) store.countries[i] = snap; else store.countries.push(snap);
+        store.currentId = state.id;
+      }
+      store.soundOn = soundOn;
+      try { localStorage.setItem(SAVE_KEY, JSON.stringify(store)); } catch (e) { /* private mode */ }
+    }
+
+    function loadStore() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return;
+        const s = JSON.parse(raw);
+        if (s && Array.isArray(s.countries)) {
+          store.countries = s.countries.filter((c) => c && c.started && c.id && SHAPES[c.shape]);
+          store.currentId = s.currentId || null;
+          store.soundOn = s.soundOn !== false;
+          soundOn = store.soundOn;
+        }
+      } catch (e) { /* corrupted save — start fresh */ }
+    }
+
+    function sanitizeCountry(c) {
+      const s = Object.assign(defaultState(), JSON.parse(JSON.stringify(c)));
+      s.flag = Object.assign(defaultState().flag, s.flag || {});
+      if (!PATTERNS.includes(s.flag.pattern)) s.flag.pattern = "solid";
+      s.pops = Array.isArray(s.pops) ? s.pops.filter((p) => p && STAMPS.some((x) => x.id === p.t)) : [];
+      const cells = {};
+      Object.keys(s.cells || {}).forEach((k) => { if (BIOMES[s.cells[k]]) cells[k] = s.cells[k]; });
+      s.cells = cells;
+      return s;
+    }
+
+    function newId() {
+      return "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    }
+
+    /* ================= Creator screen ================= */
+
+    function shapePreviewSVG(key, fill) {
+      const sh = SHAPES[key];
+      return '<svg viewBox="0 0 520 360"><path d="' + sh.d + '"' +
+        (sh.evenodd ? ' fill-rule="evenodd"' : "") +
+        ' fill="' + (fill || "#48a86b") + '" stroke="#14532d" stroke-width="8"/></svg>';
+    }
+
+    function initCreator() {
+      const row = $("shapeRow");
+      row.innerHTML = "";
+      Object.keys(SHAPES).forEach((key) => {
+        const btn = document.createElement("button");
+        btn.className = "shape-card" + (key === state.shape ? " selected" : "");
+        btn.innerHTML = shapePreviewSVG(key) + SHAPES[key].name;
+        btn.addEventListener("click", () => {
+          state.shape = key;
+          sClick();
+          initCreator();
+        });
+        row.appendChild(btn);
+      });
+    }
+
+    function renderGallery() {
+      const wrap = $("galleryWrap");
+      const gal = $("gallery");
+      if (store.countries.length === 0) { wrap.hidden = true; return; }
+      wrap.hidden = false;
+      gal.innerHTML = "";
+      store.countries.forEach((c) => {
+        const counts = countPops(c.pops);
+        const card = document.createElement("button");
+        card.className = "country-card";
+        card.innerHTML =
+          '<span class="card-flag">' + flagSVG(Object.assign(defaultState().flag, c.flag || {})) + "</span>" +
+          c.name +
+          '<span class="card-sub">' + SHAPES[c.shape].name + " · 🧑 " + counts.pop + " · 🐾 " + counts.animals + "</span>";
+        card.addEventListener("click", () => visitCountry(c.id));
+        const del = document.createElement("button");
+        del.className = "del-btn";
+        del.textContent = "✕";
+        del.setAttribute("aria-label", "delete " + c.name);
+        del.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          deleteCountry(c.id);
+        });
+        card.appendChild(del);
+        gal.appendChild(card);
+      });
+    }
+
+    function visitCountry(id) {
+      const c = store.countries.find((x) => x.id === id);
+      if (!c) return;
+      state = sanitizeCountry(c);
+      store.currentId = id;
+      sWoosh();
+      save();
+      enterEdit();
+    }
+
+    function deleteCountry(id) {
+      const c = store.countries.find((x) => x.id === id);
+      if (!c) return;
+      if (!confirm("Delete " + c.name + " forever? Its land, people and flag will be gone.")) return;
+      store.countries = store.countries.filter((x) => x.id !== id);
+      if (store.currentId === id) store.currentId = null;
+      sTrash();
+      save();
+      renderGallery();
+    }
+
+    /* ================= Map building ================= */
+
+    function computeShapeGeometry() {
+      const sh = SHAPES[state.shape];
+      shapePath2D = new Path2D(sh.d);
+      const ctx = document.createElement("canvas").getContext("2d");
+      insideSet = new Set();
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const x = c * GRID + GRID / 2, y = r * GRID + GRID / 2;
+          if (ctx.isPointInPath(shapePath2D, x, y, sh.evenodd ? "evenodd" : "nonzero")) {
+            insideSet.add(c + "," + r);
+          }
+        }
+      }
+    }
+
+    function pointInShape(x, y) {
+      const ctx = document.createElement("canvas").getContext("2d");
+      return ctx.isPointInPath(shapePath2D, x, y, SHAPES[state.shape].evenodd ? "evenodd" : "nonzero");
+    }
+
+    function buildMap() {
+      computeShapeGeometry();
+      const wrap = $("mapWrap");
+      wrap.querySelectorAll("svg.map-svg, .stamp-item, .float-gain").forEach((n) => n.remove());
+      const sh = SHAPES[state.shape];
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", "0 0 520 360");
+      svg.classList.add("map-svg");
+      let cellsMarkup = "";
+      insideSet.forEach((key) => {
+        const [c, r] = key.split(",").map(Number);
+        const biome = state.cells[key] || DEFAULT_BIOME;
+        cellsMarkup += '<rect data-cell="' + key + '" x="' + (c * GRID + 0.7) + '" y="' + (r * GRID + 0.7) +
+          '" width="' + (GRID - 1.4) + '" height="' + (GRID - 1.4) + '" rx="3.5" fill="' + BIOMES[biome].color + '"/>';
+      });
+      svg.innerHTML =
+        '<defs><clipPath id="landClip"><path d="' + sh.d + '"' + (sh.evenodd ? ' clip-rule="evenodd"' : "") + "/></clipPath></defs>" +
+        '<path d="' + sh.d + '"' + (sh.evenodd ? ' fill-rule="evenodd"' : "") + ' fill="#3d8f5f"/>' +
+        '<g clip-path="url(#landClip)">' + cellsMarkup + "</g>" +
+        '<path d="' + sh.d + '"' + (sh.evenodd ? ' fill-rule="evenodd"' : "") + ' fill="none" stroke="#0b3653" stroke-width="4" stroke-linejoin="round"/>';
+      wrap.insertBefore(svg, $("trashBin"));
+      cellRects = {};
+      svg.querySelectorAll("rect[data-cell]").forEach((rect) => { cellRects[rect.dataset.cell] = rect; });
+      state.pops.forEach((p) => renderStamp(p, false));
+    }
+
+    /* ================= Editor ================= */
+
+    function enterEdit() {
+      $("screenCreate").hidden = true;
+      $("screenEdit").hidden = false;
+      $("hudName").textContent = state.name;
+      buildMap();
+      buildBrushRow();
+      buildStampTray();
+      buildFlagPanel();
+      renderFlagEverywhere();
+      updateCounters();
+      switchTab("land");
+      $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
+    }
+
+    function updateCounters(flash) {
+      const counts = countPops(state.pops);
+      $("popPill").textContent = "🧑 " + counts.pop;
+      $("animalPill").textContent = "🐾 " + counts.animals;
+      if (flash) {
+        const el = flash === "animal" ? $("animalPill") : $("popPill");
+        el.classList.remove("pop-flash");
+        void el.offsetWidth;
+        el.classList.add("pop-flash");
+      }
+    }
+
+    function countPops(pops) {
+      let pop = 0, animals = 0;
+      (pops || []).forEach((p) => {
+        const def = STAMPS.find((x) => x.id === p.t);
+        if (!def) return;
+        if (def.pop) pop += def.pop;
+        if (def.animal) animals += 1;
+      });
+      return { pop, animals };
+    }
+
+    /* ---------- Tabs ---------- */
+
+    function switchTab(tab) {
+      currentTab = tab;
+      $("tabLand").classList.toggle("active", tab === "land");
+      $("tabPeople").classList.toggle("active", tab === "people");
+      $("tabFlag").classList.toggle("active", tab === "flag");
+      $("panelLand").hidden = tab !== "land";
+      $("panelPeople").hidden = tab !== "people";
+      $("panelFlag").hidden = tab !== "flag";
+    }
+    $("tabLand").addEventListener("click", () => { sClick(); switchTab("land"); });
+    $("tabPeople").addEventListener("click", () => { sClick(); switchTab("people"); });
+    $("tabFlag").addEventListener("click", () => { sClick(); switchTab("flag"); });
+
+    /* ---------- Biome painting ---------- */
+
+    function buildBrushRow() {
+      const row = $("brushRow");
+      row.innerHTML = "";
+      Object.keys(BIOMES).forEach((b) => {
+        const btn = document.createElement("button");
+        btn.className = "brush-btn" + (b === currentBrush ? " selected" : "");
+        btn.innerHTML = '<span class="big">' + BIOMES[b].emoji + "</span>" + BIOMES[b].name +
+          '<span class="chip" style="background:' + BIOMES[b].color + ';"></span>';
+        btn.addEventListener("click", () => {
+          currentBrush = b;
+          sClick();
+          buildBrushRow();
+        });
+        row.appendChild(btn);
+      });
+    }
+
+    function mapCoords(ev) {
+      const svg = $("mapWrap").querySelector("svg.map-svg");
+      const r = svg.getBoundingClientRect();
+      return {
+        x: ((ev.clientX - r.left) / r.width) * 520,
+        y: ((ev.clientY - r.top) / r.height) * 360,
+        rect: r,
+      };
+    }
+
+    function paintAt(ev) {
+      const { x, y } = mapCoords(ev);
+      const c = Math.floor(x / GRID), r = Math.floor(y / GRID);
+      const key = c + "," + r;
+      if (!insideSet.has(key)) return;
+      const current = state.cells[key] || DEFAULT_BIOME;
+      if (current === currentBrush) return;
+      if (currentBrush === DEFAULT_BIOME) delete state.cells[key];
+      else state.cells[key] = currentBrush;
+      cellRects[key].setAttribute("fill", BIOMES[currentBrush].color);
+      sPaint();
+    }
+
+    let painting = false;
+    $("mapWrap").addEventListener("pointerdown", (ev) => {
+      if (ev.target.closest(".stamp-item")) return;
+      if (currentTab === "land") {
+        painting = true;
+        $("mapWrap").setPointerCapture(ev.pointerId);
+        paintAt(ev);
+      } else if (currentTab === "people") {
+        placeStampAt(ev);
+      }
+    });
+    $("mapWrap").addEventListener("pointermove", (ev) => {
+      if (painting) paintAt(ev);
+    });
+    const stopPaint = () => { if (painting) { painting = false; save(); } };
+    $("mapWrap").addEventListener("pointerup", stopPaint);
+    $("mapWrap").addEventListener("pointercancel", stopPaint);
+
+    /* ---------- Stamps ---------- */
+
+    function buildStampTray() {
+      const tray = $("stampTray");
+      tray.innerHTML = "";
+      const groups = [
+        ["People & buildings", (s) => s.pop],
+        ["Animals", (s) => s.animal],
+        ["Nature & extras", (s) => !s.pop && !s.animal],
+      ];
+      groups.forEach(([heading, match]) => {
+        const h = document.createElement("div");
+        h.className = "tray-heading";
+        h.textContent = heading;
+        tray.appendChild(h);
+        STAMPS.filter(match).forEach((s) => {
+          const btn = document.createElement("button");
+          btn.className = "stamp-btn" + (s.id === currentStamp ? " selected" : "");
+          btn.innerHTML = '<span class="big">' + s.emoji + "</span>" + s.label +
+            '<span class="pop-tag">' + (s.pop ? "+" + s.pop + " 🧑" : s.animal ? "+1 🐾" : "&nbsp;") + "</span>";
+          btn.addEventListener("click", () => {
+            currentStamp = s.id;
+            sClick();
+            buildStampTray();
+          });
+          tray.appendChild(btn);
+        });
+      });
+    }
+
+    function placeStampAt(ev) {
+      const { x, y } = mapCoords(ev);
+      if (!pointInShape(x, y)) { sNo(); return; }
+      const p = { t: currentStamp, x: (x / 520) * 100, y: (y / 360) * 100 };
+      state.pops.push(p);
+      renderStamp(p, true);
+      const def = STAMPS.find((s) => s.id === currentStamp);
+      if (def.pop) floatGain(p.x, p.y, "+" + def.pop + " 🧑");
+      else if (def.animal) floatGain(p.x, p.y, "+1 🐾");
+      sPlace();
+      updateCounters(def.animal ? "animal" : def.pop ? "pop" : null);
+      save();
+    }
+
+    function floatGain(xPct, yPct, text) {
+      const f = document.createElement("div");
+      f.className = "float-gain";
+      f.textContent = text;
+      f.style.left = xPct + "%";
+      f.style.top = yPct + "%";
+      $("mapWrap").appendChild(f);
+      setTimeout(() => f.remove(), 900);
+    }
+
+    function renderStamp(p, animate) {
+      const def = STAMPS.find((s) => s.id === p.t);
+      if (!def) return;
+      const el = document.createElement("div");
+      el.className = "stamp-item" + (animate ? " pop-in" : "");
+      el.textContent = def.emoji;
+      el.style.left = p.x + "%";
+      el.style.top = p.y + "%";
+      el.__stamp = p;
+      attachStampDrag(el);
+      $("mapWrap").appendChild(el);
+    }
+
+    function attachStampDrag(el) {
+      el.addEventListener("pointerdown", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        el.setPointerCapture(ev.pointerId);
+        el.classList.add("dragging");
+        $("trashBin").classList.add("armed");
+
+        const move = (e) => {
+          const r = $("mapWrap").getBoundingClientRect();
+          const x = Math.min(98, Math.max(2, ((e.clientX - r.left) / r.width) * 100));
+          const y = Math.min(97, Math.max(4, ((e.clientY - r.top) / r.height) * 100));
+          el.style.left = x + "%";
+          el.style.top = y + "%";
+          el.__stamp.x = x;
+          el.__stamp.y = y;
+          const bin = $("trashBin").getBoundingClientRect();
+          $("trashBin").classList.toggle("hot",
+            e.clientX > bin.left - 14 && e.clientX < bin.right + 14 &&
+            e.clientY > bin.top - 14 && e.clientY < bin.bottom + 14);
+        };
+        const up = () => {
+          el.removeEventListener("pointermove", move);
+          el.removeEventListener("pointerup", up);
+          el.removeEventListener("pointercancel", up);
+          el.classList.remove("dragging");
+          const binEl = $("trashBin");
+          const overBin = binEl.classList.contains("hot");
+          binEl.classList.remove("armed", "hot");
+          if (overBin) {
+            const idx = state.pops.indexOf(el.__stamp);
+            if (idx >= 0) state.pops.splice(idx, 1);
+            el.remove();
+            sTrash();
+            updateCounters();
+          } else {
+            sClick();
+          }
+          save();
+        };
+        el.addEventListener("pointermove", move);
+        el.addEventListener("pointerup", up);
+        el.addEventListener("pointercancel", up);
+      });
+    }
+
+    /* ---------- Flag designer ---------- */
+
+    function buildFlagPanel() {
+      const pr = $("patternRow");
+      pr.innerHTML = "";
+      PATTERNS.forEach((p) => {
+        const btn = document.createElement("button");
+        btn.className = "pattern-btn" + (p === state.flag.pattern ? " selected" : "");
+        btn.innerHTML = flagSVG({ pattern: p, c1: state.flag.c1, c2: state.flag.c2, emblem: "" });
+        btn.setAttribute("aria-label", "flag pattern " + p);
+        btn.addEventListener("click", () => {
+          state.flag.pattern = p;
+          sClick();
+          buildFlagPanel();
+          renderFlagEverywhere();
+          save();
+        });
+        pr.appendChild(btn);
+      });
+      buildFlagSwatches("flagC1", "c1");
+      buildFlagSwatches("flagC2", "c2");
+      const er = $("emblemRow");
+      er.innerHTML = "";
+      EMBLEMS.forEach((e) => {
+        const btn = document.createElement("button");
+        btn.className = "emblem-btn" + (e === state.flag.emblem ? " selected" : "");
+        btn.textContent = e || "🚫";
+        btn.setAttribute("aria-label", e ? "emblem " + e : "no emblem");
+        btn.addEventListener("click", () => {
+          state.flag.emblem = e;
+          sClick();
+          buildFlagPanel();
+          renderFlagEverywhere();
+          save();
+        });
+        er.appendChild(btn);
+      });
+    }
+
+    function buildFlagSwatches(elId, prop) {
+      const row = $(elId);
+      row.innerHTML = "";
+      FLAG_COLORS.forEach((c) => {
+        const btn = document.createElement("button");
+        btn.className = "swatch" + (c === state.flag[prop] ? " selected" : "");
+        btn.style.background = c;
+        btn.setAttribute("aria-label", "colour " + c);
+        btn.addEventListener("click", () => {
+          state.flag[prop] = c;
+          sClick();
+          buildFlagPanel();
+          renderFlagEverywhere();
+          save();
+        });
+        row.appendChild(btn);
+      });
+    }
+
+    function renderFlagEverywhere() {
+      $("flagPreview").innerHTML = flagSVG(state.flag);
+      $("hudFlag").innerHTML = flagSVG(state.flag);
+    }
+
+    /* ================= Wire-up ================= */
+
+    $("randomNameBtn").addEventListener("click", () => {
+      $("countryName").value = randomName();
+      sClick();
+    });
+
+    $("foundBtn").addEventListener("click", () => {
+      state.id = newId();
+      state.name = $("countryName").value.trim() || randomName();
+      state.started = true;
+      sWoosh();
+      save();
+      enterEdit();
+    });
+
+    $("soundBtn").addEventListener("click", () => {
+      soundOn = !soundOn;
+      $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
+      if (soundOn) sClick();
+      save();
+    });
+
+    $("myCountriesBtn").addEventListener("click", () => {
+      // Snapshot the current country, then head back to the gallery.
+      save();
+      sClick();
+      state = defaultState();
+      store.currentId = null;
+      save();
+      $("screenEdit").hidden = true;
+      $("screenCreate").hidden = false;
+      $("countryName").value = "";
+      initCreator();
+      renderGallery();
+    });
+
+    /* ================= Start ================= */
+
+    loadStore();
+    initCreator();
+    renderGallery();
+    const current = store.currentId && store.countries.find((c) => c.id === store.currentId);
+    if (current) {
+      state = sanitizeCountry(current);
+      enterEdit();
+    }
+  </script>
+</body>
+</html>
