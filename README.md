@@ -73,6 +73,7 @@ Pages:
 - `draw.html` → Doodle Pad (free drawing with brushes, rainbow, eraser, and emoji stamps)
 - `planet-house.html` → Planet House (create and name a planet, gather its resources, then build and decorate a house on it — every planet is saved in a "My Planets" gallery you can revisit)
 - `potion-lab.html` → Potion Lab (mix two ingredients in a cauldron to discover new ingredients and brew 15 collectible potions, starting from water, lava, earth, wood and air)
+- `country-maker.html` → Country Maker (pick a country shape, paint biomes on the land, populate it with people and animals with a live population counter, design a flag, and save countries to a gallery)
 
 ## Deployment
 
