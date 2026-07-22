@@ -427,6 +427,19 @@
       padding: 0;
     }
     .emblem-btn.selected { border-color: var(--accent); background: #dcf5ea; }
+    .clear-btn {
+      display: block;
+      margin-top: 12px;
+      border: 2px solid #f0b4b4;
+      background: #fff0f0;
+      color: #a33;
+      border-radius: 12px;
+      padding: 9px 16px;
+      font-weight: bold;
+      font-size: 0.85rem;
+      transition: transform 0.1s;
+    }
+    .clear-btn:active { transform: scale(0.95); }
   </style>
 </head>
 <body>
@@ -482,6 +495,7 @@
         <h3>🖌️ Paint the land</h3>
         <p class="panel-tip">Pick a biome, then tap or drag across your country to paint it.</p>
         <div class="brush-row" id="brushRow"></div>
+        <button class="clear-btn" id="clearPaintBtn">🧽 Clear all paint</button>
       </div>
 
       <!-- Populate panel -->
@@ -489,6 +503,7 @@
         <h3>🧍 Populate your country</h3>
         <p class="panel-tip">Pick something, then tap inside your country to add it. Boats ⛵ and whales 🐋 go in the blue water — the ocean or a lake! Drag things to move them, or drag onto the 🗑️ bin to remove.</p>
         <div class="stamp-tray" id="stampTray"></div>
+        <button class="clear-btn" id="clearPopsBtn">🧹 Clear everyone off the map</button>
       </div>
 
       <!-- Flag panel -->
@@ -1159,6 +1174,27 @@
       sWoosh();
       save();
       enterEdit();
+    });
+
+    $("clearPaintBtn").addEventListener("click", () => {
+      if (Object.keys(state.cells).length === 0) { sNo(); return; }
+      if (!confirm("Wipe all the paint off " + state.name + " and start the land again?")) return;
+      state.cells = {};
+      Object.keys(cellRects).forEach((key) => {
+        cellRects[key].setAttribute("fill", BIOMES[DEFAULT_BIOME].color);
+      });
+      sTrash();
+      save();
+    });
+
+    $("clearPopsBtn").addEventListener("click", () => {
+      if (state.pops.length === 0) { sNo(); return; }
+      if (!confirm("Remove every person, animal and thing from " + state.name + "?")) return;
+      state.pops = [];
+      $("mapWrap").querySelectorAll(".stamp-item").forEach((n) => n.remove());
+      sTrash();
+      updateCounters();
+      save();
     });
 
     $("soundBtn").addEventListener("click", () => {
