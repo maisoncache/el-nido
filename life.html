@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ezra's Game of Life</title>
+  <style>
+    :root {
+      --bg: #123a1e;
+      --ink: #1f2a3d;
+      --accent: #e44a4a;
+      --accent-deep: #a32020;
+      --good: #22a34a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 10%, #1d5c2e 0%, transparent 45%),
+        radial-gradient(circle at 80% 80%, #17542b 0%, transparent 50%),
+        var(--bg);
+      padding: 12px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.97);
+      border-radius: 22px;
+      box-shadow: 0 14px 40px rgba(0, 20, 5, 0.5);
+      padding: clamp(14px, 2.5vw, 22px);
+      position: relative;
+      z-index: 1;
+    }
+    .back-link {
+      display: inline-block;
+      color: var(--accent-deep);
+      font-weight: bold;
+      text-decoration: none;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(1.5rem, 4.4vw, 2.1rem);
+      text-align: center;
+      color: var(--accent-deep);
+    }
+    .subtitle {
+      text-align: center;
+      opacity: 0.85;
+      margin: 4px 0 14px;
+      font-size: 0.92rem;
+    }
+    button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+    /* ---------- Setup ---------- */
+    .step-label { display: block; font-weight: bold; margin: 14px 0 8px; font-size: 1rem; text-align: center; }
+    .car-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .car-btn {
+      width: 74px; height: 74px;
+      border-radius: 18px;
+      border: 3px solid #e3d9c8;
+      background: #fdfaf3;
+      font-size: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s;
+    }
+    .car-btn.selected { border-color: var(--good); background: #e9f9ee; transform: scale(1.08); }
+    .car-dot {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      border: 3px solid rgba(0,0,0,0.2);
+      color: white;
+    }
+    .go-btn {
+      display: block;
+      width: min(400px, 100%);
+      margin: 22px auto 0;
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: white;
+      background: linear-gradient(180deg, #ff6b6b, #d43030);
+      border: none;
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 5px 0 #8f1d1d;
+    }
+    .go-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #8f1d1d; }
+
+    /* ---------- Game ---------- */
+    .hud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+    .pl-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: #f7f3ea;
+      border: 3px solid #e3d9c8;
+      border-radius: 999px;
+      padding: 6px 13px;
+      font-weight: bold;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    .pl-pill.active-turn { border-color: var(--good); background: #e9f9ee; }
+    .pl-pill .mini-dot {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      border: 2px solid rgba(0,0,0,0.2);
+      flex: none;
+    }
+    .pl-pill .pl-extras { font-size: 0.8rem; letter-spacing: 1px; }
+    .pill-btn {
+      background: #f7f3ea;
+      border: 2px solid #e3d9c8;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-weight: bold;
+      font-size: 0.88rem;
+      transition: transform 0.1s;
+    }
+    .pill-btn:active { transform: scale(0.94); }
+    .money-flash { animation: moneyFlash 0.45s; }
+    @keyframes moneyFlash {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.12); background: #fff3b0; }
+      100% { transform: scale(1); }
+    }
+
+    .banner {
+      background: #fff7dc;
+      border: 2px dashed #f5b400;
+      color: #6b4d00;
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-weight: bold;
+      text-align: center;
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+      min-height: 2.4em;
+    }
+
+    .game-row {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+    @media (max-width: 640px) { .game-row { grid-template-columns: 1fr; } }
+    .spin-box {
+      background: #f7f3ea;
+      border: 2px solid #e3d9c8;
+      border-radius: 16px;
+      padding: 12px 10px;
+      text-align: center;
+      position: sticky;
+      top: 8px;
+    }
+    @media (max-width: 640px) {
+      .spin-box { position: static; display: flex; align-items: center; justify-content: center; gap: 14px; }
+    }
+    .wheel-wrap { position: relative; width: 110px; margin: 0 auto; }
+    @media (max-width: 640px) { .wheel-wrap { margin: 0; } }
+    .wheel-pointer {
+      position: absolute;
+      top: -7px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 9px solid transparent;
+      border-right: 9px solid transparent;
+      border-top: 14px solid var(--ink);
+      z-index: 2;
+    }
+    #wheel {
+      width: 110px; height: 110px;
+      border-radius: 50%;
+      border: 4px solid var(--ink);
+      position: relative;
+      background: conic-gradient(
+        #ff6b6b 0deg 36deg, #ffd166 36deg 72deg, #6bcf7f 72deg 108deg, #6ba8ff 108deg 144deg, #c78bff 144deg 180deg,
+        #ff9a6b 180deg 216deg, #ffe66b 216deg 252deg, #7fe0c0 252deg 288deg, #8fb8ff 288deg 324deg, #ff8ac2 324deg 360deg);
+      transition: transform 3s cubic-bezier(0.12, 0.6, 0.08, 1);
+    }
+    #wheel span {
+      position: absolute;
+      left: 50%; top: 50%;
+      font-weight: bold;
+      font-size: 0.82rem;
+      color: #1f2a3d;
+      transform-origin: 0 0;
+    }
+    .spin-btn {
+      margin-top: 12px;
+      font-size: 1.05rem;
+      font-weight: bold;
+      color: white;
+      background: linear-gradient(180deg, #34c46a, #1f9e4d);
+      border: none;
+      border-radius: 14px;
+      padding: 11px 26px;
+      box-shadow: 0 4px 0 #157038;
+    }
+    @media (max-width: 640px) { .spin-btn { margin-top: 0; } }
+    .spin-btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 #157038; }
+    .spin-btn:disabled { background: #b9c4d6; box-shadow: 0 4px 0 #94a0b5; cursor: not-allowed; }
+
+    #boardBox {
+      background: linear-gradient(160deg, #cfe8b8, #a8d68a);
+      border: 3px solid #4a7a2e;
+      border-radius: 18px;
+      overflow: hidden;
+    }
+    #boardBox svg { display: block; width: 100%; height: auto; }
+    .car-marker { transition: cx 0.18s ease, cy 0.18s ease; }
+
+    /* ---------- Card overlay ---------- */
+    #cardOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 25, 8, 0.72);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    #cardOverlay.show { display: flex; }
+    .life-card {
+      background: white;
+      border-radius: 22px;
+      padding: clamp(18px, 5vw, 30px);
+      text-align: center;
+      max-width: 420px;
+      width: 100%;
+      animation: cardPop 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+      box-shadow: 0 0 50px rgba(255, 230, 130, 0.6);
+    }
+    @keyframes cardPop {
+      from { transform: scale(0.4); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .life-card .c-who {
+      font-weight: bold;
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      color: #8a7a4a;
+    }
+    .life-card .c-emoji { font-size: 3.2rem; display: block; margin: 8px 0 4px; }
+    .life-card h2 { margin: 0 0 4px; font-size: 1.25rem; }
+    .life-card .c-text { margin: 4px 0 0; font-size: 0.95rem; opacity: 0.9; }
+    .c-choices { display: grid; gap: 8px; margin-top: 14px; }
+    .c-choice {
+      border: 3px solid #e3d9c8;
+      background: #fdfaf3;
+      border-radius: 14px;
+      padding: 10px;
+      font-weight: bold;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-align: left;
+      transition: transform 0.1s;
+    }
+    .c-choice:active { transform: scale(0.97); }
+    .c-choice .ch-emoji { font-size: 1.6rem; }
+    .c-choice .ch-sub { display: block; font-size: 0.78rem; font-weight: normal; opacity: 0.75; }
+    .c-ok {
+      margin-top: 14px;
+      font-size: 1.02rem;
+      font-weight: bold;
+      color: white;
+      background: var(--accent);
+      border: none;
+      border-radius: 14px;
+      padding: 11px 34px;
+      box-shadow: 0 4px 0 var(--accent-deep);
+    }
+    .c-ok:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--accent-deep); }
+
+    /* ---------- Results ---------- */
+    .tally { margin: 12px 0 0; display: grid; gap: 8px; }
+    .tally-row {
+      border: 2px solid #e3d9c8;
+      border-radius: 12px;
+      padding: 10px;
+      text-align: left;
+      font-size: 0.9rem;
+      background: #fdfaf3;
+    }
+    .tally-row.winner { border-color: #f5b400; background: #fff7dc; }
+    .tally-row .t-name { font-weight: bold; }
+    .tally-row .t-line { display: flex; justify-content: space-between; opacity: 0.85; font-size: 0.83rem; }
+    .tally-row .t-total { display: flex; justify-content: space-between; font-weight: bold; margin-top: 4px; border-top: 1px dashed #ccc; padding-top: 4px; }
+    .confetti-bit {
+      position: fixed;
+      top: -12px;
+      font-size: 1.2rem;
+      pointer-events: none;
+      z-index: 101;
+      animation: confFall linear forwards;
+    }
+    @keyframes confFall { to { transform: translateY(105vh) rotate(540deg); } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <a class="back-link" href="index.html">← Back to Game Hub</a>
+    <h1>🎡 Ezra's Game of Life</h1>
+
+    <!-- ========== SETUP ========== -->
+    <section id="screenSetup">
+      <p class="subtitle">Spin the wheel and drive through life! Get a job, make friends, buy a house and retire rich. You play against Robo 🤖.</p>
+      <span class="step-label">Pick your car colour</span>
+      <div class="car-row" id="carRow"></div>
+      <button class="go-btn" id="startBtn">🎲 Start the Game!</button>
+    </section>
+
+    <!-- ========== GAME ========== -->
+    <section id="screenGame" hidden>
+      <div class="hud">
+        <span class="pl-pill" id="pill0"></span>
+        <span class="pl-pill" id="pill1"></span>
+        <button class="pill-btn" id="soundBtn">🔊</button>
+        <button class="pill-btn" id="newGameBtn">🔄 New Game</button>
+      </div>
+      <div class="banner" id="banner"></div>
+      <div class="game-row">
+        <div class="spin-box">
+          <div class="wheel-wrap">
+            <div class="wheel-pointer"></div>
+            <div id="wheel"></div>
+          </div>
+          <button class="spin-btn" id="spinBtn">🎡 SPIN!</button>
+        </div>
+        <div id="boardBox"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Card overlay -->
+  <div id="cardOverlay">
+    <div class="life-card">
+      <div class="c-who" id="cWho"></div>
+      <span class="c-emoji" id="cEmoji"></span>
+      <h2 id="cTitle"></h2>
+      <p class="c-text" id="cText"></p>
+      <div class="c-choices" id="cChoices"></div>
+      <button class="c-ok" id="cOk">OK!</button>
+      <div class="tally" id="cTally"></div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    /* ================= Board layout ================= */
+
+    const COLS = 12, ROWS = 6, N = COLS * ROWS; // 72 spaces, serpentine
+    const STOPS = { job: 8, friend: 26, house: 44, dream: 58 };
+    const LAST = N - 1;
+
+    function spaceXY(i) {
+      const r = Math.floor(i / COLS);
+      let c = i % COLS;
+      if (r % 2 === 1) c = COLS - 1 - c;
+      return { x: 50 + c * 56.4, y: 70 + r * 80 };
+    }
+
+    function spaceType(i) {
+      if (i === 0) return "start";
+      if (i === LAST) return "end";
+      if (i === STOPS.job) return "job";
+      if (i === STOPS.friend) return "friend";
+      if (i === STOPS.house) return "house";
+      if (i === STOPS.dream) return "dream";
+      if (i < STOPS.job) return "event";
+      if (i % 10 === 2) return "star";
+      if (i % 5 === 0 || i % 5 === 3) return "payday";
+      return "event";
+    }
+
+    const TYPE_STYLE = {
+      start:  { fill: "#f5b400", emoji: "🎒" },
+      end:    { fill: "#f5b400", emoji: "🏆" },
+      job:    { fill: "#8b3df0", emoji: "💼" },
+      friend: { fill: "#8b3df0", emoji: "❤️" },
+      house:  { fill: "#8b3df0", emoji: "🏠" },
+      dream:  { fill: "#8b3df0", emoji: "🌟" },
+      payday: { fill: "#22a34a", emoji: "" },
+      event:  { fill: "#ff8a3d", emoji: "" },
+      star:   { fill: "#ffd166", emoji: "" },
+    };
+
+    /* ================= Jobs / houses / events ================= */
+
+    const JOBS = [
+      { emoji: "🧑‍🚀", name: "Astronaut", salary: 800 },
+      { emoji: "🐶", name: "Vet", salary: 600 },
+      { emoji: "🎮", name: "Game Maker", salary: 700 },
+      { emoji: "🍳", name: "Chef", salary: 500 },
+      { emoji: "🧑‍🏫", name: "Teacher", salary: 600 },
+      { emoji: "🎸", name: "Rock Star", salary: 900 },
+      { emoji: "🔬", name: "Scientist", salary: 700 },
+      { emoji: "🚒", name: "Firefighter", salary: 650 },
+    ];
+
+    const HOUSES = [
+      { emoji: "⛺", name: "Tiny Tent", cost: 0, sell: 500 },
+      { emoji: "🌳", name: "Treehouse", cost: 1200, sell: 2500 },
+      { emoji: "🏡", name: "Cosy Cottage", cost: 2000, sell: 4000 },
+      { emoji: "🚀", name: "Spaceship House", cost: 3500, sell: 7000 },
+      { emoji: "🏰", name: "Candy Castle", cost: 5000, sell: 10000 },
+    ];
+
+    const MONEY_EVENTS = [
+      { e: "🏆", t: "You won the school talent show!", m: 300 },
+      { e: "🎨", t: "Sold your drawings at the market!", m: 200 },
+      { e: "🏖️", t: "Found treasure at the beach!", m: 400 },
+      { e: "🍋", t: "Your lemonade stand was a hit!", m: 250 },
+      { e: "🧦", t: "Won the weird sock competition!", m: 150 },
+      { e: "🎂", t: "Birthday money from Grandma!", m: 300 },
+      { e: "🎣", t: "Caught a HUGE fish and sold it!", m: 200 },
+      { e: "🌟", t: "Helped a neighbour — nice reward!", m: 150 },
+      { e: "🍦", t: "Dropped your ice cream. Bought another.", m: -50 },
+      { e: "🎮", t: "Video game sale… you bought them ALL.", m: -200 },
+      { e: "🐶", t: "Your dog ate your homework AND your wallet.", m: -100 },
+      { e: "🚿", t: "Flooded the bathroom. Oops.", m: -150 },
+      { e: "🍕", t: "Ordered WAY too much pizza.", m: -100 },
+      { e: "🎪", t: "Spent big at the school fair.", m: -150 },
+      { e: "📚", t: "Library book was 2 years late.", m: -50 },
+      { e: "🧻", t: "Toilet-papered by pranksters. Clean-up costs.", m: -100 },
+    ];
+
+    const PASSENGER_EVENTS = [
+      { e: "👶", t: "A new baby joins the family!", name: "Baby" },
+      { e: "🐶", t: "You adopt the waggiest puppy!", name: "Puppy" },
+      { e: "🐱", t: "A kitten follows you home. It's yours now.", name: "Kitten" },
+      { e: "👵", t: "Grandma moves in — she bakes every day!", name: "Grandma", m: 100 },
+      { e: "🐢", t: "You rescue a very slow turtle.", name: "Turtle" },
+      { e: "🦜", t: "A parrot lands on your car and won't leave.", name: "Parrot" },
+    ];
+
+    const CAR_COLORS = ["#e44a4a", "#3b82f6", "#22a34a", "#8b3df0", "#ff8a3d"];
+    const SAVE_KEY = "life-game-save-v1";
+    const START_MONEY = 1000;
+    const PASSENGER_BONUS = 500;
+
+    /* ================= State ================= */
+
+    let players = [];   // [{name, emoji, color, human, pos, money, job, salary, house, passengers[], stops:{}, finished}]
+    let turn = 0;
+    let soundOn = true;
+    let running = false;
+    let chosenColor = CAR_COLORS[0];
+
+    function newPlayer(name, emoji, color, human) {
+      return {
+        name, emoji, color, human,
+        pos: 0, money: START_MONEY, job: null, salary: 0, house: null,
+        passengers: [], stops: {}, finished: false,
+      };
+    }
+
+    /* ================= Sound ================= */
+
+    let actx = null;
+    function audio() {
+      if (!actx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) actx = new AC();
+      }
+      if (actx && actx.state === "suspended") actx.resume();
+      return actx;
+    }
+    function tone(freq, dur, type, vol, delay, slideTo) {
+      if (!soundOn) return;
+      const ctx = audio();
+      if (!ctx) return;
+      const t0 = ctx.currentTime + (delay || 0);
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, t0);
+      if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+      g.gain.setValueAtTime(vol || 0.12, t0);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.05);
+    }
+    const sClick = () => tone(600, 0.08, "square", 0.06);
+    const sTick = () => tone(900, 0.03, "square", 0.05);
+    const sHop = () => tone(500, 0.06, "triangle", 0.08, 0, 700);
+    const sCash = () => { tone(988, 0.09, "square", 0.08); tone(1319, 0.14, "square", 0.08, 0.08); };
+    const sSad = () => tone(300, 0.35, "sawtooth", 0.08, 0, 140);
+    const sYay = () => [659, 880, 1175].forEach((f, i) => tone(f, 0.16, "triangle", 0.12, i * 0.07));
+    const sFanfare = () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.25, "triangle", 0.13, i * 0.1));
+
+    const $ = (id) => document.getElementById(id);
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const rnd = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+    /* ================= Save / load ================= */
+
+    function save() {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({ players, turn, soundOn }));
+      } catch (e) {}
+    }
+    function clearSave() {
+      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+    }
+    function load() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return false;
+        const s = JSON.parse(raw);
+        if (!s || !Array.isArray(s.players) || s.players.length !== 2) return false;
+        players = s.players;
+        turn = s.turn === 1 ? 1 : 0;
+        soundOn = s.soundOn !== false;
+        return true;
+      } catch (e) { return false; }
+    }
+
+    /* ================= Setup screen ================= */
+
+    function initSetup() {
+      const row = $("carRow");
+      row.innerHTML = "";
+      CAR_COLORS.forEach((c) => {
+        const btn = document.createElement("button");
+        btn.className = "car-btn" + (c === chosenColor ? " selected" : "");
+        btn.innerHTML = '<span class="car-dot" style="background:' + c + ';">🙂</span>';
+        btn.setAttribute("aria-label", "car colour " + c);
+        btn.addEventListener("click", () => {
+          chosenColor = c;
+          sClick();
+          initSetup();
+        });
+        row.appendChild(btn);
+      });
+    }
+
+    $("startBtn").addEventListener("click", () => {
+      const roboColor = rnd(CAR_COLORS.filter((c) => c !== chosenColor));
+      players = [
+        newPlayer("You", "🙂", chosenColor, true),
+        newPlayer("Robo", "🤖", roboColor, false),
+      ];
+      turn = 0;
+      sYay();
+      startGame();
+    });
+
+    /* ================= Board rendering ================= */
+
+    function buildBoard() {
+      const box = $("boardBox");
+      let road = "";
+      for (let i = 0; i < N; i++) {
+        const { x, y } = spaceXY(i);
+        road += (i === 0 ? "M " : "L ") + x + " " + y + " ";
+      }
+      let spaces = "";
+      for (let i = 0; i < N; i++) {
+        const { x, y } = spaceXY(i);
+        const t = spaceType(i);
+        const st = TYPE_STYLE[t];
+        const big = ["start", "end", "job", "friend", "house", "dream"].includes(t);
+        spaces += '<circle cx="' + x + '" cy="' + y + '" r="' + (big ? 20 : 14) +
+          '" fill="' + st.fill + '" stroke="#ffffff" stroke-width="3"/>';
+        if (st.emoji) {
+          spaces += '<text x="' + x + '" y="' + (y + 1) + '" text-anchor="middle" dominant-baseline="central" font-size="' +
+            (big ? 17 : 12) + '">' + st.emoji + "</text>";
+        } else if (t === "payday") {
+          spaces += '<text x="' + x + '" y="' + (y + 1) + '" text-anchor="middle" dominant-baseline="central" font-size="12" fill="white" font-weight="bold">$</text>';
+        } else if (t === "star") {
+          spaces += '<text x="' + x + '" y="' + (y + 1) + '" text-anchor="middle" dominant-baseline="central" font-size="11">✦</text>';
+        } else {
+          spaces += '<text x="' + x + '" y="' + (y + 1) + '" text-anchor="middle" dominant-baseline="central" font-size="12" fill="white" font-weight="bold">!</text>';
+        }
+      }
+      let cars = "";
+      players.forEach((p, i) => {
+        const off = i === 0 ? -8 : 8;
+        const { x, y } = spaceXY(p.pos);
+        cars += '<g id="car' + i + '"><circle class="car-marker" id="carDot' + i + '" cx="' + (x + off) + '" cy="' + (y + off) +
+          '" r="13" fill="' + p.color + '" stroke="white" stroke-width="3"/>' +
+          '<text class="car-marker" id="carTxt' + i + '" x="' + (x + off) + '" y="' + (y + off + 1) +
+          '" text-anchor="middle" dominant-baseline="central" font-size="12">' + p.emoji + "</text></g>";
+      });
+      box.innerHTML =
+        '<svg viewBox="0 0 720 540">' +
+        '<path d="' + road + '" fill="none" stroke="#f0e8d2" stroke-width="34" stroke-linejoin="round" stroke-linecap="round"/>' +
+        '<path d="' + road + '" fill="none" stroke="#d8ccae" stroke-width="3" stroke-dasharray="8 10" stroke-linejoin="round" stroke-linecap="round"/>' +
+        spaces + cars + "</svg>";
+    }
+
+    function placeCar(i) {
+      const p = players[i];
+      const off = i === 0 ? -8 : 8;
+      const { x, y } = spaceXY(p.pos);
+      $("carDot" + i).setAttribute("cx", x + off);
+      $("carDot" + i).setAttribute("cy", y + off);
+      $("carTxt" + i).setAttribute("x", x + off);
+      $("carTxt" + i).setAttribute("y", y + off + 1);
+    }
+
+    /* ================= HUD ================= */
+
+    function renderHud(flashIdx) {
+      players.forEach((p, i) => {
+        const pill = $("pill" + i);
+        pill.classList.toggle("active-turn", running && turn === i && !p.finished);
+        pill.innerHTML =
+          '<span class="mini-dot" style="background:' + p.color + ';">' + p.emoji + "</span>" +
+          p.name + ": $" + p.money +
+          (p.job ? " " + p.job.emoji : "") +
+          (p.house ? " " + p.house.emoji : "") +
+          (p.passengers.length ? ' <span class="pl-extras">' + p.passengers.map((x) => x.e).join("") + "</span>" : "") +
+          (p.finished ? " 🏁" : "");
+        if (flashIdx === i) {
+          pill.classList.remove("money-flash");
+          void pill.offsetWidth;
+          pill.classList.add("money-flash");
+        }
+      });
+      $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
+    }
+
+    function setBanner(text) { $("banner").textContent = text; }
+
+    /* ================= Card overlay ================= */
+
+    function showCard(opts) {
+      // opts: {who, emoji, title, text, choices:[{emoji,label,sub,value}], auto(ms), tallyHTML, okLabel}
+      return new Promise((resolve) => {
+        $("cWho").textContent = opts.who || "";
+        $("cEmoji").textContent = opts.emoji || "🎴";
+        $("cTitle").textContent = opts.title || "";
+        $("cText").textContent = opts.text || "";
+        const tally = $("cTally");
+        tally.innerHTML = opts.tallyHTML || "";
+        const choicesBox = $("cChoices");
+        choicesBox.innerHTML = "";
+        const ok = $("cOk");
+        if (opts.choices && opts.choices.length) {
+          ok.style.display = "none";
+          opts.choices.forEach((ch) => {
+            const btn = document.createElement("button");
+            btn.className = "c-choice";
+            btn.innerHTML = '<span class="ch-emoji">' + ch.emoji + '</span><span>' + ch.label +
+              (ch.sub ? '<span class="ch-sub">' + ch.sub + "</span>" : "") + "</span>";
+            btn.addEventListener("click", () => {
+              sClick();
+              $("cardOverlay").classList.remove("show");
+              resolve(ch.value);
+            });
+            choicesBox.appendChild(btn);
+          });
+        } else {
+          ok.style.display = "inline-block";
+          ok.textContent = opts.okLabel || "OK!";
+          ok.onclick = () => {
+            sClick();
+            $("cardOverlay").classList.remove("show");
+            resolve(null);
+          };
+        }
+        $("cardOverlay").classList.add("show");
+        if (opts.auto) {
+          setTimeout(() => {
+            if ($("cardOverlay").classList.contains("show")) {
+              $("cardOverlay").classList.remove("show");
+              resolve(null);
+            }
+          }, opts.auto);
+        }
+      });
+    }
+
+    /* ================= Money ================= */
+
+    function pay(p, amount) {
+      p.money = Math.max(0, p.money + amount);
+      renderHud(players.indexOf(p));
+      if (amount > 0) sCash(); else if (amount < 0) sSad();
+    }
+
+    /* ================= Spinner ================= */
+
+    let wheelRot = 0;
+    function initWheel() {
+      const wheel = $("wheel");
+      wheel.innerHTML = "";
+      for (let k = 1; k <= 10; k++) {
+        const span = document.createElement("span");
+        span.textContent = k;
+        const ang = ((k - 0.5) * 36 - 90) * Math.PI / 180;
+        span.style.transform = "translate(" + (Math.cos(ang) * 38 - 5) + "px," + (Math.sin(ang) * 38 - 9) + "px)";
+        wheel.appendChild(span);
+      }
+      wheel.style.transform = "rotate(0deg)";
+    }
+
+    async function spinWheelTo(result) {
+      const wheel = $("wheel");
+      // segment k covers (k-1)*36..k*36 measured clockwise from the top pointer
+      const target = 360 - ((result - 0.5) * 36);
+      wheelRot += 720 + ((target - (wheelRot % 360)) + 360) % 360;
+      wheel.style.transform = "rotate(" + wheelRot + "deg)";
+      for (let i = 0; i < 12; i++) { sTick(); await sleep(i * 18 + 60); }
+      await sleep(1400);
+    }
+
+    /* ================= Turns ================= */
+
+    function waitForSpin() {
+      return new Promise((resolve) => {
+        const btn = $("spinBtn");
+        btn.disabled = false;
+        btn.onclick = () => {
+          btn.disabled = true;
+          btn.onclick = null;
+          resolve();
+        };
+      });
+    }
+
+    async function moveCar(p, steps) {
+      const idx = players.indexOf(p);
+      for (let s = 0; s < steps; s++) {
+        if (p.pos >= LAST) break;
+        p.pos += 1;
+        placeCar(idx);
+        sHop();
+        await sleep(p.human ? 230 : 150);
+        const t = spaceType(p.pos);
+        // Stop spaces halt the car even with spins left
+        if (["job", "friend", "house", "dream"].includes(t) && !p.stops[t]) break;
+      }
+    }
+
+    async function resolveSpace(p) {
+      const who = p.human ? "YOUR TURN" : "ROBO'S TURN";
+      const auto = p.human ? 0 : 1500;
+      const t = spaceType(p.pos);
+
+      if (t === "job" && !p.stops.job) {
+        p.stops.job = true;
+        const offers = [];
+        const pool = JOBS.slice();
+        while (offers.length < 3) offers.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+        if (p.human) {
+          const job = await showCard({
+            who, emoji: "💼", title: "Time to pick a job!",
+            text: "Your salary is what paydays ($) give you.",
+            choices: offers.map((j) => ({ emoji: j.emoji, label: j.name, sub: "$" + j.salary + " every payday", value: j })),
+          });
+          p.job = job;
+        } else {
+          p.job = rnd(offers);
+          await showCard({ who, emoji: p.job.emoji, title: "Robo becomes a " + p.job.name + "!", text: "Salary $" + p.job.salary + " every payday.", auto });
+        }
+        p.salary = p.job.salary;
+        sYay();
+      } else if (t === "friend" && !p.stops.friend) {
+        p.stops.friend = true;
+        p.passengers.push({ e: "❤️", name: "Best Friend" });
+        pay(p, 200);
+        await showCard({
+          who, emoji: "❤️", title: "A best friend joins your car!",
+          text: "Adventures are better together. They chip in $200 for snacks!",
+          auto,
+        });
+      } else if (t === "house" && !p.stops.house) {
+        p.stops.house = true;
+        const affordable = HOUSES.filter((h) => h.cost <= p.money);
+        const options = affordable.slice(-3);
+        if (!options.some((h) => h.cost === 0)) options.unshift(HOUSES[0]);
+        if (p.human) {
+          const house = await showCard({
+            who, emoji: "🏠", title: "Buy your dream home!",
+            text: "You sell it for the big price when you retire!",
+            choices: options.map((h) => ({
+              emoji: h.emoji, label: h.name,
+              sub: "Costs $" + h.cost + " — sells for $" + h.sell + " at the end", value: h,
+            })),
+          });
+          p.house = house;
+        } else {
+          p.house = options[options.length - 1];
+          await showCard({ who, emoji: p.house.emoji, title: "Robo buys the " + p.house.name + "!", text: "Cost $" + p.house.cost + " — sells for $" + p.house.sell + " later.", auto });
+        }
+        pay(p, -p.house.cost);
+      } else if (t === "dream" && !p.stops.dream) {
+        p.stops.dream = true;
+        p.salary += 300;
+        await showCard({
+          who, emoji: "🌟", title: p.human ? "Dream job upgrade!" : "Robo got promoted!",
+          text: "Salary goes UP by $300 every payday from now on. " + (p.job ? p.job.emoji : ""),
+          auto,
+        });
+        sYay();
+      } else if (t === "payday") {
+        const amount = p.salary || 200;
+        pay(p, amount);
+        await showCard({
+          who, emoji: "💰", title: "PAYDAY!",
+          text: (p.job ? "Being a " + p.job.name + " pays off — " : "Pocket money — ") + "+$" + amount + "!",
+          auto: p.human ? 1600 : auto, okLabel: "Cha-ching!",
+        });
+      } else if (t === "star") {
+        pay(p, 300);
+        await showCard({ who, emoji: "🌠", title: "Lucky star!", text: "A wish comes true: +$300!", auto: p.human ? 1600 : auto });
+      } else if (t === "event") {
+        if (Math.random() < 0.22) {
+          const ev = rnd(PASSENGER_EVENTS);
+          p.passengers.push({ e: ev.e, name: ev.name });
+          if (ev.m) pay(p, ev.m);
+          sYay();
+          await showCard({
+            who, emoji: ev.e, title: ev.t,
+            text: ev.name + " rides in your car now — worth $" + PASSENGER_BONUS + " of happiness at the end!" + (ev.m ? " (+$" + ev.m + ")" : ""),
+            auto,
+          });
+        } else {
+          const ev = rnd(MONEY_EVENTS);
+          pay(p, ev.m);
+          await showCard({
+            who, emoji: ev.e, title: ev.t,
+            text: (ev.m >= 0 ? "+$" : "−$") + Math.abs(ev.m),
+            auto,
+          });
+        }
+      } else if (t === "end") {
+        p.finished = true;
+        sFanfare();
+        await showCard({
+          who, emoji: "🏁", title: (p.human ? "You reached" : "Robo reached") + " Retirement!",
+          text: "Time to count up the riches…",
+          auto: p.human ? 1800 : auto,
+        });
+      }
+      renderHud();
+      save();
+    }
+
+    async function playTurn(p) {
+      const idx = players.indexOf(p);
+      turn = idx;
+      renderHud();
+      if (p.human) {
+        setBanner("🎯 Your turn — press SPIN!");
+        await waitForSpin();
+      } else {
+        setBanner("🤖 Robo is spinning…");
+        await sleep(900);
+      }
+      const roll = 1 + Math.floor(Math.random() * 10);
+      await spinWheelTo(roll);
+      setBanner((p.human ? "You" : "Robo") + " spun a " + roll + "!");
+      await moveCar(p, roll);
+      await resolveSpace(p);
+    }
+
+    async function gameLoop() {
+      running = true;
+      $("spinBtn").disabled = true;
+      let idx = turn; // resume from whoever's turn it was
+      while (!players.every((p) => p.finished)) {
+        const p = players[idx];
+        if (!p.finished) await playTurn(p);
+        idx = (idx + 1) % players.length;
+        turn = idx; // next player's turn is what a resumed game should start with
+        save();
+      }
+      running = false;
+      await sleep(400);
+      showResults();
+    }
+
+    function totalFor(p) {
+      return p.money + (p.house ? p.house.sell : 0) + p.passengers.length * PASSENGER_BONUS;
+    }
+
+    function showResults() {
+      const totals = players.map(totalFor);
+      const winner = totals[0] === totals[1] ? -1 : totals[0] > totals[1] ? 0 : 1;
+      sFanfare();
+      confetti();
+      clearSave();
+      const rows = players.map((p, i) => {
+        return '<div class="tally-row' + (i === winner ? " winner" : "") + '">' +
+          '<div class="t-name">' + p.emoji + " " + p.name + (i === winner ? " 🏆" : "") + "</div>" +
+          '<div class="t-line"><span>Money</span><span>$' + p.money + "</span></div>" +
+          '<div class="t-line"><span>' + (p.house ? p.house.emoji + " " + p.house.name + " sold" : "No house") + "</span><span>$" + (p.house ? p.house.sell : 0) + "</span></div>" +
+          '<div class="t-line"><span>Passengers ' + (p.passengers.map((x) => x.e).join("") || "—") + "</span><span>$" + p.passengers.length * PASSENGER_BONUS + "</span></div>" +
+          '<div class="t-total"><span>TOTAL</span><span>$' + totals[i] + "</span></div></div>";
+      }).join("");
+      showCard({
+        who: "GAME OVER",
+        emoji: winner === 0 ? "🏆" : winner === 1 ? "🤖" : "🤝",
+        title: winner === 0 ? "YOU WIN!" : winner === 1 ? "Robo wins this time!" : "It's a tie!",
+        text: winner === 0 ? "What a life! Best retirement ever." : winner === 1 ? "Rematch? You'll get them next time!" : "An equally amazing life for both!",
+        tallyHTML: rows,
+        okLabel: "🔄 Play Again",
+      }).then(() => {
+        $("screenGame").hidden = true;
+        $("screenSetup").hidden = false;
+        initSetup();
+      });
+    }
+
+    function confetti() {
+      const bits = ["✨", "⭐", "🎉", "💵", "🎡"];
+      for (let i = 0; i < 18; i++) {
+        const c = document.createElement("span");
+        c.className = "confetti-bit";
+        c.textContent = bits[Math.floor(Math.random() * bits.length)];
+        c.style.left = Math.random() * 100 + "vw";
+        c.style.animationDuration = 1.6 + Math.random() * 1.6 + "s";
+        c.style.animationDelay = Math.random() * 0.4 + "s";
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 4000);
+      }
+    }
+
+    /* ================= Game start / controls ================= */
+
+    function startGame() {
+      $("screenSetup").hidden = true;
+      $("screenGame").hidden = false;
+      initWheel();
+      buildBoard();
+      renderHud();
+      save();
+      gameLoop();
+    }
+
+    $("soundBtn").addEventListener("click", () => {
+      soundOn = !soundOn;
+      if (soundOn) sClick();
+      renderHud();
+      save();
+    });
+
+    $("newGameBtn").addEventListener("click", () => {
+      if (!confirm("Start a new game? This one will be forgotten.")) return;
+      clearSave();
+      location.reload();
+    });
+
+    /* ================= Start ================= */
+
+    initSetup();
+    if (load() && !players.every((p) => p.finished)) {
+      // Resume a game in progress
+      startGame();
+    }
+  </script>
+</body>
+</html>
