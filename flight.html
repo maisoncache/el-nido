@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ezra's Game of Flight</title>
+  <style>
+    :root {
+      --bg: #0a2b4a;
+      --ink: #1f2a3d;
+      --accent: #2f6df3;
+      --accent-deep: #1a4bbf;
+      --warm: #f5b400;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 10%, #14487a 0%, transparent 45%),
+        radial-gradient(circle at 80% 80%, #0d3a63 0%, transparent 50%),
+        var(--bg);
+      padding: 12px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* drifting clouds */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(42px 15px at 120px 80px, rgba(255,255,255,0.16), transparent),
+        radial-gradient(60px 18px at 420px 160px, rgba(255,255,255,0.11), transparent),
+        radial-gradient(50px 16px at 700px 60px, rgba(255,255,255,0.13), transparent),
+        radial-gradient(46px 15px at 260px 320px, rgba(255,255,255,0.09), transparent),
+        radial-gradient(55px 17px at 620px 420px, rgba(255,255,255,0.11), transparent);
+      background-size: 900px 600px;
+      animation: drift 38s linear infinite;
+      z-index: 0;
+    }
+    @keyframes drift { from { background-position: 0 0; } to { background-position: 900px 0; } }
+
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.97);
+      border-radius: 22px;
+      box-shadow: 0 14px 40px rgba(0, 10, 30, 0.55);
+      padding: clamp(14px, 2.5vw, 22px);
+      position: relative;
+      z-index: 1;
+    }
+    .back-link {
+      display: inline-block;
+      color: var(--accent-deep);
+      font-weight: bold;
+      text-decoration: none;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(1.5rem, 4.4vw, 2.1rem);
+      text-align: center;
+      color: var(--accent-deep);
+    }
+    .subtitle {
+      text-align: center;
+      opacity: 0.85;
+      margin: 4px 0 14px;
+      font-size: 0.92rem;
+    }
+    button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+    .step-label { display: block; font-weight: bold; margin: 16px 0 8px; font-size: 1rem; text-align: center; }
+    .rank-pill {
+      display: block;
+      width: fit-content;
+      margin: 0 auto 4px;
+      background: #fff7dc;
+      border: 2px solid #f0d896;
+      color: #6b4d00;
+      border-radius: 999px;
+      padding: 6px 16px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+    .mode-row, .cont-row {
+      display: grid;
+      gap: 10px;
+      justify-content: center;
+    }
+    .mode-row { grid-template-columns: repeat(auto-fit, minmax(220px, 280px)); }
+    .cont-row { grid-template-columns: repeat(auto-fit, minmax(140px, 160px)); }
+    .mode-card, .cont-card {
+      border: 3px solid #cdd9f0;
+      background: linear-gradient(180deg, #f6f9ff, #e8f0ff);
+      border-radius: 16px;
+      padding: 14px 10px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 0.95rem;
+      color: var(--ink);
+      transition: transform 0.1s;
+    }
+    .mode-card:active, .cont-card:active { transform: scale(0.96); }
+    .mode-card .big, .cont-card .big { font-size: 2rem; display: block; margin-bottom: 4px; }
+    .mode-card .sub, .cont-card .sub { display: block; font-weight: normal; font-size: 0.78rem; opacity: 0.75; margin-top: 4px; }
+    .mode-card.selected, .cont-card.selected { border-color: var(--accent); background: #dcebff; }
+
+    /* ---------- Guess screen ---------- */
+    .hud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .pill {
+      background: #e8f0ff;
+      border: 2px solid #c4d6f5;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-weight: bold;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    .pill.name-pill { background: #0d3a63; color: white; border-color: #0d3a63; }
+    .pill-btn { transition: transform 0.1s; }
+    .pill-btn:active { transform: scale(0.94); }
+    .hud .spacer { flex: 1; }
+
+    #mapBox {
+      position: relative;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 3px solid #0d3a63;
+      background: linear-gradient(180deg, #7cc4f5, #4a9fe0);
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    #mapBox svg { display: block; width: 100%; height: auto; }
+    #plane {
+      position: absolute;
+      font-size: 1.7rem;
+      transform: translate(-50%, -50%);
+      filter: drop-shadow(0 3px 4px rgba(0,0,0,0.35));
+      transition: left 0.9s ease-in-out, top 0.9s ease-in-out;
+      z-index: 30;
+      pointer-events: none;
+    }
+    .map-mark {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      font-size: 1rem;
+      pointer-events: none;
+      z-index: 20;
+    }
+    .map-mark.target { font-size: 1.5rem; animation: targetPop 0.6s; }
+    @keyframes targetPop {
+      0% { transform: translate(-50%, -50%) scale(0); }
+      70% { transform: translate(-50%, -50%) scale(1.4); }
+      100% { transform: translate(-50%, -50%) scale(1); }
+    }
+
+    .feedback {
+      background: #fff7dc;
+      border: 2px dashed #f5b400;
+      color: #6b4d00;
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-weight: bold;
+      text-align: center;
+      font-size: 0.95rem;
+      margin: 10px auto;
+      max-width: 700px;
+      min-height: 2.4em;
+    }
+    .clues {
+      max-width: 700px;
+      margin: 0 auto 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+    }
+    .clue-chip {
+      background: #e8f9ee;
+      border: 2px solid #b9e6c9;
+      color: #14602e;
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      animation: cluePop 0.35s;
+    }
+    @keyframes cluePop {
+      from { transform: scale(0.4); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .country-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
+    }
+    .country-btn {
+      border: 2px solid #cdd9f0;
+      background: white;
+      border-radius: 12px;
+      padding: 9px 6px;
+      font-weight: bold;
+      font-size: 0.82rem;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.1s;
+      text-align: left;
+    }
+    .country-btn .flag { font-size: 1.5rem; flex: none; }
+    .country-btn:active:not(:disabled) { transform: scale(0.95); }
+    .country-btn:disabled { cursor: not-allowed; }
+    .country-btn.guessed {
+      background: #f3f4f8;
+      border-color: #dfe3ec;
+      opacity: 0.85;
+    }
+    .country-btn.guessed .cname { text-decoration: line-through; opacity: 0.6; }
+    .country-btn .dist-tag {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: bold;
+      color: #a35b00;
+    }
+
+    /* ---------- Overlays ---------- */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 20, 40, 0.78);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    .overlay.show { display: flex; }
+    .ov-card {
+      background: white;
+      border-radius: 22px;
+      padding: clamp(20px, 5vw, 32px);
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+      animation: ovPop 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+      box-shadow: 0 0 55px rgba(140, 200, 255, 0.7);
+    }
+    @keyframes ovPop {
+      from { transform: scale(0.4); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .ov-card .o-emoji { font-size: 3.4rem; display: block; margin-bottom: 6px; }
+    .ov-card h2 { margin: 0 0 6px; color: var(--accent-deep); font-size: 1.3rem; }
+    .ov-card p { margin: 4px 0; font-size: 0.95rem; }
+    .ov-card .o-stars { font-size: 1.8rem; letter-spacing: 4px; margin: 8px 0; }
+    .ov-btn {
+      margin: 12px 4px 0;
+      font-size: 1rem;
+      font-weight: bold;
+      color: white;
+      background: var(--accent);
+      border: none;
+      border-radius: 14px;
+      padding: 12px 24px;
+      box-shadow: 0 4px 0 var(--accent-deep);
+    }
+    .ov-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--accent-deep); }
+    .ov-btn.alt { background: #6b7a94; box-shadow: 0 4px 0 #49556b; }
+    .confetti-bit {
+      position: fixed;
+      top: -12px;
+      font-size: 1.2rem;
+      pointer-events: none;
+      z-index: 101;
+      animation: confFall linear forwards;
+    }
+    @keyframes confFall { to { transform: translateY(105vh) rotate(540deg); } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <a class="back-link" href="index.html">← Back to Game Hub</a>
+    <h1>✈️ The Game of Flight</h1>
+
+    <!-- ========== HOME ========== -->
+    <section id="screenHome">
+      <p class="subtitle">Someone hides a secret country — you know the continent. Fly your plane to guess which country it is! Fewer flights = more stars.</p>
+      <span class="rank-pill" id="rankPill"></span>
+
+      <span class="step-label">1. Who is hiding the country?</span>
+      <div class="mode-row" id="modeRow"></div>
+
+      <span class="step-label">2. Pick the continent</span>
+      <div class="cont-row" id="contRow"></div>
+    </section>
+
+    <!-- ========== GUESS ========== -->
+    <section id="screenGuess" hidden>
+      <div class="hud">
+        <span class="pill name-pill" id="contPill"></span>
+        <span class="pill" id="guessPill">🛫 0 flights</span>
+        <span class="spacer"></span>
+        <button class="pill pill-btn" id="soundBtn">🔊</button>
+        <button class="pill pill-btn" id="homeBtn">🏠 Menu</button>
+      </div>
+      <div id="mapBox">
+        <div id="plane">✈️</div>
+      </div>
+      <div class="feedback" id="feedback"></div>
+      <div class="clues" id="clues"></div>
+      <div class="country-grid" id="countryGrid"></div>
+    </section>
+  </div>
+
+  <!-- Pass-the-device overlay (2 player) -->
+  <div class="overlay" id="passOverlay">
+    <div class="ov-card">
+      <span class="o-emoji" id="passEmoji">🤫</span>
+      <h2 id="passTitle"></h2>
+      <p id="passText"></p>
+      <button class="ov-btn" id="passBtn">Ready!</button>
+    </div>
+  </div>
+
+  <!-- Win overlay -->
+  <div class="overlay" id="winOverlay">
+    <div class="ov-card">
+      <span class="o-emoji" id="winFlag">🏁</span>
+      <h2 id="winTitle"></h2>
+      <p id="winFact"></p>
+      <div class="o-stars" id="winStars"></div>
+      <p id="winSub" style="opacity:0.75; font-size:0.85rem;"></p>
+      <div>
+        <button class="ov-btn" id="againBtn">✈️ Fly Again</button>
+        <button class="ov-btn alt" id="menuBtn">🏠 Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    /* ================= Countries ================= */
+    // lat/lon are rough capital positions — plenty accurate for a guessing game.
+
+    const CONTINENTS = [
+      { id: "africa", name: "Africa", emoji: "🦁", wrap: false },
+      { id: "europe", name: "Europe", emoji: "🏰", wrap: false },
+      { id: "asia", name: "Asia", emoji: "🐼", wrap: false },
+      { id: "namerica", name: "North America", emoji: "🗽", wrap: false },
+      { id: "samerica", name: "South America", emoji: "🦜", wrap: false },
+      { id: "oceania", name: "Oceania", emoji: "🐨", wrap: true },
+    ];
+
+    const COUNTRIES = {
+      africa: [
+        { name: "Egypt", flag: "🇪🇬", capital: "Cairo", lat: 30, lon: 31, fact: "Home of the great pyramids and the River Nile!" },
+        { name: "South Africa", flag: "🇿🇦", capital: "Pretoria", lat: -26, lon: 28, fact: "Penguins live on its beaches. Really!" },
+        { name: "Nigeria", flag: "🇳🇬", capital: "Abuja", lat: 9, lon: 7, fact: "More people live here than anywhere else in Africa." },
+        { name: "Kenya", flag: "🇰🇪", capital: "Nairobi", lat: -1, lon: 37, fact: "Famous for lions, elephants and epic safaris." },
+        { name: "Morocco", flag: "🇲🇦", capital: "Rabat", lat: 34, lon: -7, fact: "Has a whole city painted blue — Chefchaouen!" },
+        { name: "Madagascar", flag: "🇲🇬", capital: "Antananarivo", lat: -19, lon: 47, fact: "Lemurs live here and nowhere else on Earth." },
+        { name: "Ethiopia", flag: "🇪🇹", capital: "Addis Ababa", lat: 9, lon: 39, fact: "Runs on its own calendar with 13 months!" },
+        { name: "Ghana", flag: "🇬🇭", capital: "Accra", lat: 6, lon: 0, fact: "Where lots of the world's chocolate begins — cocoa!" },
+      ],
+      europe: [
+        { name: "France", flag: "🇫🇷", capital: "Paris", lat: 49, lon: 2, fact: "The Eiffel Tower grows taller in summer heat!" },
+        { name: "Italy", flag: "🇮🇹", capital: "Rome", lat: 42, lon: 12, fact: "Shaped like a boot — and invented pizza. 🍕" },
+        { name: "Spain", flag: "🇪🇸", capital: "Madrid", lat: 40, lon: -4, fact: "Has a festival where everyone throws tomatoes!" },
+        { name: "Germany", flag: "🇩🇪", capital: "Berlin", lat: 52, lon: 13, fact: "Home of gummy bears and 1,500 kinds of sausage." },
+        { name: "United Kingdom", flag: "🇬🇧", capital: "London", lat: 51, lon: 0, fact: "Big Ben is the bell, not the clock tower!" },
+        { name: "Greece", flag: "🇬🇷", capital: "Athens", lat: 38, lon: 24, fact: "Where the Olympic Games were invented." },
+        { name: "Norway", flag: "🇳🇴", capital: "Oslo", lat: 60, lon: 11, fact: "In summer the sun barely sets — the midnight sun!" },
+        { name: "Poland", flag: "🇵🇱", capital: "Warsaw", lat: 52, lon: 21, fact: "Has a whole castle made of… salt? Underground!" },
+      ],
+      asia: [
+        { name: "Japan", flag: "🇯🇵", capital: "Tokyo", lat: 36, lon: 140, fact: "Bullet trains zoom at 320 km/h — and are never late." },
+        { name: "China", flag: "🇨🇳", capital: "Beijing", lat: 40, lon: 116, fact: "The Great Wall is over 21,000 km long!" },
+        { name: "India", flag: "🇮🇳", capital: "New Delhi", lat: 28, lon: 77, fact: "Home of the Taj Mahal and the most movies made anywhere." },
+        { name: "Thailand", flag: "🇹🇭", capital: "Bangkok", lat: 14, lon: 100, fact: "Holds a yearly feast… for monkeys. 🐒" },
+        { name: "South Korea", flag: "🇰🇷", capital: "Seoul", lat: 37, lon: 127, fact: "The birthplace of K-pop and super-fast internet." },
+        { name: "Indonesia", flag: "🇮🇩", capital: "Jakarta", lat: -6, lon: 107, fact: "Made of over 17,000 islands — and real dragons (Komodo)!" },
+        { name: "Saudi Arabia", flag: "🇸🇦", capital: "Riyadh", lat: 25, lon: 47, fact: "Has a desert bigger than France called the Empty Quarter." },
+        { name: "Vietnam", flag: "🇻🇳", capital: "Hanoi", lat: 21, lon: 106, fact: "Has a cave so big a plane could fly inside it." },
+      ],
+      namerica: [
+        { name: "United States", flag: "🇺🇸", capital: "Washington D.C.", lat: 39, lon: -77, fact: "Home of the Grand Canyon — you could hide mountains in it." },
+        { name: "Canada", flag: "🇨🇦", capital: "Ottawa", lat: 45, lon: -76, fact: "Has more lakes than the rest of the world combined!" },
+        { name: "Mexico", flag: "🇲🇽", capital: "Mexico City", lat: 19, lon: -99, fact: "Built pyramids too — and invented chocolate drinks!" },
+        { name: "Cuba", flag: "🇨🇺", capital: "Havana", lat: 23, lon: -82, fact: "Famous for classic cars from the 1950s still driving around." },
+        { name: "Jamaica", flag: "🇯🇲", capital: "Kingston", lat: 18, lon: -77, fact: "The fastest runners on Earth train here!" },
+        { name: "Costa Rica", flag: "🇨🇷", capital: "San José", lat: 10, lon: -84, fact: "Sloths, volcanoes and zip-lines through the jungle." },
+        { name: "Panama", flag: "🇵🇦", capital: "Panama City", lat: 9, lon: -80, fact: "Ships sail THROUGH the country in the Panama Canal." },
+        { name: "Guatemala", flag: "🇬🇹", capital: "Guatemala City", lat: 15, lon: -91, fact: "Ancient Mayan temples poke out of its jungles." },
+      ],
+      samerica: [
+        { name: "Brazil", flag: "🇧🇷", capital: "Brasília", lat: -16, lon: -48, fact: "Home of the Amazon — the world's biggest rainforest!" },
+        { name: "Argentina", flag: "🇦🇷", capital: "Buenos Aires", lat: -35, lon: -58, fact: "Where tango dancing and epic football come from." },
+        { name: "Peru", flag: "🇵🇪", capital: "Lima", lat: -12, lon: -77, fact: "Machu Picchu hides high up in its misty mountains." },
+        { name: "Chile", flag: "🇨🇱", capital: "Santiago", lat: -33, lon: -71, fact: "So long and skinny it has deserts AND glaciers." },
+        { name: "Colombia", flag: "🇨🇴", capital: "Bogotá", lat: 5, lon: -74, fact: "Has a river that runs in rainbow colours!" },
+        { name: "Ecuador", flag: "🇪🇨", capital: "Quito", lat: 0, lon: -78, fact: "Named after the equator — you can stand in two halves of Earth." },
+        { name: "Bolivia", flag: "🇧🇴", capital: "La Paz", lat: -16, lon: -68, fact: "Has a giant salt flat that turns into a huge mirror." },
+        { name: "Uruguay", flag: "🇺🇾", capital: "Montevideo", lat: -35, lon: -56, fact: "Small but mighty — won the very first football World Cup." },
+      ],
+      oceania: [
+        { name: "Australia", flag: "🇦🇺", capital: "Canberra", lat: -35, lon: 149, fact: "Kangaroos, koalas, and the Great Barrier Reef!" },
+        { name: "New Zealand", flag: "🇳🇿", capital: "Wellington", lat: -41, lon: 175, fact: "Has more sheep than people — way more!" },
+        { name: "Fiji", flag: "🇫🇯", capital: "Suva", lat: -18, lon: 178, fact: "Made of over 330 tropical islands." },
+        { name: "Papua New Guinea", flag: "🇵🇬", capital: "Port Moresby", lat: -9, lon: 147, fact: "More languages are spoken here than anywhere on Earth — 800+!" },
+        { name: "Samoa", flag: "🇼🇸", capital: "Apia", lat: -14, lon: -172, fact: "One of the first places on Earth to see each new day." },
+        { name: "Vanuatu", flag: "🇻🇺", capital: "Port Vila", lat: -18, lon: 168, fact: "You can safely peek into a glowing volcano here." },
+        { name: "Solomon Islands", flag: "🇸🇧", capital: "Honiara", lat: -9, lon: 160, fact: "Its seas hide colourful reefs and old shipwrecks." },
+        { name: "Tonga", flag: "🇹🇴", capital: "Nukuʻalofa", lat: -21, lon: -175, fact: "The only kingdom in the Pacific — it has a king!" },
+      ],
+    };
+
+    const SAVE_KEY = "flight-game-save-v1";
+
+    /* ================= State ================= */
+
+    let mode = "solo";          // 'solo' | 'two'
+    let continent = CONTINENTS[0];
+    let secret = null;
+    let guesses = [];
+    let cluesShown = 0;
+    let pilot = { stars: 0, rounds: 0 };
+    let soundOn = true;
+    let phase = "home";         // 'home' | 'pick' | 'guess'
+    let busy = false;
+
+    /* ================= Sound ================= */
+
+    let actx = null;
+    function audio() {
+      if (!actx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) actx = new AC();
+      }
+      if (actx && actx.state === "suspended") actx.resume();
+      return actx;
+    }
+    function tone(freq, dur, type, vol, delay, slideTo) {
+      if (!soundOn) return;
+      const ctx = audio();
+      if (!ctx) return;
+      const t0 = ctx.currentTime + (delay || 0);
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, t0);
+      if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+      g.gain.setValueAtTime(vol || 0.12, t0);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.05);
+    }
+    const sClick = () => tone(600, 0.08, "square", 0.06);
+    const sFly = () => tone(300, 0.7, "sawtooth", 0.06, 0, 700);
+    const sHot = () => [659, 880].forEach((f, i) => tone(f, 0.12, "triangle", 0.1, i * 0.08));
+    const sCold = () => tone(320, 0.3, "sawtooth", 0.07, 0, 160);
+    const sWin = () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.22, "triangle", 0.13, i * 0.09));
+    const sClue = () => tone(880, 0.1, "sine", 0.08, 0, 1100);
+
+    /* ================= Helpers ================= */
+
+    const $ = (id) => document.getElementById(id);
+    const rnd = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+    function save() {
+      try { localStorage.setItem(SAVE_KEY, JSON.stringify({ pilot, soundOn })); } catch (e) {}
+    }
+    function load() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return;
+        const s = JSON.parse(raw);
+        if (s && s.pilot) pilot = { stars: s.pilot.stars || 0, rounds: s.pilot.rounds || 0 };
+        soundOn = s && s.soundOn !== false;
+      } catch (e) {}
+    }
+
+    function rank() {
+      if (pilot.stars >= 31) return "🌟 Sky Legend";
+      if (pilot.stars >= 16) return "👨‍✈️ Captain";
+      if (pilot.stars >= 6) return "🧑‍✈️ Co-Pilot";
+      return "🛩️ Trainee Pilot";
+    }
+
+    // distance in km + compass direction between two countries
+    function distKm(a, b) {
+      const R = 6371, toR = Math.PI / 180;
+      const dLat = (b.lat - a.lat) * toR;
+      const dLon = (b.lon - a.lon) * toR;
+      const h = Math.sin(dLat / 2) ** 2 +
+        Math.cos(a.lat * toR) * Math.cos(b.lat * toR) * Math.sin(dLon / 2) ** 2;
+      return Math.round(2 * R * Math.asin(Math.sqrt(h)));
+    }
+    function compass(a, b) {
+      const toR = Math.PI / 180;
+      const dLon = (b.lon - a.lon) * toR;
+      const y = Math.sin(dLon) * Math.cos(b.lat * toR);
+      const x = Math.cos(a.lat * toR) * Math.sin(b.lat * toR) -
+        Math.sin(a.lat * toR) * Math.cos(b.lat * toR) * Math.cos(dLon);
+      const brng = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+      const dirs = [
+        ["⬆️", "north"], ["↗️", "north-east"], ["➡️", "east"], ["↘️", "south-east"],
+        ["⬇️", "south"], ["↙️", "south-west"], ["⬅️", "west"], ["↖️", "north-west"],
+      ];
+      return dirs[Math.round(brng / 45) % 8];
+    }
+
+    /* ================= Map ================= */
+
+    let mapProj = null;
+
+    function normLon(lon) {
+      return continent.wrap && lon < 0 ? lon + 360 : lon;
+    }
+
+    function buildMap() {
+      const list = COUNTRIES[continent.id];
+      const lats = list.map((c) => c.lat);
+      const lons = list.map((c) => normLon(c.lon));
+      const pad = 6;
+      const minLat = Math.min(...lats) - pad, maxLat = Math.max(...lats) + pad;
+      const minLon = Math.min(...lons) - pad, maxLon = Math.max(...lons) + pad;
+      const W = 700, H = 360;
+      mapProj = (c) => ({
+        x: ((normLon(c.lon) - minLon) / (maxLon - minLon)) * (W - 60) + 30,
+        y: ((maxLat - c.lat) / (maxLat - minLat)) * (H - 60) + 30,
+      });
+      let dots = "";
+      list.forEach((c) => {
+        const p = mapProj(c);
+        dots += '<circle cx="' + p.x + '" cy="' + p.y + '" r="7" fill="#ffffff" stroke="#0d3a63" stroke-width="2.5" opacity="0.9"/>';
+      });
+      $("mapBox").querySelectorAll(".map-mark").forEach((n) => n.remove());
+      const old = $("mapBox").querySelector("svg");
+      if (old) old.remove();
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", "0 0 700 360");
+      svg.innerHTML =
+        '<text x="18" y="34" font-size="20" opacity="0.7">🧭</text>' +
+        '<text x="672" y="345" font-size="16" opacity="0.55" text-anchor="end">' + continent.emoji + " " + continent.name + "</text>" + dots;
+      $("mapBox").insertBefore(svg, $("plane"));
+      // plane starts bottom-left
+      $("plane").style.transition = "none";
+      $("plane").style.left = "6%";
+      $("plane").style.top = "88%";
+      void $("plane").offsetWidth;
+      $("plane").style.transition = "";
+    }
+
+    function markAt(c, emoji, cls) {
+      const p = mapProj(c);
+      const m = document.createElement("div");
+      m.className = "map-mark " + (cls || "");
+      m.textContent = emoji;
+      m.style.left = (p.x / 700 * 100) + "%";
+      m.style.top = (p.y / 360 * 100) + "%";
+      $("mapBox").appendChild(m);
+    }
+
+    function flyPlaneTo(c) {
+      const p = mapProj(c);
+      $("plane").style.left = (p.x / 700 * 100) + "%";
+      $("plane").style.top = (p.y / 360 * 100) + "%";
+      sFly();
+    }
+
+    /* ================= Home screen ================= */
+
+    function renderHome() {
+      $("rankPill").textContent = rank() + " — " + pilot.stars + " ⭐ from " + pilot.rounds + " flights";
+      const mr = $("modeRow");
+      mr.innerHTML = "";
+      [
+        { id: "solo", emoji: "🤖", label: "Solo Flight", sub: "Robo hides a country — you guess it!" },
+        { id: "two", emoji: "👥", label: "Two Players", sub: "One player hides it, the other guesses. Pass the device!" },
+      ].forEach((m) => {
+        const btn = document.createElement("button");
+        btn.className = "mode-card" + (mode === m.id ? " selected" : "");
+        btn.innerHTML = '<span class="big">' + m.emoji + "</span>" + m.label + '<span class="sub">' + m.sub + "</span>";
+        btn.addEventListener("click", () => { mode = m.id; sClick(); renderHome(); });
+        mr.appendChild(btn);
+      });
+      const cr = $("contRow");
+      cr.innerHTML = "";
+      CONTINENTS.forEach((c) => {
+        const btn = document.createElement("button");
+        btn.className = "cont-card";
+        btn.innerHTML = '<span class="big">' + c.emoji + "</span>" + c.name +
+          '<span class="sub">' + COUNTRIES[c.id].length + " countries</span>";
+        btn.addEventListener("click", () => {
+          continent = c;
+          sClick();
+          startRound();
+        });
+        cr.appendChild(btn);
+      });
+    }
+
+    /* ================= Round flow ================= */
+
+    function startRound() {
+      guesses = [];
+      cluesShown = 0;
+      secret = null;
+      if (mode === "solo") {
+        secret = rnd(COUNTRIES[continent.id]);
+        enterGuess();
+      } else {
+        // Two players: picker phase
+        phase = "pick";
+        showPass("🤫", "Player 1: pick the secret!",
+          "Don't let the guesser peek! You'll choose a country in " + continent.name + ".", () => {
+            enterPick();
+          });
+      }
+    }
+
+    function showPass(emoji, title, text, onReady) {
+      $("passEmoji").textContent = emoji;
+      $("passTitle").textContent = title;
+      $("passText").textContent = text;
+      $("passOverlay").classList.add("show");
+      $("passBtn").onclick = () => {
+        sClick();
+        $("passOverlay").classList.remove("show");
+        onReady();
+      };
+    }
+
+    function enterPick() {
+      $("screenHome").hidden = true;
+      $("screenGuess").hidden = false;
+      $("contPill").textContent = continent.emoji + " " + continent.name;
+      $("guessPill").textContent = "🤫 Picking…";
+      buildMap();
+      $("feedback").textContent = "Player 1 — tap the country to hide. Shhh!";
+      $("clues").innerHTML = "";
+      const grid = $("countryGrid");
+      grid.innerHTML = "";
+      COUNTRIES[continent.id].forEach((c) => {
+        const btn = document.createElement("button");
+        btn.className = "country-btn";
+        btn.innerHTML = '<span class="flag">' + c.flag + '</span><span class="cname">' + c.name + "</span>";
+        btn.addEventListener("click", () => {
+          secret = c;
+          sClick();
+          showPass("🕵️", "Secret hidden!", "Now pass the device to Player 2 — the guesser. No peeking at the last screen!", () => {
+            phase = "guess";
+            enterGuess();
+          });
+        });
+        grid.appendChild(btn);
+      });
+    }
+
+    function enterGuess() {
+      phase = "guess";
+      $("screenHome").hidden = true;
+      $("screenGuess").hidden = false;
+      $("contPill").textContent = continent.emoji + " " + continent.name;
+      $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
+      buildMap();
+      updateGuessPill();
+      $("feedback").textContent = (mode === "solo" ? "Robo has hidden a country in " : "The secret country is somewhere in ") +
+        continent.name + "! Tap a country to fly there. 🛫";
+      $("clues").innerHTML = "";
+      renderCountryGrid();
+    }
+
+    function updateGuessPill() {
+      $("guessPill").textContent = "🛫 " + guesses.length + " flight" + (guesses.length === 1 ? "" : "s");
+    }
+
+    function renderCountryGrid() {
+      const grid = $("countryGrid");
+      grid.innerHTML = "";
+      COUNTRIES[continent.id].forEach((c) => {
+        const g = guesses.find((x) => x.c === c);
+        const btn = document.createElement("button");
+        btn.className = "country-btn" + (g ? " guessed" : "");
+        btn.disabled = !!g;
+        btn.innerHTML = '<span class="flag">' + c.flag + '</span><span><span class="cname">' + c.name + "</span>" +
+          (g ? '<span class="dist-tag">' + g.dist + " km " + g.dir[0] + "</span>" : "") + "</span>";
+        if (!g) btn.addEventListener("click", () => makeGuess(c));
+        grid.appendChild(btn);
+      });
+    }
+
+    const CLUES = [
+      (s) => "The name has " + s.name.replace(/[^A-Za-z]/g, "").length + " letters",
+      (s) => "It starts with “" + s.name[0] + "”",
+      (s) => "Its capital city is " + s.capital,
+      (s) => "Clue: " + s.fact,
+    ];
+
+    function maybeAddClue() {
+      const idx = guesses.length - 1; // after 1st wrong guess show clue 0, etc.
+      if (idx >= 0 && idx < CLUES.length && cluesShown <= idx) {
+        cluesShown = idx + 1;
+        const chip = document.createElement("span");
+        chip.className = "clue-chip";
+        chip.textContent = "💡 " + CLUES[idx](secret);
+        $("clues").appendChild(chip);
+        sClue();
+      }
+    }
+
+    async function makeGuess(c) {
+      if (busy || phase !== "guess") return;
+      busy = true;
+      flyPlaneTo(c);
+      await new Promise((r) => setTimeout(r, 950));
+      if (c === secret) {
+        winRound();
+        busy = false;
+        return;
+      }
+      const dist = distKm(c, secret);
+      const dir = compass(c, secret);
+      guesses.push({ c, dist, dir });
+      markAt(c, "❌");
+      const temp = dist < 700 ? ["🔥", "BOILING HOT — so close!"] :
+                   dist < 2000 ? ["🌤️", "Warm… getting closer!"] :
+                   ["🧊", "Freezing cold — a long way off!"];
+      if (dist < 2000) sHot(); else sCold();
+      $("feedback").textContent = temp[0] + " " + c.flag + " " + c.name + " is wrong! Fly " +
+        dist.toLocaleString() + " km " + dir[1] + " " + dir[0] + " — " + temp[1];
+      updateGuessPill();
+      maybeAddClue();
+      renderCountryGrid();
+      busy = false;
+    }
+
+    function winRound() {
+      const flights = guesses.length + 1;
+      const stars = flights <= 2 ? 3 : flights <= 4 ? 2 : flights <= 6 ? 1 : 0;
+      pilot.stars += stars;
+      pilot.rounds += 1;
+      save();
+      markAt(secret, "🎯", "target");
+      $("feedback").textContent = "🎉 Found it!";
+      sWin();
+      confetti();
+      $("winFlag").textContent = secret.flag;
+      $("winTitle").textContent = "It was " + secret.name + "!";
+      $("winFact").textContent = secret.fact;
+      $("winStars").textContent = stars > 0 ? "⭐".repeat(stars) : "🛬";
+      $("winSub").textContent =
+        "Found in " + flights + " flight" + (flights === 1 ? "" : "s") +
+        (stars === 3 ? " — perfect flying!" : stars === 0 ? " — made it in the end!" : "!") +
+        "  Rank: " + rank();
+      setTimeout(() => $("winOverlay").classList.add("show"), 900);
+    }
+
+    function confetti() {
+      const bits = ["✨", "⭐", "🎉", "✈️", "🌍"];
+      for (let i = 0; i < 18; i++) {
+        const b = document.createElement("span");
+        b.className = "confetti-bit";
+        b.textContent = bits[Math.floor(Math.random() * bits.length)];
+        b.style.left = Math.random() * 100 + "vw";
+        b.style.animationDuration = 1.6 + Math.random() * 1.6 + "s";
+        b.style.animationDelay = Math.random() * 0.4 + "s";
+        document.body.appendChild(b);
+        setTimeout(() => b.remove(), 4000);
+      }
+    }
+
+    /* ================= Buttons ================= */
+
+    $("againBtn").addEventListener("click", () => {
+      sClick();
+      $("winOverlay").classList.remove("show");
+      startRound();
+    });
+    $("menuBtn").addEventListener("click", () => {
+      sClick();
+      $("winOverlay").classList.remove("show");
+      goHome();
+    });
+    $("homeBtn").addEventListener("click", () => { sClick(); goHome(); });
+    function goHome() {
+      phase = "home";
+      $("screenGuess").hidden = true;
+      $("screenHome").hidden = false;
+      renderHome();
+    }
+
+    $("soundBtn").addEventListener("click", () => {
+      soundOn = !soundOn;
+      $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
+      if (soundOn) sClick();
+      save();
+    });
+
+    /* ================= Start ================= */
+
+    load();
+    renderHome();
+  </script>
+</body>
+</html>
