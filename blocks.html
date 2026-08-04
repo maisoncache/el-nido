@@ -448,7 +448,7 @@
     const TS = 32;                 // tile size in px
     const WW = 128, WH = 72;       // world size in tiles
     const SEA = 26;                // rough surface level
-    const DAY_LEN = 200;           // seconds for a full day/night cycle
+    const DAY_LEN = 600;           // seconds for a full day/night cycle (about 6 min day, 4 min night)
     const SAVE_KEY = "block-world-save-v1";
 
     let world = new Uint8Array(WW * WH);
@@ -880,7 +880,7 @@
     let spawnTimer = 3;
     const DAY_MOBS = ["🐷", "🐔", "🐮"];
 
-    function isNight() { return dayT > 0.55 && dayT < 0.92; }
+    function isNight() { return dayT > 0.64 && dayT < 0.93; }
 
     function spawnMob() {
       if (mobs.length >= 6) return;
@@ -1137,10 +1137,11 @@
       // t 0..1 : 0 sunrise, 0.25 noon, 0.5 sunset, 0.75 midnight
       const stops = [
         { t: 0.00, top: [120, 170, 230], bot: [250, 200, 150] },   // dawn
-        { t: 0.22, top: [110, 180, 240], bot: [190, 226, 250] },   // day
-        { t: 0.50, top: [240, 140, 90], bot: [255, 200, 120] },    // sunset
-        { t: 0.62, top: [30, 40, 90], bot: [60, 60, 110] },        // dusk
-        { t: 0.86, top: [10, 14, 44], bot: [22, 26, 60] },         // night
+        { t: 0.16, top: [110, 180, 240], bot: [190, 226, 250] },   // day
+        { t: 0.48, top: [110, 180, 240], bot: [190, 226, 250] },   // …and a nice long one
+        { t: 0.62, top: [240, 140, 90], bot: [255, 200, 120] },    // sunset
+        { t: 0.72, top: [30, 40, 90], bot: [60, 60, 110] },        // dusk
+        { t: 0.90, top: [10, 14, 44], bot: [22, 26, 60] },         // night
         { t: 1.00, top: [120, 170, 230], bot: [250, 200, 150] },
       ];
       let a = stops[0], b = stops[stops.length - 1];
@@ -1156,10 +1157,10 @@
     }
 
     function darkness(t) {
-      if (t < 0.45) return 0;
-      if (t < 0.6) return (t - 0.45) / 0.15 * 0.82;
-      if (t < 0.88) return 0.82;
-      return Math.max(0, 0.82 * (1 - (t - 0.88) / 0.12));
+      if (t < 0.56) return 0;                                  // long bright day
+      if (t < 0.70) return (t - 0.56) / 0.14 * 0.82;           // slow sunset
+      if (t < 0.90) return 0.82;                               // night
+      return Math.max(0, 0.82 * (1 - (t - 0.90) / 0.10));      // sunrise
     }
 
     let lightCanvas = document.createElement("canvas");
