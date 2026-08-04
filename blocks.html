@@ -72,6 +72,48 @@
     .big-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #35571d; }
     .big-btn.alt { background: linear-gradient(180deg, #b98a4f, #8a5a34); box-shadow: 0 5px 0 #5f3d1b; }
     .big-btn.alt:active { box-shadow: 0 2px 0 #5f3d1b; }
+    .worlds-title { display: block; font-weight: bold; font-size: 0.95rem; margin: 10px 0 8px; }
+    .world-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+      gap: 12px;
+    }
+    .world-card {
+      position: relative;
+      border: 3px solid #cbb99a;
+      background: #efe6d5;
+      border-radius: 14px;
+      padding: 8px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 0.86rem;
+      color: var(--ink);
+      transition: transform 0.1s;
+    }
+    .world-card:active { transform: scale(0.96); }
+    .world-card canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      image-rendering: pixelated;
+      border-radius: 8px;
+      border: 2px solid #8a7a5c;
+      margin-bottom: 6px;
+    }
+    .world-card .w-sub { display: block; font-weight: normal; font-size: 0.72rem; opacity: 0.8; margin-top: 2px; }
+    .world-card .del-btn {
+      position: absolute;
+      top: -8px; right: -8px;
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      border: 2px solid white;
+      background: #e44a4a;
+      color: white;
+      font-weight: bold;
+      font-size: 0.8rem;
+      line-height: 1;
+      padding: 0;
+    }
     .howto {
       background: #f4f7ef;
       border: 2px solid #d8e3ca;
@@ -300,9 +342,12 @@
     <!-- ========== TITLE ========== -->
     <section id="screenTitle">
       <p class="subtitle">Dig, mine, craft and build in your very own block world!</p>
+      <div id="worldsWrap" hidden>
+        <span class="worlds-title">🌍 My Worlds — tap one to play</span>
+        <div class="world-grid" id="worldGrid"></div>
+      </div>
       <div class="title-actions">
-        <button class="big-btn" id="continueBtn" hidden>▶️ Continue Your World</button>
-        <button class="big-btn alt" id="newWorldBtn">🌍 New World</button>
+        <button class="big-btn alt" id="newWorldBtn">➕ Make a New World</button>
       </div>
       <div class="howto">
         <b>How to play:</b><br />
@@ -310,6 +355,7 @@
         ⛏️ <b>Hold your finger on a block</b> to mine it — it goes in your bag.<br />
         🧱 Pick a block from your bag, then <b>tap empty space</b> to build with it.<br />
         🪵 Mine trees for wood, then <b>craft</b> planks, sticks and pickaxes. Better pickaxes dig harder blocks — you need an iron one for 💎 diamonds!<br />
+        🌱 Running out of wood? Mine <b>leaves</b> to find <b>saplings</b>, plant one on grass or dirt, and it grows into a brand new tree!<br />
         🔦 Dig deep to find caves and ores. Craft <b>torches</b> so you can see at night.
       </div>
     </section>
@@ -347,11 +393,11 @@
 
   <div class="overlay" id="askOverlay">
     <div class="ov-card">
-      <span class="o-emoji">🌍</span>
-      <h2>Start a brand new world?</h2>
-      <p>Your current world, buildings and bag will be gone forever!</p>
+      <span class="o-emoji" id="askEmoji">🌍</span>
+      <h2 id="askTitle"></h2>
+      <p id="askText"></p>
       <div>
-        <button class="ov-btn" id="askYes">Yes, new world!</button>
+        <button class="ov-btn" id="askYes">Yes</button>
         <button class="ov-btn" id="askNo" style="background:#8a8f7d; box-shadow:0 4px 0 #5f6355;">Cancel</button>
       </div>
     </div>
@@ -386,6 +432,14 @@
       17: { id: "bricks",   name: "Bricks",        hard: 1.6,  tier: 1, solid: true },
       18: { id: "glow",     name: "Glow Block",    hard: 0.8,  tier: 0, solid: true, light: 7 },
       19: { id: "slime_block", name: "Slime Block", hard: 0.4, tier: 0, solid: true, bouncy: true },
+      20: { id: "sapling",  name: "Sapling",       hard: 0.1,  tier: 0, solid: false },
+    };
+    /* flat colours, only used for the little world maps on the title screen */
+    const MINI_COL = {
+      1: "#5cb238", 2: "#8a5a34", 3: "#8d8d8d", 4: "#4a4a4a", 5: "#c08a63", 6: "#e8c33c",
+      7: "#5fe8e0", 8: "#8b6134", 9: "#2f7d2a", 10: "#b98a4f", 11: "#a5763f", 12: "#6f6f6f",
+      13: "#ff8a3d", 14: "#cfeaff", 15: "#e3d29a", 16: "#3b3b40", 17: "#b45340", 18: "#ffdf6b",
+      19: "#6edc6e", 20: "#4faa3a",
     };
     const BID = {}; // "grass" -> 1
     Object.keys(B).forEach((k) => { BID[B[k].id] = +k; });
@@ -408,6 +462,7 @@
       bricks: { name: "Bricks", block: 17 },
       glow: { name: "Glow Block", block: 18 },
       slime_block: { name: "Slime Block", block: 19 },
+      sapling: { name: "Sapling", block: 20 },
       coal: { name: "Coal", emoji: "⚫" },
       diamond: { name: "Diamond", emoji: "💎" },
       stick: { name: "Stick", emoji: "🥢" },
@@ -449,7 +504,9 @@
     const WW = 128, WH = 72;       // world size in tiles
     const SEA = 26;                // rough surface level
     const DAY_LEN = 600;           // seconds for a full day/night cycle (about 6 min day, 4 min night)
-    const SAVE_KEY = "block-world-save-v1";
+    const WORLDS_KEY = "block-world-worlds-v2";
+    const OLD_KEY = "block-world-save-v1";
+    const MAX_WORLDS = 6;
 
     let world = new Uint8Array(WW * WH);
     let player = null;
@@ -458,6 +515,8 @@
     let dayT = 0.12;
     let soundOn = true;
     let running = false;
+    let store = { worlds: [], currentId: null, soundOn: true };
+    let currentId = null;
 
     const tIdx = (x, y) => y * WW + x;
     const inWorld = (x, y) => x >= 0 && y >= 0 && x < WW && y < WH;
@@ -681,6 +740,13 @@
           break;
         case "glow":
           speckle("#ffdf6b", 24, ["#ffe98a", "#f5c93c", "#fff3b8"]);
+          break;
+        case "sapling":
+          g.clearRect(0, 0, TS, TS);
+          g.fillStyle = "#6b4a25"; g.fillRect(15, 18, 3, 13);
+          g.fillStyle = "#3d9433"; g.fillRect(9, 10, 15, 9);
+          g.fillStyle = "#4faa3a"; g.fillRect(12, 6, 9, 8);
+          g.fillStyle = "#67c440"; g.fillRect(14, 8, 4, 4);
           break;
         case "slime_block":
           g.fillStyle = "rgba(110, 220, 110, 0.75)"; g.fillRect(0, 0, TS, TS);
@@ -936,6 +1002,44 @@
     }
 
     /* ================================================================
+       GROWING TREES
+       ================================================================ */
+
+    let growTimer = 3;
+
+    function growTree(x, y) {
+      const trunk = 4 + Math.floor(Math.random() * 2);
+      for (let i = 1; i <= trunk + 2; i++) {
+        if (getT(x, y - i) !== AIR) return false;   // something in the way
+      }
+      for (let i = 0; i <= trunk; i++) setT(x, y - i, 8);
+      const top = y - trunk;
+      for (let dy = -2; dy <= 1; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          if (Math.abs(dx) === 2 && (dy <= -2 || dy === 1)) continue;
+          if (getT(x + dx, top + dy) === AIR) setT(x + dx, top + dy, 9);
+        }
+      }
+      return true;
+    }
+
+    function growSaplings(dt) {
+      growTimer -= dt;
+      if (growTimer > 0) return;
+      growTimer = 3;
+      let grewNearby = false;
+      for (let i = 0; i < world.length; i++) {
+        if (world[i] !== 20) continue;
+        if (Math.random() > 0.12) continue;          // ~25 seconds on average
+        const x = i % WW, y = (i / WW) | 0;
+        if (growTree(x, y) && Math.abs(x * TS - player.x) < viewW && Math.abs(y * TS - player.y) < viewH) {
+          grewNearby = true;
+        }
+      }
+      if (grewNearby) { sCraft(); toast("🌳 Your sapling grew into a tree!"); save(); }
+    }
+
+    /* ================================================================
        PHYSICS
        ================================================================ */
 
@@ -1068,6 +1172,13 @@
       // must touch something (no floating blocks in mid-air)
       const touching = getT(x - 1, y) !== AIR || getT(x + 1, y) !== AIR || getT(x, y - 1) !== AIR || getT(x, y + 1) !== AIR;
       if (!touching) { sNope(); toast("Build next to another block! 🧱"); return; }
+      // saplings need soil under them and sky-room above to grow into a tree
+      if (def.block === 20) {
+        const ground = getT(x, y + 1);
+        if (ground !== 1 && ground !== 2) {
+          sNope(); toast("Plant saplings on grass or dirt! 🌱"); return;
+        }
+      }
       setT(x, y, def.block);
       takeItem(selected, 1);
       sPlace();
@@ -1098,8 +1209,18 @@
           toast(msgs[dropItem]);
         }
       }
-      // leaves sometimes drop a sapling-ish bonus log
-      if (def.id === "leaves" && Math.random() < 0.12) addItem("log", 1);
+      // leaves drop saplings (and the odd spare log) so wood never runs out
+      if (def.id === "leaves") {
+        if (Math.random() < 0.35) {
+          addItem("sapling", 1);
+          if (!seenOre.sapling) {
+            seenOre.sapling = true;
+            sDiscover();
+            toast("🌱 A sapling! Plant it on grass or dirt and it grows into a whole new tree.");
+          }
+        }
+        if (Math.random() < 0.12) addItem("log", 1);
+      }
       save();
     }
 
@@ -1349,6 +1470,7 @@
       }
 
       updateMobs(dt);
+      growSaplings(dt);
 
       dayT = (dayT + dt / DAY_LEN) % 1;
 
@@ -1385,38 +1507,164 @@
       return arr;
     }
 
+    function newWorldId() {
+      return "w" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    }
+
+    function persist() {
+      store.soundOn = soundOn;
+      store.currentId = currentId;
+      try { localStorage.setItem(WORLDS_KEY, JSON.stringify(store)); } catch (e) { /* full or private */ }
+    }
+
     function save() {
-      if (!player) return;
-      try {
-        localStorage.setItem(SAVE_KEY, JSON.stringify({
-          w: worldToStr(),
-          p: { x: player.x, y: player.y },
-          bag, seenOre, dayT, soundOn,
-        }));
-      } catch (e) { /* storage full or private mode */ }
+      if (!player || !currentId) { persist(); return; }
+      const e = store.worlds.find((w) => w.id === currentId);
+      if (!e) return;
+      e.w = worldToStr();
+      e.p = { x: player.x, y: player.y };
+      e.bag = bag;
+      e.seenOre = seenOre;
+      e.dayT = dayT;
+      e.when = Date.now();
+      persist();
     }
 
-    function hasSave() {
-      try { return !!localStorage.getItem(SAVE_KEY); } catch (e) { return false; }
+    function loadStore() {
+      try {
+        const raw = localStorage.getItem(WORLDS_KEY);
+        if (raw) {
+          const s = JSON.parse(raw);
+          if (s && Array.isArray(s.worlds)) {
+            store.worlds = s.worlds.filter((w) => w && w.id && w.w);
+            currentId = s.currentId || null;
+            soundOn = s.soundOn !== false;
+          }
+          return;
+        }
+        // migrate the old single-slot save so nothing already built is lost
+        const old = localStorage.getItem(OLD_KEY);
+        if (old) {
+          const s = JSON.parse(old);
+          if (s && s.w) {
+            store.worlds = [{
+              id: newWorldId(), name: "World 1", w: s.w,
+              p: s.p || { x: 8 * TS, y: 0 }, bag: s.bag || {}, seenOre: s.seenOre || {},
+              dayT: typeof s.dayT === "number" ? s.dayT : 0.12, when: Date.now(),
+            }];
+            soundOn = s.soundOn !== false;
+            persist();
+          }
+          localStorage.removeItem(OLD_KEY);
+        }
+      } catch (e) { /* corrupted — start fresh */ }
     }
 
-    function loadSave() {
-      try {
-        const raw = localStorage.getItem(SAVE_KEY);
-        if (!raw) return false;
-        const s = JSON.parse(raw);
-        if (!s || !s.w) return false;
-        world = strToWorld(s.w);
-        bag = {};
-        Object.keys(s.bag || {}).forEach((k) => { if (ITEMS[k] && s.bag[k] > 0) bag[k] = s.bag[k]; });
-        seenOre = s.seenOre || {};
-        dayT = typeof s.dayT === "number" ? s.dayT : 0.12;
-        soundOn = s.soundOn !== false;
-        player = { x: s.p.x, y: s.p.y, vx: 0, vy: 0, w: 22, h: 44, onGround: false, face: 1 };
-        mobs = [];
-        spawnTimer = 2;
-        return true;
-      } catch (e) { return false; }
+    function playWorld(id) {
+      const e = store.worlds.find((w) => w.id === id);
+      if (!e) return false;
+      try { world = strToWorld(e.w); } catch (err) { return false; }
+      bag = {};
+      Object.keys(e.bag || {}).forEach((k) => { if (ITEMS[k] && e.bag[k] > 0) bag[k] = e.bag[k]; });
+      seenOre = e.seenOre || {};
+      dayT = typeof e.dayT === "number" ? e.dayT : 0.12;
+      player = { x: e.p.x, y: e.p.y, vx: 0, vy: 0, w: 22, h: 44, onGround: false, face: 1 };
+      mobs = []; spawnTimer = 2; growTimer = 3;
+      currentId = id;
+      persist();
+      startGame();
+      return true;
+    }
+
+    function createWorld() {
+      genWorld(Math.floor(Math.random() * 1e9));
+      let n = 1;
+      while (store.worlds.some((w) => w.name === "World " + n)) n++;
+      const e = {
+        id: newWorldId(), name: "World " + n, w: worldToStr(),
+        p: { x: player.x, y: player.y }, bag: {}, seenOre: {}, dayT, when: Date.now(),
+      };
+      store.worlds.push(e);
+      currentId = e.id;
+      growTimer = 3;
+      persist();
+      startGame();
+      toast("🌍 A brand new world! Punch a tree to start. 🌳");
+    }
+
+    /* little 1px-per-block map of a saved world, for the title screen */
+    function miniMap(arr) {
+      const c = document.createElement("canvas");
+      c.width = WW; c.height = WH;
+      const g = c.getContext("2d");
+      g.fillStyle = "#8fd0ff";
+      g.fillRect(0, 0, WW, WH);
+      for (let y = 0; y < WH; y++) {
+        for (let x = 0; x < WW; x++) {
+          const t = arr[y * WW + x];
+          if (t === AIR) continue;
+          g.fillStyle = MINI_COL[t] || "#888";
+          g.fillRect(x, y, 1, 1);
+        }
+      }
+      return c;
+    }
+
+    function bagCount(b) {
+      let n = 0;
+      Object.keys(b || {}).forEach((k) => { n += b[k]; });
+      return n + " item" + (n === 1 ? "" : "s");
+    }
+
+    function askConfirm(emoji, title, text, yesLabel, hideCancel) {
+      return new Promise((resolve) => {
+        $("askEmoji").textContent = emoji;
+        $("askTitle").textContent = title;
+        $("askText").textContent = text;
+        $("askYes").textContent = yesLabel || "Yes";
+        $("askNo").style.display = hideCancel ? "none" : "";
+        $("askOverlay").classList.add("show");
+        $("askYes").onclick = () => { sClick(); $("askOverlay").classList.remove("show"); resolve(true); };
+        $("askNo").onclick = () => { sClick(); $("askOverlay").classList.remove("show"); resolve(false); };
+      });
+    }
+
+    function renderWorlds() {
+      const wrap = $("worldsWrap"), grid = $("worldGrid");
+      if (!store.worlds.length) { wrap.hidden = true; return; }
+      wrap.hidden = false;
+      grid.innerHTML = "";
+      store.worlds.slice().sort((a, b) => (b.when || 0) - (a.when || 0)).forEach((e) => {
+        const card = document.createElement("button");
+        card.className = "world-card";
+        card.dataset.world = e.id;
+        let arr = null;
+        try { arr = strToWorld(e.w); } catch (err) { /* skip preview */ }
+        if (arr) card.appendChild(miniMap(arr));
+        const label = document.createElement("span");
+        const night = e.dayT > 0.64 && e.dayT < 0.93;
+        label.innerHTML = e.name + '<span class="w-sub">' + (night ? "🌙 night" : "☀️ day") +
+          " · " + bagCount(e.bag) + "</span>";
+        card.appendChild(label);
+        card.addEventListener("click", () => { sClick(); playWorld(e.id); });
+        const del = document.createElement("button");
+        del.className = "del-btn";
+        del.textContent = "✕";
+        del.setAttribute("aria-label", "delete " + e.name);
+        del.addEventListener("click", async (ev) => {
+          ev.stopPropagation();
+          sClick();
+          const ok = await askConfirm("🗑️", "Delete " + e.name + "?",
+            "Everything you built in that world will be gone forever.", "Yes, delete it");
+          if (!ok) return;
+          store.worlds = store.worlds.filter((x) => x.id !== e.id);
+          if (currentId === e.id) currentId = null;
+          persist();
+          renderWorlds();
+        });
+        card.appendChild(del);
+        grid.appendChild(card);
+      });
     }
 
     /* ================================================================
@@ -1443,31 +1691,17 @@
       save();
       $("screenGame").hidden = true;
       $("screenTitle").hidden = false;
-      $("continueBtn").hidden = !hasSave();
+      renderWorlds();
     }
 
-    $("newWorldBtn").addEventListener("click", () => {
+    $("newWorldBtn").addEventListener("click", async () => {
       sClick();
-      if (hasSave()) { $("askOverlay").classList.add("show"); return; }
-      genWorld(Math.floor(Math.random() * 1e9));
-      save();
-      startGame();
-      toast("🌍 Welcome to your new world! Punch a tree to start. 🌳");
-    });
-    $("askYes").addEventListener("click", () => {
-      sClick();
-      $("askOverlay").classList.remove("show");
-      genWorld(Math.floor(Math.random() * 1e9));
-      save();
-      startGame();
-      toast("🌍 Brand new world! Punch a tree to start. 🌳");
-    });
-    $("askNo").addEventListener("click", () => { sClick(); $("askOverlay").classList.remove("show"); });
-
-    $("continueBtn").addEventListener("click", () => {
-      sClick();
-      if (loadSave()) { startGame(); toast("👋 Welcome back to your world!"); }
-      else toast("Couldn't load that world — try a new one!");
+      if (store.worlds.length >= MAX_WORLDS) {
+        await askConfirm("🌍", "That's a lot of worlds!",
+          "You can keep " + MAX_WORLDS + " worlds at once. Delete one with its ✕ button to make room.", "OK", true);
+        return;
+      }
+      createWorld();
     });
 
     $("craftBtn").addEventListener("click", () => {
@@ -1499,11 +1733,8 @@
        ================================================================ */
 
     (function init() {
-      try {
-        const raw = localStorage.getItem(SAVE_KEY);
-        if (raw) { const s = JSON.parse(raw); soundOn = s && s.soundOn !== false; }
-      } catch (e) {}
-      $("continueBtn").hidden = !hasSave();
+      loadStore();
+      renderWorlds();
     })();
   </script>
 </body>
