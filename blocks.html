@@ -177,9 +177,34 @@
       touch-action: none;
     }
     .touch-btn:active, .touch-btn.held { background: rgba(120, 200, 90, 0.75); }
+    .touch-btn[hidden] { display: none; }   /* display:flex above would beat the hidden attribute */
     #btnLeft { left: 10px; bottom: 12px; }
     #btnRight { left: 76px; bottom: 12px; }
     #btnJump { right: 10px; bottom: 12px; width: 66px; height: 66px; font-size: 1.3rem; }
+    #btnDown { right: 84px; bottom: 12px; }
+    #btnFly { right: 14px; bottom: 86px; font-size: 1.3rem; }
+    #btnFly.flying { background: rgba(120, 200, 90, 0.85); border-color: #fff; }
+    #hurtFlash {
+      position: absolute;
+      inset: 0;
+      background: rgba(220, 40, 40, 0.45);
+      pointer-events: none;
+      opacity: 0;
+      z-index: 25;
+    }
+    #hurtFlash.hit { animation: hurtFade 0.45s ease-out; }
+    @keyframes hurtFade { from { opacity: 1; } to { opacity: 0; } }
+    .mode-badge {
+      display: inline-block;
+      font-size: 0.66rem;
+      font-weight: bold;
+      border-radius: 999px;
+      padding: 1px 7px;
+      margin-top: 3px;
+      background: #dbe7cd;
+      color: #3d6124;
+    }
+    .mode-badge.creative { background: #d9e6ff; color: #24406b; }
 
     #toast {
       position: absolute;
@@ -350,6 +375,10 @@
         <button class="big-btn alt" id="newWorldBtn">➕ Make a New World</button>
       </div>
       <div class="howto">
+        <b>Two ways to play:</b><br />
+        🛡️ <b>Survival</b> — mine and craft everything yourself. You have ❤️ hearts, and monsters come out at night, so build a shelter and light it up with torches!<br />
+        🕊️ <b>Creative</b> — every block for free, dig anything instantly, and you can <b>fly</b>. No monsters, just building.<br />
+        You pick when you make a world, and the button at the top swaps modes any time.<br /><br />
         <b>How to play:</b><br />
         🕹️ Use the <b>◀ ▶</b> buttons to walk and <b>⤒</b> to jump (or arrow keys).<br />
         ⛏️ <b>Hold your finger on a block</b> to mine it — it goes in your bag.<br />
@@ -366,7 +395,9 @@
         <span class="pill" id="timePill">☀️ Day</span>
         <span class="pill" id="depthPill">⛰️ 0m</span>
         <span class="pill" id="toolPill">✋ Hand</span>
+        <span class="pill" id="heartsPill" hidden>❤️❤️❤️❤️❤️</span>
         <span class="spacer"></span>
+        <button class="pill pill-btn" id="modeBtn">🛡️ Survival</button>
         <button class="pill pill-btn" id="craftBtn">🛠️ Craft</button>
         <button class="pill pill-btn" id="soundBtn">🔊</button>
         <button class="pill pill-btn" id="menuBtn">🏠 Menu</button>
@@ -378,6 +409,9 @@
         <button class="touch-btn" id="btnLeft" aria-label="walk left">◀</button>
         <button class="touch-btn" id="btnRight" aria-label="walk right">▶</button>
         <button class="touch-btn" id="btnJump" aria-label="jump">⤒</button>
+        <button class="touch-btn" id="btnDown" aria-label="fly down" hidden>⤓</button>
+        <button class="touch-btn" id="btnFly" aria-label="toggle flying" hidden>🕊️</button>
+        <div id="hurtFlash"></div>
       </div>
 
       <div class="bar-label">🎒 Your bag — tap a block to hold it, then tap empty space to build</div>
@@ -396,10 +430,7 @@
       <span class="o-emoji" id="askEmoji">🌍</span>
       <h2 id="askTitle"></h2>
       <p id="askText"></p>
-      <div>
-        <button class="ov-btn" id="askYes">Yes</button>
-        <button class="ov-btn" id="askNo" style="background:#8a8f7d; box-shadow:0 4px 0 #5f6355;">Cancel</button>
-      </div>
+      <div id="askButtons"></div>
     </div>
   </div>
 
@@ -517,6 +548,11 @@
     let running = false;
     let store = { worlds: [], currentId: null, soundOn: true };
     let currentId = null;
+    let mode = "survival";        // "survival" | "creative"
+    const MAX_HP = 5;
+    let hp = MAX_HP;
+    let spawnPt = { x: 8 * TS, y: 0 };
+    let hurtT = 0, regenT = 0, fallFrom = null, flying = false;
 
     const tIdx = (x, y) => y * WW + x;
     const inWorld = (x, y) => x >= 0 && y >= 0 && x < WW && y < WH;
@@ -802,6 +838,10 @@
     const sNope = () => tone(180, 0.16, "square", 0.06);
     const sBoing = () => tone(260, 0.22, "sine", 0.12, 0, 700);
     const sDiscover = () => [659, 880, 1175, 1568].forEach((f, i) => tone(f, 0.18, "triangle", 0.12, i * 0.08));
+    const sHurt = () => { tone(200, 0.2, "square", 0.11, 0, 90); tone(150, 0.25, "sawtooth", 0.07, 0.05); };
+    const sPoof = () => tone(500, 0.2, "sawtooth", 0.08, 0, 120);
+    const sKO = () => [400, 330, 260, 180].forEach((f, i) => tone(f, 0.28, "sawtooth", 0.1, i * 0.13));
+    const sWing = () => tone(700, 0.12, "sine", 0.07, 0, 380);
 
     /* ================================================================
        BAG
@@ -848,7 +888,10 @@
     function renderHotbar() {
       const bar = $("hotbar");
       bar.innerHTML = "";
-      const keys = Object.keys(bag).filter((k) => bag[k] > 0);
+      const creative = mode === "creative";
+      const keys = creative
+        ? Object.keys(ITEMS).filter((k) => ITEMS[k].block)
+        : Object.keys(bag).filter((k) => bag[k] > 0);
       if (keys.length === 0) {
         const p = document.createElement("div");
         p.className = "empty-note";
@@ -858,7 +901,7 @@
         return;
       }
       keys.sort((a, b) => (ITEMS[a] && ITEMS[a].block ? 0 : 1) - (ITEMS[b] && ITEMS[b].block ? 0 : 1));
-      if (selected && !bag[selected]) selected = null;
+      if (selected && !creative && !bag[selected]) selected = null;
       keys.forEach((k) => {
         const def = ITEMS[k] || { name: k };
         const btn = document.createElement("button");
@@ -868,7 +911,7 @@
         btn.appendChild(itemIconEl(k));
         const cnt = document.createElement("span");
         cnt.className = "count";
-        cnt.textContent = bag[k];
+        cnt.textContent = creative ? "∞" : bag[k];
         btn.appendChild(cnt);
         if (def.tool && def.tool === toolTier()) {
           const tick = document.createElement("span");
@@ -884,7 +927,7 @@
         });
         bar.appendChild(btn);
       });
-      $("toolPill").textContent = TOOL_NAME[toolTier()];
+      $("toolPill").textContent = creative ? "🕊️ Creative" : TOOL_NAME[toolTier()];
     }
 
     function canCraft(r) {
@@ -948,6 +991,17 @@
 
     function isNight() { return dayT > 0.64 && dayT < 0.93; }
 
+    /* is there a torch or glow block lighting this spot? monsters keep away from light */
+    function lightNear(x, y) {
+      for (let dy = -5; dy <= 5; dy++) {
+        for (let dx = -6; dx <= 6; dx++) {
+          const t = getT(x + dx, y + dy);
+          if (t !== AIR && B[t].light) return true;
+        }
+      }
+      return false;
+    }
+
     function spawnMob() {
       if (mobs.length >= 6) return;
       const side = Math.random() < 0.5 ? -1 : 1;
@@ -957,13 +1011,21 @@
       while (y < WH - 2 && !isSolid(px, y)) y++;
       if (y >= WH - 2) return;
       const night = isNight();
+      // monsters only come out at night, in survival, away from torchlight
+      const monster = mode === "survival" && night && Math.random() < 0.7 && !lightNear(px, y - 1);
       mobs.push({
-        slime: night,
+        monster,
+        slime: night && !monster,
         emoji: night ? null : DAY_MOBS[Math.floor(Math.random() * DAY_MOBS.length)],
         x: px * TS + TS / 2, y: (y - 1) * TS, vx: 0, vy: 0,
-        w: night ? 24 : 26, h: night ? 24 : 26,
+        w: monster ? 24 : (night ? 24 : 26), h: monster ? 40 : (night ? 24 : 26),
         onGround: false, timer: Math.random() * 2, dir: side * -1,
       });
+    }
+
+    function poofMob(m) {
+      mobs = mobs.filter((o) => o !== m);
+      sPoof();
     }
 
     function updateMobs(dt) {
@@ -976,29 +1038,83 @@
           m.dir = Math.random() < 0.35 ? 0 : (Math.random() < 0.5 ? -1 : 1);
           if (m.slime && m.onGround) { m.vy = -330; m.onGround = false; }
         }
-        m.vx = m.dir * (m.slime ? 42 : 34);
+        // monsters shuffle towards you instead of wandering
+        if (m.monster) m.dir = player.x < m.x - 6 ? -1 : (player.x > m.x + 6 ? 1 : 0);
+        m.vx = m.dir * (m.monster ? 58 : m.slime ? 42 : 34);
         m.vy += 1600 * dt;
         if (m.vy > 900) m.vy = 900;
         moveBody(m, dt, true);
         // hop over blocks
         if (m.onGround && m.dir !== 0 && Math.abs(m.vx) < 4) { m.vy = -380; m.onGround = false; }
       });
-      // despawn far away
+      // despawn far away, and monsters burn off at sunrise
       mobs = mobs.filter((m) => Math.abs(m.x - player.x) < TS * 26);
-      // player bops a slime by landing on it
+      if (!isNight()) {
+        const leaving = mobs.filter((m) => m.monster);
+        if (leaving.length) { mobs = mobs.filter((m) => !m.monster); sPoof(); }
+      }
+      // bumping into things
       mobs.slice().forEach((m) => {
-        if (!m.slime) return;
+        if (!m.slime && !m.monster) return;
         const overlap = Math.abs(m.x - player.x) < (m.w + player.w) / 2 &&
           Math.abs(m.y - player.y) < (m.h + player.h) / 2;
-        if (overlap && player.vy > 60 && player.y < m.y) {
-          mobs = mobs.filter((o) => o !== m);
-          addItem("slimeball", 1);
+        if (!overlap) return;
+        const stomped = player.vy > 60 && player.y < m.y;
+        if (m.slime) {
+          if (stomped) {
+            poofMob(m);
+            if (mode !== "creative") addItem("slimeball", 1);
+            player.vy = -430;
+            sBoing();
+            toast("🟢 Boing! You got a slimeball!");
+            save();
+          }
+        } else if (stomped) {
+          poofMob(m);
           player.vy = -430;
-          sBoing();
-          toast("🟢 Boing! You got a slimeball!");
-          save();
+          toast("💥 Bonk! You bopped the monster!");
+        } else {
+          hurt(1, m.x);
         }
       });
+    }
+
+    /* ================================================================
+       HEALTH  (survival mode only)
+       ================================================================ */
+
+    function updateHearts() {
+      const pill = $("heartsPill");
+      pill.hidden = mode !== "survival";
+      pill.textContent = "❤️".repeat(Math.max(0, hp)) + "🖤".repeat(Math.max(0, MAX_HP - hp));
+    }
+
+    function hurt(n, fromX) {
+      if (mode !== "survival" || hurtT > 0) return;
+      hp -= n;
+      hurtT = 1.2;
+      regenT = 14;
+      sHurt();
+      const f = $("hurtFlash");
+      f.classList.remove("hit");
+      void f.offsetWidth;
+      f.classList.add("hit");
+      if (typeof fromX === "number") player.vx = (player.x < fromX ? -1 : 1) * 280;
+      player.vy = -280;
+      if (hp <= 0) knockout(); else updateHearts();
+    }
+
+    function knockout() {
+      hp = MAX_HP;
+      player.x = spawnPt.x;
+      player.y = spawnPt.y;
+      player.vx = 0; player.vy = 0;
+      fallFrom = null;
+      mobs = mobs.filter((m) => !m.monster);
+      updateHearts();
+      sKO();
+      toast("😵 Oof! A monster got you — back at your spawn. You kept everything!");
+      save();
     }
 
     /* ================================================================
@@ -1077,7 +1193,7 @@
        ================================================================ */
 
     const keys = {};
-    const held = { left: false, right: false, jump: false };
+    const held = { left: false, right: false, jump: false, down: false };
 
     window.addEventListener("keydown", (e) => {
       if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " "].includes(e.key)) e.preventDefault();
@@ -1096,6 +1212,7 @@
     }
 
     function tryJump() {
+      if (flying) return;
       if (player && player.onGround) { player.vy = -450; player.onGround = false; sJump(); }
     }
 
@@ -1147,18 +1264,20 @@
       if (blk === AIR) return;
       const def = B[blk];
       if (def.tier >= 99) { mining = null; sNope(); toast("Bedrock is unbreakable! 🪨"); return; }
-      if (def.tier > toolTier()) {
+      if (mode !== "creative" && def.tier > toolTier()) {
         mining = null; sNope();
         toast("You need a " + TOOL_NAME[def.tier].replace(/^\S+\s/, "") + " to mine " + def.name + "!");
         return;
       }
       if (!mining || mining.x !== x || mining.y !== y) {
-        mining = { x, y, prog: 0, need: def.hard / TOOL_SPEED[toolTier()] };
+        const need = mode === "creative" ? 0.06 : def.hard / TOOL_SPEED[toolTier()];
+        mining = { x, y, prog: 0, need };
       }
     }
 
     function tryPlace(x, y) {
-      if (!selected || !bag[selected]) return;
+      if (!selected) return;
+      if (mode !== "creative" && !bag[selected]) return;
       if (!inReach(x, y)) { toast("Too far away to build there! 🚶"); return; }
       if (getT(x, y) !== AIR) return;
       const def = ITEMS[selected];
@@ -1180,7 +1299,7 @@
         }
       }
       setT(x, y, def.block);
-      takeItem(selected, 1);
+      if (mode !== "creative") takeItem(selected, 1);
       sPlace();
       renderHotbar();
       renderRecipes();
@@ -1195,6 +1314,7 @@
       mining = null;
       sBreak();
       const dropItem = def.drop || def.id;
+      if (mode === "creative") { save(); return; }   // creative already has everything
       if (ITEMS[dropItem]) {
         addItem(dropItem, 1);
         if (!seenOre[dropItem] && ["diamond", "gold_ore", "iron_ore", "coal"].includes(dropItem)) {
@@ -1352,7 +1472,20 @@
       // mobs
       mobs.forEach((m) => {
         const mx = m.x - cam.x, my = m.y - cam.y;
-        if (m.slime) {
+        if (m.monster) {
+          const w = m.w, h = m.h;
+          g.fillStyle = "#4a3a6b";                       // body
+          g.fillRect(mx - w / 2, my - h / 2 + 14, w, h - 14);
+          g.fillStyle = "#6b5590";                       // head
+          g.fillRect(mx - w / 2 - 1, my - h / 2, w + 2, 16);
+          g.fillStyle = "#ff5a5a";                       // grumpy eyes
+          g.fillRect(mx - 7, my - h / 2 + 5, 5, 4);
+          g.fillRect(mx + 2, my - h / 2 + 5, 5, 4);
+          g.fillStyle = "#2a1f3d";
+          g.fillRect(mx - 5, my - h / 2 + 12, 10, 2);
+          g.fillStyle = "#3a2d55";                       // arms out front
+          g.fillRect(mx - w / 2 + (m.dir < 0 ? -6 : w - 2), my - h / 2 + 18, 8, 5);
+        } else if (m.slime) {
           g.fillStyle = "rgba(96, 210, 96, 0.85)";
           const sq = m.w;
           g.fillRect(mx - sq / 2, my - sq / 2, sq, sq);
@@ -1452,12 +1585,40 @@
       // input
       const left = held.left || keys["arrowleft"] || keys["a"];
       const right = held.right || keys["arrowright"] || keys["d"];
-      if (held.jump || keys["arrowup"] || keys[" "] || keys["w"]) tryJump();
-      player.vx = (right ? 150 : 0) - (left ? 150 : 0);
-      if (player.vx !== 0) player.face = player.vx > 0 ? 1 : -1;
-      player.vy += 1600 * dt;
-      if (player.vy > 950) player.vy = 950;
+      const up = held.jump || keys["arrowup"] || keys[" "] || keys["w"];
+      const down = held.down || keys["arrowdown"] || keys["s"];
+      if (flying && mode !== "creative") flying = false;
+      if (!flying && up) tryJump();
+      // a fresh hit knocks you back for a moment before you get the controls again
+      if (hurtT > 1.0) {
+        player.vx *= 0.93;
+      } else {
+        player.vx = (right ? (flying ? 230 : 150) : 0) - (left ? (flying ? 230 : 150) : 0);
+        if (player.vx !== 0) player.face = player.vx > 0 ? 1 : -1;
+      }
+      if (flying) {
+        player.vy = (down ? 230 : 0) - (up ? 230 : 0);
+        fallFrom = null;
+      } else {
+        player.vy += 1600 * dt;
+        if (player.vy > 950) player.vy = 950;
+        // remember where a fall started so we can measure the drop
+        if (!player.onGround && player.vy > 0 && fallFrom === null) fallFrom = player.y;
+      }
+      const wasAir = !player.onGround;
       moveBody(player, dt, false);
+      if (player.onGround && wasAir && fallFrom !== null) {
+        const drop = (player.y - fallFrom) / TS;
+        if (mode === "survival" && drop > 8) hurt(Math.min(2, Math.floor((drop - 8) / 6) + 1));
+        fallFrom = null;
+      }
+
+      // getting better after a scrape
+      if (hurtT > 0) hurtT -= dt;
+      if (mode === "survival" && hp < MAX_HP && hurtT <= 0) {
+        regenT -= dt;
+        if (regenT <= 0) { hp++; regenT = 14; updateHearts(); }
+      }
 
       // mining progress
       if (mining && pointerDown) {
@@ -1526,6 +1687,9 @@
       e.bag = bag;
       e.seenOre = seenOre;
       e.dayT = dayT;
+      e.mode = mode;
+      e.hp = hp;
+      e.spawn = spawnPt;
       e.when = Date.now();
       persist();
     }
@@ -1568,7 +1732,11 @@
       Object.keys(e.bag || {}).forEach((k) => { if (ITEMS[k] && e.bag[k] > 0) bag[k] = e.bag[k]; });
       seenOre = e.seenOre || {};
       dayT = typeof e.dayT === "number" ? e.dayT : 0.12;
+      mode = e.mode === "creative" ? "creative" : "survival";
+      hp = typeof e.hp === "number" ? Math.max(1, Math.min(MAX_HP, e.hp)) : MAX_HP;
       player = { x: e.p.x, y: e.p.y, vx: 0, vy: 0, w: 22, h: 44, onGround: false, face: 1 };
+      spawnPt = (e.spawn && typeof e.spawn.x === "number") ? e.spawn : defaultSpawn();
+      flying = false; hurtT = 0; regenT = 14; fallFrom = null;
       mobs = []; spawnTimer = 2; growTimer = 3;
       currentId = id;
       persist();
@@ -1576,20 +1744,27 @@
       return true;
     }
 
-    function createWorld() {
+    function createWorld(m) {
       genWorld(Math.floor(Math.random() * 1e9));
+      mode = m === "creative" ? "creative" : "survival";
+      hp = MAX_HP;
+      flying = false; hurtT = 0; regenT = 14; fallFrom = null;
+      spawnPt = { x: player.x, y: player.y };
       let n = 1;
       while (store.worlds.some((w) => w.name === "World " + n)) n++;
       const e = {
         id: newWorldId(), name: "World " + n, w: worldToStr(),
         p: { x: player.x, y: player.y }, bag: {}, seenOre: {}, dayT, when: Date.now(),
+        mode, hp, spawn: spawnPt,
       };
       store.worlds.push(e);
       currentId = e.id;
       growTimer = 3;
       persist();
       startGame();
-      toast("🌍 A brand new world! Punch a tree to start. 🌳");
+      toast(mode === "creative"
+        ? "🕊️ Creative world! Every block is free — tap 🕊️ to fly."
+        : "🌍 A brand new world! Punch a tree to start. 🌳");
     }
 
     /* little 1px-per-block map of a saved world, for the title screen */
@@ -1616,17 +1791,54 @@
       return n + " item" + (n === 1 ? "" : "s");
     }
 
-    function askConfirm(emoji, title, text, yesLabel, hideCancel) {
+    function askChoice(emoji, title, text, options) {
       return new Promise((resolve) => {
         $("askEmoji").textContent = emoji;
         $("askTitle").textContent = title;
         $("askText").textContent = text;
-        $("askYes").textContent = yesLabel || "Yes";
-        $("askNo").style.display = hideCancel ? "none" : "";
+        const box = $("askButtons");
+        box.innerHTML = "";
+        options.forEach((o) => {
+          const b = document.createElement("button");
+          b.className = "ov-btn";
+          b.textContent = o.label;
+          b.dataset.value = String(o.value);
+          if (o.grey) { b.style.background = "#8a8f7d"; b.style.boxShadow = "0 4px 0 #5f6355"; }
+          b.addEventListener("click", () => {
+            sClick();
+            $("askOverlay").classList.remove("show");
+            resolve(o.value);
+          });
+          box.appendChild(b);
+        });
         $("askOverlay").classList.add("show");
-        $("askYes").onclick = () => { sClick(); $("askOverlay").classList.remove("show"); resolve(true); };
-        $("askNo").onclick = () => { sClick(); $("askOverlay").classList.remove("show"); resolve(false); };
       });
+    }
+
+    function askConfirm(emoji, title, text, yesLabel, hideCancel) {
+      const opts = [{ label: yesLabel || "Yes", value: true }];
+      if (!hideCancel) opts.push({ label: "Cancel", value: false, grey: true });
+      return askChoice(emoji, title, text, opts);
+    }
+
+    function defaultSpawn() {
+      let y = 0;
+      while (y < WH && !isSolid(8, y)) y++;
+      return { x: 8 * TS + TS / 2, y: y * TS - 23 };
+    }
+
+    function applyMode() {
+      const creative = mode === "creative";
+      if (!creative) flying = false;
+      $("modeBtn").textContent = creative ? "🕊️ Creative" : "🛡️ Survival";
+      $("craftBtn").hidden = creative;
+      if (creative) $("craftPanel").hidden = true;
+      $("btnFly").hidden = !creative;
+      $("btnFly").classList.toggle("flying", flying);
+      $("btnDown").hidden = !(creative && flying);
+      updateHearts();
+      renderHotbar();
+      renderRecipes();
     }
 
     function renderWorlds() {
@@ -1643,8 +1855,11 @@
         if (arr) card.appendChild(miniMap(arr));
         const label = document.createElement("span");
         const night = e.dayT > 0.64 && e.dayT < 0.93;
+        const creative = e.mode === "creative";
         label.innerHTML = e.name + '<span class="w-sub">' + (night ? "🌙 night" : "☀️ day") +
-          " · " + bagCount(e.bag) + "</span>";
+          (creative ? "" : " · " + bagCount(e.bag)) + "</span>" +
+          '<span class="mode-badge' + (creative ? " creative" : "") + '">' +
+          (creative ? "🕊️ Creative" : "🛡️ Survival") + "</span>";
         card.appendChild(label);
         card.addEventListener("click", () => { sClick(); playWorld(e.id); });
         const del = document.createElement("button");
@@ -1677,8 +1892,7 @@
       running = true;
       resize();
       selected = null;
-      renderHotbar();
-      renderRecipes();
+      applyMode();
       $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
       lastT = 0;
       cancelAnimationFrame(rafId);
@@ -1701,7 +1915,44 @@
           "You can keep " + MAX_WORLDS + " worlds at once. Delete one with its ✕ button to make room.", "OK", true);
         return;
       }
-      createWorld();
+      const m = await askChoice("🌍", "What kind of world?",
+        "Survival: mine and craft everything yourself, and watch out — monsters come out at night! " +
+        "Creative: every block for free, dig anything instantly, and you can fly.",
+        [{ label: "🛡️ Survival", value: "survival" },
+         { label: "🕊️ Creative", value: "creative" },
+         { label: "Cancel", value: null, grey: true }]);
+      if (!m) return;
+      createWorld(m);
+    });
+
+    $("modeBtn").addEventListener("click", async () => {
+      sClick();
+      const target = mode === "creative" ? "survival" : "creative";
+      const ok = await askConfirm(
+        target === "creative" ? "🕊️" : "🛡️",
+        "Switch to " + (target === "creative" ? "Creative" : "Survival") + " mode?",
+        target === "creative"
+          ? "Every block becomes free, you can dig anything instantly, you can fly, and no monsters will bother you."
+          : "You'll mine and craft with the things in your bag again, and monsters come out at night. Everything you built stays put!",
+        "Yes, switch!");
+      if (!ok) return;
+      mode = target;
+      flying = false;
+      hp = MAX_HP;
+      applyMode();
+      save();
+      toast(mode === "creative"
+        ? "🕊️ Creative mode! Tap the 🕊️ button to fly."
+        : "🛡️ Survival mode! Craft some torches before dark.");
+    });
+
+    $("btnFly").addEventListener("click", () => {
+      if (mode !== "creative") return;
+      flying = !flying;
+      sWing();
+      $("btnFly").classList.toggle("flying", flying);
+      $("btnDown").hidden = !flying;
+      if (!flying) player.vy = 0;
     });
 
     $("craftBtn").addEventListener("click", () => {
@@ -1721,6 +1972,7 @@
     bindTouch("btnLeft", "left");
     bindTouch("btnRight", "right");
     bindTouch("btnJump", "jump");
+    bindTouch("btnDown", "down");
 
     $("game").addEventListener("pointerdown", onPointerDown);
     $("game").addEventListener("pointermove", onPointerMove);
