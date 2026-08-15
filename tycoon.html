@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ezra's Planet Tycoon</title>
+  <style>
+    :root {
+      --bg: #0b0526;
+      --ink: #1f2a3d;
+      --accent: #ffb020;
+      --accent-deep: #c47800;
+      --good: #33c65b;
+      --good-deep: #1d8c3c;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 10%, #2a1055 0%, transparent 45%),
+        radial-gradient(circle at 80% 80%, #10306b 0%, transparent 50%),
+        var(--bg);
+      padding: 10px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(1px 1px at 20px 30px, white, transparent),
+        radial-gradient(1.5px 1.5px at 120px 200px, white, transparent),
+        radial-gradient(1px 1px at 300px 150px, white, transparent),
+        radial-gradient(2px 2px at 80px 350px, #ffe9a8, transparent),
+        radial-gradient(1px 1px at 250px 250px, white, transparent),
+        radial-gradient(1.5px 1.5px at 500px 200px, white, transparent),
+        radial-gradient(1px 1px at 600px 350px, white, transparent),
+        radial-gradient(1.5px 1.5px at 350px 450px, #cfe4ff, transparent),
+        radial-gradient(1px 1px at 700px 100px, white, transparent),
+        radial-gradient(1.5px 1.5px at 800px 300px, white, transparent),
+        radial-gradient(1px 1px at 450px 650px, white, transparent);
+      background-size: 900px 700px;
+      opacity: 0.75;
+      animation: twinkle 4s ease-in-out infinite alternate;
+      z-index: 0;
+    }
+    @keyframes twinkle { from { opacity: 0.5; } to { opacity: 0.9; } }
+
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.97);
+      border-radius: 20px;
+      box-shadow: 0 14px 40px rgba(0, 0, 40, 0.55);
+      padding: clamp(12px, 2.2vw, 20px);
+      position: relative;
+      z-index: 1;
+    }
+    .back-link {
+      display: inline-block;
+      color: #6b3fd4;
+      font-weight: bold;
+      text-decoration: none;
+      margin-bottom: 4px;
+      font-size: 0.88rem;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(1.4rem, 4.2vw, 2rem);
+      text-align: center;
+      color: #6b3fd4;
+    }
+    .subtitle { text-align: center; opacity: 0.85; margin: 4px 0 12px; font-size: 0.9rem; }
+    button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+    /* ---------- HUD ---------- */
+    .hud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .money {
+      background: linear-gradient(180deg, #ffd76b, #ffb020);
+      border: 3px solid #c47800;
+      border-radius: 999px;
+      padding: 5px 16px;
+      font-weight: bold;
+      font-size: 1.15rem;
+      color: #4a2d00;
+      white-space: nowrap;
+      box-shadow: 0 3px 0 #a86700;
+    }
+    .money.bump { animation: moneyBump 0.3s; }
+    @keyframes moneyBump {
+      0% { transform: scale(1); }
+      45% { transform: scale(1.13); }
+      100% { transform: scale(1); }
+    }
+    .pill {
+      background: #efe9ff;
+      border: 2px solid #d4c6f5;
+      border-radius: 999px;
+      padding: 5px 11px;
+      font-weight: bold;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+    .pill-btn { transition: transform 0.1s; }
+    .pill-btn:active { transform: scale(0.94); }
+    .hud .spacer { flex: 1; }
+    #rebirthBtn {
+      background: linear-gradient(180deg, #b98aff, #7d3fe0);
+      border-color: #5a24ad;
+      color: white;
+      box-shadow: 0 3px 0 #4a1c91;
+    }
+
+    /* ---------- The planet ---------- */
+    #stage {
+      position: relative;
+      height: clamp(280px, 46vw, 380px);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 3px solid #2a1055;
+      background: linear-gradient(180deg, #120a35 0%, #241257 55%, #3a1d6e 100%);
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(1.5px 1.5px at 40px 40px, white, transparent),
+        radial-gradient(1px 1px at 160px 25px, white, transparent),
+        radial-gradient(1.5px 1.5px at 280px 60px, white, transparent),
+        radial-gradient(1px 1px at 400px 30px, white, transparent),
+        radial-gradient(1.5px 1.5px at 540px 55px, white, transparent),
+        radial-gradient(1px 1px at 660px 20px, white, transparent),
+        radial-gradient(1.5px 1.5px at 780px 70px, white, transparent);
+      background-repeat: repeat-x;
+      background-size: 850px 120px;
+      opacity: 0.85;
+      pointer-events: none;
+    }
+    #world {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      will-change: transform;
+    }
+    #ground {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      height: 76px;
+      background: linear-gradient(180deg, #6fd36f 0%, #47a84f 26%, #7a5a34 27%, #5d4327 100%);
+      border-top: 4px solid #8ceb8c;
+    }
+    .plot {
+      position: absolute;
+      bottom: 76px;
+      width: 168px;
+      text-align: center;
+      pointer-events: none;
+    }
+    .plot .b-emoji {
+      font-size: clamp(2.4rem, 7vw, 3.2rem);
+      line-height: 1;
+      display: block;
+      filter: drop-shadow(0 4px 5px rgba(0,0,0,0.45));
+    }
+    .plot .b-name {
+      display: inline-block;
+      background: rgba(20, 10, 45, 0.8);
+      color: #fff;
+      font-size: 0.62rem;
+      font-weight: bold;
+      border-radius: 6px;
+      padding: 2px 7px;
+      margin-top: 2px;
+      white-space: nowrap;
+    }
+    .plot .b-lvl { color: #ffd76b; }
+    .plot.empty .b-emoji { opacity: 0.18; filter: grayscale(1); }
+    .plot.pop { animation: plotPop 0.6s cubic-bezier(0.2, 1.7, 0.4, 1); }
+    @keyframes plotPop {
+      0% { transform: scale(0.1) translateY(30px); opacity: 0; }
+      70% { transform: scale(1.15) translateY(0); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+
+    .pad {
+      position: absolute;
+      bottom: 12px;
+      width: 152px;
+      border-radius: 10px;
+      padding: 5px 4px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 0.66rem;
+      line-height: 1.25;
+      color: white;
+      border: 3px solid rgba(255,255,255,0.5);
+      background: linear-gradient(180deg, #7a8296, #545b6b);
+      box-shadow: 0 3px 0 rgba(0,0,0,0.35);
+      pointer-events: none;
+    }
+    .pad .pad-cost { display: block; font-size: 0.78rem; }
+    .pad.can {
+      background: linear-gradient(180deg, #5ce07c, var(--good-deep));
+      animation: padGlow 1.1s ease-in-out infinite;
+    }
+    @keyframes padGlow {
+      0%, 100% { box-shadow: 0 3px 0 #14682c, 0 0 0 rgba(90, 230, 120, 0.6); }
+      50% { box-shadow: 0 3px 0 #14682c, 0 0 16px rgba(90, 230, 120, 0.95); }
+    }
+    .pad.maxed { background: linear-gradient(180deg, #ffd76b, #d99a10); color: #4a2d00; }
+
+    /* floating asteroids you can tap for your first credits — the tap target
+       itself stays still (easy for little fingers), only the art drifts */
+    .rock {
+      position: absolute;
+      padding: 10px;
+      font-size: 1.9rem;
+      line-height: 1;
+      cursor: pointer;
+      pointer-events: auto;
+      z-index: 30;
+    }
+    .rock .rock-art {
+      display: block;
+      filter: drop-shadow(0 3px 5px rgba(0,0,0,0.5));
+      animation: drift 3.4s ease-in-out infinite alternate;
+    }
+    .rock:active .rock-art { transform: scale(0.8) rotate(-10deg); animation: none; }
+    @keyframes drift {
+      from { transform: translateY(0) rotate(-6deg); }
+      to { transform: translateY(-12px) rotate(6deg); }
+    }
+
+    #player {
+      position: absolute;
+      bottom: 70px;
+      font-size: 2.1rem;
+      line-height: 1;
+      transform: translateX(-50%);
+      filter: drop-shadow(0 4px 4px rgba(0,0,0,0.5));
+      z-index: 20;
+      pointer-events: none;
+    }
+    #player.walking { animation: bob 0.34s ease-in-out infinite alternate; }
+    @keyframes bob { from { margin-bottom: 0; } to { margin-bottom: 6px; } }
+
+    .float {
+      position: absolute;
+      font-weight: bold;
+      font-size: 0.95rem;
+      color: #ffe06b;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+      pointer-events: none;
+      animation: floatUp 1.1s ease-out forwards;
+      z-index: 40;
+      white-space: nowrap;
+    }
+    @keyframes floatUp {
+      from { opacity: 1; transform: translate(-50%, 0); }
+      to { opacity: 0; transform: translate(-50%, -52px); }
+    }
+
+    .touch-btn {
+      position: absolute;
+      bottom: 12px;
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.75);
+      background: rgba(20, 10, 45, 0.45);
+      color: white;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      touch-action: none;
+    }
+    .touch-btn:active, .touch-btn.held { background: rgba(120, 200, 90, 0.75); }
+    #btnLeft { left: 10px; }
+    #btnRight { left: 78px; }
+    .hint-arrow {
+      position: absolute;
+      right: 12px;
+      bottom: 168px;
+      background: rgba(20, 10, 45, 0.75);
+      color: #ffe06b;
+      border-radius: 10px;
+      padding: 5px 10px;
+      font-size: 0.78rem;
+      font-weight: bold;
+      z-index: 50;
+      pointer-events: none;
+    }
+
+    #toast {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: 90%;
+      background: rgba(20, 10, 45, 0.92);
+      color: #fff;
+      border: 2px solid #ffd34d;
+      border-radius: 12px;
+      padding: 7px 14px;
+      font-weight: bold;
+      font-size: 0.85rem;
+      text-align: center;
+      z-index: 60;
+      display: none;
+    }
+    #toast.show { display: block; animation: toastIn 0.3s; }
+    @keyframes toastIn {
+      from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+      to { transform: translateX(-50%) translateY(0); opacity: 1; }
+    }
+
+    /* ---------- Shop list under the planet ---------- */
+    .panel {
+      background: #f6f2ff;
+      border: 2px solid #d4c6f5;
+      border-radius: 14px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+    .panel h3 { margin: 0 0 2px; font-size: 1rem; }
+    .panel .tip { margin: 0 0 10px; font-size: 0.8rem; opacity: 0.78; }
+    .shop {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 8px;
+    }
+    .shop-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      border: 2px solid #d4c6f5;
+      background: white;
+      border-radius: 12px;
+      padding: 7px 9px;
+      font-size: 0.78rem;
+    }
+    .shop-row.owned { border-color: #b8e6c4; background: #f2fdf5; }
+    .shop-row.locked { opacity: 0.5; }
+    .shop-row .s-emoji { font-size: 1.6rem; flex: none; }
+    .shop-row .s-name { font-weight: bold; display: block; }
+    .shop-row .s-info { opacity: 0.8; font-size: 0.72rem; }
+    .shop-row .s-go {
+      margin-left: auto;
+      font-size: 0.68rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 9px;
+      background: #7d3fe0;
+      color: white;
+      flex: none;
+    }
+    .shop-row .s-go:disabled { background: #b9b2c8; }
+
+    /* ---------- Overlay ---------- */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 5, 35, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    .overlay.show { display: flex; }
+    .ov-card {
+      background: white;
+      border-radius: 20px;
+      padding: clamp(18px, 5vw, 30px);
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+      animation: ovPop 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+      box-shadow: 0 0 50px rgba(180, 140, 255, 0.7);
+    }
+    @keyframes ovPop { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .ov-card .o-emoji { font-size: 3.2rem; display: block; margin-bottom: 6px; }
+    .ov-card h2 { margin: 0 0 6px; color: #6b3fd4; font-size: 1.2rem; }
+    .ov-card p { margin: 4px 0; font-size: 0.92rem; }
+    .ov-btn {
+      margin: 12px 4px 0;
+      font-size: 1rem;
+      font-weight: bold;
+      color: white;
+      background: #7d3fe0;
+      border: none;
+      border-radius: 12px;
+      padding: 11px 26px;
+      box-shadow: 0 4px 0 #4a1c91;
+    }
+    .ov-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #4a1c91; }
+    .confetti-bit {
+      position: fixed;
+      top: -12px;
+      font-size: 1.2rem;
+      pointer-events: none;
+      z-index: 101;
+      animation: confFall linear forwards;
+    }
+    @keyframes confFall { to { transform: translateY(105vh) rotate(540deg); } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <a class="back-link" href="index.html">← Back to Game Hub</a>
+    <h1>🪐 Planet Tycoon</h1>
+    <p class="subtitle">Tap the rocks for your first credits, then walk onto the green pads to build your planet empire!</p>
+
+    <div class="hud">
+      <span class="money" id="moneyPill">⭐ 0</span>
+      <span class="pill" id="ratePill">📈 0/sec</span>
+      <span class="pill" id="planetPill">🪐 Planet 1</span>
+      <span class="spacer"></span>
+      <button class="pill pill-btn" id="rebirthBtn" hidden>🚀 New Planet</button>
+      <button class="pill pill-btn" id="soundBtn">🔊</button>
+      <button class="pill pill-btn" id="resetBtn">🧹 Start Over</button>
+    </div>
+
+    <div id="stage">
+      <div id="world">
+        <div id="ground"></div>
+        <div id="player">🧑‍🚀</div>
+      </div>
+      <div id="toast"></div>
+      <button class="touch-btn" id="btnLeft" aria-label="walk left">◀</button>
+      <button class="touch-btn" id="btnRight" aria-label="walk right">▶</button>
+      <div class="hint-arrow" id="hintArrow"></div>
+    </div>
+
+    <div class="panel">
+      <h3>🏗️ Your Buildings</h3>
+      <p class="tip">Walk onto a green pad on your planet to buy or upgrade — or tap “Go” here to walk there.</p>
+      <div class="shop" id="shop"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="ovr">
+    <div class="ov-card">
+      <span class="o-emoji" id="ovEmoji">🪐</span>
+      <h2 id="ovTitle"></h2>
+      <p id="ovText"></p>
+      <div id="ovButtons"></div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    /* ================= Buildings ================= */
+
+    const BUILDINGS = [
+      { id: "base",    name: "Landing Base",  emoji: "🏠", cost: 15,        rate: 1 },
+      { id: "drill",   name: "Ore Drill",     emoji: "⛏️", cost: 100,       rate: 3 },
+      { id: "farm",    name: "Space Farm",    emoji: "🌱", cost: 400,       rate: 10 },
+      { id: "solar",   name: "Solar Array",   emoji: "🔆", cost: 1200,      rate: 28 },
+      { id: "crystal", name: "Crystal Mine",  emoji: "💎", cost: 3500,      rate: 75 },
+      { id: "factory", name: "Robot Factory", emoji: "🏭", cost: 10000,     rate: 200 },
+      { id: "lab",     name: "Science Lab",   emoji: "🔬", cost: 30000,     rate: 550 },
+      { id: "rocket",  name: "Rocket Pad",    emoji: "🚀", cost: 90000,     rate: 1500 },
+      { id: "ufo",     name: "UFO Garage",    emoji: "🛸", cost: 260000,    rate: 4000 },
+      { id: "zoo",     name: "Alien Zoo",     emoji: "👽", cost: 750000,    rate: 11000 },
+      { id: "city",    name: "Space City",    emoji: "🏙️", cost: 2000000,   rate: 30000 },
+      { id: "portal",  name: "Star Portal",   emoji: "🌌", cost: 6000000,   rate: 90000 },
+    ];
+
+    const MAX_LVL = 5;
+    const LVL_COST = 2.6;        // each level costs this much more
+    const PLOT_W = 200;
+    const START_X = 90;
+    const SAVE_KEY = "planet-tycoon-save-v1";
+    const OFFLINE_CAP = 8 * 3600;   // seconds of offline earnings
+    const OFFLINE_RATE = 0.5;
+
+    /* ================= State ================= */
+
+    let credits = 0;
+    let levels = {};             // id -> level (0 = not built)
+    let planet = 1;              // how many planets colonised (multiplier)
+    let soundOn = true;
+    let playerX = START_X;
+    let facing = 1;
+    let lastSeen = Date.now();
+    let padCooldown = {};
+
+    const mult = () => planet;   // planet 1 = ×1, planet 2 = ×2 …
+    const lvlOf = (id) => levels[id] || 0;
+
+    function costOf(b) {
+      const l = lvlOf(b.id);
+      return Math.floor(b.cost * Math.pow(LVL_COST, l));
+    }
+    function rateOf(b) {
+      return b.rate * lvlOf(b.id) * mult();
+    }
+    function totalRate() {
+      return BUILDINGS.reduce((n, b) => n + rateOf(b), 0);
+    }
+    function plotX(i) { return START_X + 60 + i * PLOT_W; }
+    const worldWidth = () => plotX(BUILDINGS.length - 1) + PLOT_W + 60;
+
+    /* ================= Numbers ================= */
+
+    function fmt(n) {
+      n = Math.floor(n);
+      if (n < 1000) return String(n);
+      const units = [["B", 1e9], ["M", 1e6], ["K", 1e3]];
+      for (const [suf, div] of units) {
+        if (n >= div) {
+          const v = n / div;
+          return (v >= 100 ? v.toFixed(0) : v.toFixed(1).replace(/\.0$/, "")) + suf;
+        }
+      }
+      return String(n);
+    }
+
+    /* ================= Sound ================= */
+
+    let actx = null;
+    function audio() {
+      if (!actx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) actx = new AC();
+      }
+      if (actx && actx.state === "suspended") actx.resume();
+      return actx;
+    }
+    function tone(freq, dur, type, vol, delay, slideTo) {
+      if (!soundOn) return;
+      const ctx = audio();
+      if (!ctx) return;
+      const t0 = ctx.currentTime + (delay || 0);
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, t0);
+      if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+      g.gain.setValueAtTime(vol || 0.1, t0);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.05);
+    }
+    const sClick = () => tone(600, 0.07, "square", 0.05);
+    const sTap = () => tone(760 + Math.random() * 160, 0.07, "triangle", 0.07, 0, 1100);
+    const sBuy = () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.16, "triangle", 0.12, i * 0.06));
+    const sUp = () => [659, 880, 1175].forEach((f, i) => tone(f, 0.14, "triangle", 0.11, i * 0.06));
+    const sNope = () => tone(180, 0.15, "square", 0.06);
+    const sBlast = () => { tone(160, 0.9, "sawtooth", 0.12, 0, 900); [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.3, "triangle", 0.12, 0.5 + i * 0.11)); };
+
+    /* ================= Helpers ================= */
+
+    const $ = (id) => document.getElementById(id);
+
+    let toastTimer = null;
+    function toast(msg) {
+      const t = $("toast");
+      t.textContent = msg;
+      t.classList.remove("show");
+      void t.offsetWidth;
+      t.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove("show"), 2800);
+    }
+
+    function floatText(x, bottom, text, color) {
+      const f = document.createElement("div");
+      f.className = "float";
+      f.textContent = text;
+      f.style.left = x + "px";
+      f.style.bottom = bottom + "px";
+      if (color) f.style.color = color;
+      $("world").appendChild(f);
+      setTimeout(() => f.remove(), 1100);
+    }
+
+    /* ================= Building the planet ================= */
+
+    function buildWorld() {
+      const world = $("world");
+      world.querySelectorAll(".plot, .pad, .rock").forEach((n) => n.remove());
+      world.style.width = worldWidth() + "px";
+      $("ground").style.width = worldWidth() + "px";
+
+      BUILDINGS.forEach((b, i) => {
+        const plot = document.createElement("div");
+        plot.className = "plot empty";
+        plot.id = "plot-" + b.id;
+        plot.style.left = plotX(i) + "px";
+        plot.innerHTML = '<span class="b-emoji">' + b.emoji + '</span><span class="b-name"></span>';
+        world.appendChild(plot);
+
+        const pad = document.createElement("div");
+        pad.className = "pad";
+        pad.id = "pad-" + b.id;
+        pad.dataset.building = b.id;
+        pad.style.left = (plotX(i) + 8) + "px";
+        world.appendChild(pad);
+      });
+
+      // floating asteroids you tap for your first credits (up in the sky,
+      // clear of the walk buttons so they're always easy to hit)
+      [[16, 168], [64, 206], [112, 176]].forEach(([off, up], i) => {
+        const rock = document.createElement("div");
+        rock.className = "rock";
+        rock.innerHTML = '<span class="rock-art">' + ["🪨", "☄️", "🪨"][i] + "</span>";
+        rock.style.left = off + "px";
+        rock.style.bottom = up + "px";
+        rock.querySelector(".rock-art").style.animationDelay = (i * 0.5) + "s";
+        rock.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          tapRock(rock, off, up);
+        });
+        world.appendChild(rock);
+      });
+      refreshAll();
+    }
+
+    function tapRock(el, x, up) {
+      const gain = 2 * mult();
+      credits += gain;
+      sTap();
+      floatText(x + 14, (up || 90) + 26, "+" + fmt(gain));
+      bumpMoney();
+      refreshHud();
+      refreshPads();
+      refreshShop();
+      save();
+    }
+
+    /* ================= Pads & buying ================= */
+
+    function padLabel(b) {
+      const l = lvlOf(b.id);
+      if (l === 0) return { top: "BUY " + b.name, cost: "⭐ " + fmt(costOf(b)) };
+      if (l >= MAX_LVL) return { top: "⭐ " + b.name + " MAX", cost: "+" + fmt(rateOf(b)) + "/sec" };
+      return { top: "⬆️ UPGRADE to Lv" + (l + 1), cost: "⭐ " + fmt(costOf(b)) };
+    }
+
+    let padSig = "";
+    function refreshPads() {
+      // only touch the DOM when a level or affordability actually changes
+      const sig = BUILDINGS.map((b) => lvlOf(b.id) + (credits >= costOf(b) ? "1" : "0")).join(",");
+      if (sig === padSig) return;
+      padSig = sig;
+      BUILDINGS.forEach((b) => {
+        const pad = $("pad-" + b.id);
+        if (!pad) return;
+        const l = lvlOf(b.id);
+        const maxed = l >= MAX_LVL;
+        const info = padLabel(b);
+        pad.innerHTML = info.top + '<span class="pad-cost">' + info.cost + "</span>";
+        pad.classList.toggle("maxed", maxed);
+        pad.classList.toggle("can", !maxed && credits >= costOf(b));
+      });
+    }
+
+    function refreshPlots() {
+      BUILDINGS.forEach((b) => {
+        const plot = $("plot-" + b.id);
+        if (!plot) return;
+        const l = lvlOf(b.id);
+        plot.classList.toggle("empty", l === 0);
+        plot.querySelector(".b-name").innerHTML = l === 0
+          ? b.name
+          : b.name + ' <span class="b-lvl">' + "★".repeat(l) + "</span>";
+      });
+    }
+
+    function tryBuy(b, viaPad) {
+      const l = lvlOf(b.id);
+      if (l >= MAX_LVL) { if (!viaPad) toast(b.name + " is already at max level! ⭐"); return false; }
+      const cost = costOf(b);
+      if (credits < cost) {
+        if (!viaPad) { sNope(); toast("You need ⭐ " + fmt(cost - credits) + " more for that!"); }
+        return false;
+      }
+      credits -= cost;
+      levels[b.id] = l + 1;
+      const plot = $("plot-" + b.id);
+      plot.classList.remove("pop");
+      void plot.offsetWidth;
+      plot.classList.add("pop");
+      const i = BUILDINGS.indexOf(b);
+      floatText(plotX(i) + 84, 160, l === 0 ? "BUILT!" : "Lv" + (l + 1) + "!", "#8cffb0");
+      if (l === 0) { sBuy(); toast("🏗️ " + b.name + " built! It earns ⭐ " + fmt(rateOf(b)) + "/sec."); }
+      else { sUp(); toast("⬆️ " + b.name + " is now level " + (l + 1) + "!"); }
+      refreshAll();
+      save();
+      checkRebirthReady();
+      return true;
+    }
+
+    /* ================= Player ================= */
+
+    const held = { left: false, right: false };
+    const keys = {};
+
+    function bindTouch(id, prop) {
+      const el = $(id);
+      const on = (e) => { e.preventDefault(); held[prop] = true; el.classList.add("held"); audio(); };
+      const off = (e) => { if (e) e.preventDefault(); held[prop] = false; el.classList.remove("held"); };
+      el.addEventListener("pointerdown", on);
+      el.addEventListener("pointerup", off);
+      el.addEventListener("pointerleave", off);
+      el.addEventListener("pointercancel", off);
+    }
+    bindTouch("btnLeft", "left");
+    bindTouch("btnRight", "right");
+
+    window.addEventListener("keydown", (e) => {
+      if (["ArrowLeft", "ArrowRight"].includes(e.key)) e.preventDefault();
+      keys[e.key.toLowerCase()] = true;
+    });
+    window.addEventListener("keyup", (e) => { keys[e.key.toLowerCase()] = false; });
+
+    let walkTo = null;   // auto-walk target from the shop "Go" buttons
+
+    function updatePlayer(dt) {
+      const left = held.left || keys["arrowleft"] || keys["a"];
+      const right = held.right || keys["arrowright"] || keys["d"];
+      let vx = 0;
+      const speed = 190;
+      if (left || right) walkTo = null;
+      if (left) vx -= speed;
+      if (right) vx += speed;
+      if (walkTo !== null) {
+        const d = walkTo - playerX;
+        if (Math.abs(d) < 6) { walkTo = null; }
+        else vx = Math.sign(d) * speed * 1.5;
+      }
+      if (vx !== 0) facing = vx > 0 ? 1 : -1;
+      playerX = Math.max(20, Math.min(worldWidth() - 20, playerX + vx * dt));
+      const el = $("player");
+      el.style.left = playerX + "px";
+      el.style.transform = "translateX(-50%) scaleX(" + (facing > 0 ? 1 : -1) + ")";
+      el.classList.toggle("walking", vx !== 0);
+
+      // camera
+      const stage = $("stage");
+      const vw = stage.clientWidth;
+      const cam = Math.max(0, Math.min(worldWidth() - vw, playerX - vw / 2));
+      $("world").style.transform = "translateX(" + (-cam) + "px)";
+
+      // standing on a pad?
+      BUILDINGS.forEach((b, i) => {
+        const px = plotX(i) + 8, pw = 152;
+        const on = playerX > px - 10 && playerX < px + pw + 10;
+        if (!on) { padCooldown[b.id] = 0; return; }
+        padCooldown[b.id] = (padCooldown[b.id] || 0) - dt;
+        if (padCooldown[b.id] > 0) return;
+        if (lvlOf(b.id) >= MAX_LVL) return;
+        if (credits < costOf(b)) return;
+        if (tryBuy(b, true)) padCooldown[b.id] = 1.1;
+      });
+      updateHint();
+    }
+
+    function updateHint() {
+      // point towards the cheapest thing you can afford but haven't bought
+      const target = BUILDINGS.find((b) => lvlOf(b.id) < MAX_LVL && credits >= costOf(b));
+      const el = $("hintArrow");
+      if (!target) { el.textContent = ""; el.style.display = "none"; return; }
+      const i = BUILDINGS.indexOf(target);
+      const tx = plotX(i) + 84;
+      const d = tx - playerX;
+      if (Math.abs(d) < 90) { el.style.display = "none"; return; }
+      el.style.display = "block";
+      el.textContent = (d > 0 ? "Walk ▶ to " : "◀ Walk to ") + target.emoji + " " + target.name;
+    }
+
+    /* ================= Shop list ================= */
+
+    function refreshShop() {
+      const shop = $("shop");
+      // the rows only show levels and costs, so rebuild when a level changes
+      const sig = BUILDINGS.map((b) => lvlOf(b.id)).join(",") + "|" + planet;
+      if (shop.dataset.sig === sig) return;
+      shop.dataset.sig = sig;
+      shop.innerHTML = "";
+      BUILDINGS.forEach((b, i) => {
+        const l = lvlOf(b.id);
+        const prevBuilt = i === 0 || lvlOf(BUILDINGS[i - 1].id) > 0;
+        const row = document.createElement("div");
+        row.className = "shop-row" + (l > 0 ? " owned" : "") + (prevBuilt ? "" : " locked");
+        row.dataset.building = b.id;
+        const maxed = l >= MAX_LVL;
+        row.innerHTML =
+          '<span class="s-emoji">' + (prevBuilt ? b.emoji : "🔒") + "</span>" +
+          '<span><span class="s-name">' + (prevBuilt ? b.name : "???") + (l ? " ★" + l : "") + "</span>" +
+          '<span class="s-info">' + (!prevBuilt ? "Build the one before first"
+            : maxed ? "MAX · +" + fmt(rateOf(b)) + "/sec"
+            : (l ? "+" + fmt(rateOf(b)) + "/sec · next ⭐" + fmt(costOf(b)) : "⭐" + fmt(costOf(b)) + " · +" + fmt(b.rate * mult()) + "/sec")) +
+          "</span></span>";
+        const go = document.createElement("button");
+        go.className = "s-go";
+        go.textContent = maxed ? "MAX" : "Go →";
+        go.disabled = !prevBuilt || maxed;
+        go.addEventListener("click", () => {
+          sClick();
+          walkTo = plotX(i) + 84;
+          toast("🚶 Walking to " + b.name + "…");
+        });
+        row.appendChild(go);
+        shop.appendChild(row);
+      });
+    }
+
+    /* ================= HUD ================= */
+
+    let moneyBumpT = 0;
+    function bumpMoney() {
+      const el = $("moneyPill");
+      el.classList.remove("bump");
+      void el.offsetWidth;
+      el.classList.add("bump");
+    }
+
+    function refreshHud() {
+      $("moneyPill").textContent = "⭐ " + fmt(credits);
+      $("ratePill").textContent = "📈 " + fmt(totalRate()) + "/sec";
+      $("planetPill").textContent = "🪐 Planet " + planet + (planet > 1 ? " (×" + planet + ")" : "");
+      $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
+    }
+
+    function refreshAll() {
+      refreshHud();
+      refreshPlots();
+      refreshPads();
+      refreshShop();
+    }
+
+    /* ================= Rebirth ================= */
+
+    function rebirthReady() {
+      return lvlOf("rocket") > 0;
+    }
+    function checkRebirthReady() {
+      const ready = rebirthReady();
+      $("rebirthBtn").hidden = !ready;
+      if (ready && !checkRebirthReady.told) {
+        checkRebirthReady.told = true;
+        toast("🚀 Your Rocket Pad is ready — you can fly to a NEW planet!");
+      }
+    }
+
+    function doRebirth() {
+      planet += 1;
+      credits = 0;
+      levels = {};
+      playerX = START_X;
+      walkTo = null;
+      padCooldown = {};
+      sBlast();
+      confetti();
+      buildWorld();
+      refreshAll();
+      checkRebirthReady.told = false;
+      $("rebirthBtn").hidden = true;
+      save();
+      showCard("🪐", "Welcome to Planet " + planet + "!",
+        "Your buildings are gone, but everything on this planet earns ×" + planet + " forever. Build it all again — much faster this time!",
+        [{ label: "Let's go!", value: true }]);
+    }
+
+    /* ================= Overlay ================= */
+
+    function showCard(emoji, title, text, options) {
+      return new Promise((resolve) => {
+        $("ovEmoji").textContent = emoji;
+        $("ovTitle").textContent = title;
+        $("ovText").textContent = text;
+        const box = $("ovButtons");
+        box.innerHTML = "";
+        (options || [{ label: "OK", value: true }]).forEach((o) => {
+          const b = document.createElement("button");
+          b.className = "ov-btn";
+          b.textContent = o.label;
+          if (o.grey) { b.style.background = "#8a8f9d"; b.style.boxShadow = "0 4px 0 #5f6570"; }
+          b.addEventListener("click", () => {
+            sClick();
+            $("ovr").classList.remove("show");
+            resolve(o.value);
+          });
+          box.appendChild(b);
+        });
+        $("ovr").classList.add("show");
+      });
+    }
+
+    function confetti() {
+      const bits = ["✨", "⭐", "🎉", "🪐", "🚀"];
+      for (let i = 0; i < 20; i++) {
+        const c = document.createElement("span");
+        c.className = "confetti-bit";
+        c.textContent = bits[Math.floor(Math.random() * bits.length)];
+        c.style.left = Math.random() * 100 + "vw";
+        c.style.animationDuration = 1.6 + Math.random() * 1.6 + "s";
+        c.style.animationDelay = Math.random() * 0.4 + "s";
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 4000);
+      }
+    }
+
+    /* ================= Save / load ================= */
+
+    function save() {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({
+          credits, levels, planet, soundOn, playerX, lastSeen: Date.now(),
+        }));
+      } catch (e) { /* private mode */ }
+    }
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return false;
+        const s = JSON.parse(raw);
+        if (!s) return false;
+        credits = typeof s.credits === "number" && s.credits >= 0 ? s.credits : 0;
+        levels = {};
+        Object.keys(s.levels || {}).forEach((k) => {
+          if (BUILDINGS.some((b) => b.id === k)) {
+            levels[k] = Math.max(0, Math.min(MAX_LVL, Math.floor(s.levels[k])));
+          }
+        });
+        planet = Math.max(1, Math.floor(s.planet || 1));
+        soundOn = s.soundOn !== false;
+        playerX = typeof s.playerX === "number" ? s.playerX : START_X;
+        lastSeen = s.lastSeen || Date.now();
+        return true;
+      } catch (e) { return false; }
+    }
+
+    function offlineEarnings() {
+      const rate = totalRate();
+      if (rate <= 0) return 0;
+      const secs = Math.min(OFFLINE_CAP, Math.max(0, (Date.now() - lastSeen) / 1000));
+      if (secs < 60) return 0;
+      return Math.floor(rate * secs * OFFLINE_RATE);
+    }
+
+    /* ================= Loop ================= */
+
+    let lastT = 0, dropT = 0, saveT = 0;
+
+    function step(now) {
+      if (!lastT) lastT = now;
+      const dt = Math.min((now - lastT) / 1000, 0.1);
+      lastT = now;
+
+      const rate = totalRate();
+      if (rate > 0) credits += rate * dt;
+
+      updatePlayer(dt);
+
+      // little floating earnings above a random working building
+      dropT -= dt;
+      if (dropT <= 0 && rate > 0) {
+        dropT = 0.75;
+        const owned = BUILDINGS.map((b, i) => ({ b, i })).filter((o) => lvlOf(o.b.id) > 0);
+        if (owned.length) {
+          const pick = owned[Math.floor(Math.random() * owned.length)];
+          floatText(plotX(pick.i) + 84, 150, "+" + fmt(rateOf(pick.b)));
+        }
+      }
+
+      refreshHud();
+      refreshPads();
+      refreshShop();
+
+      saveT -= dt;
+      if (saveT <= 0) { saveT = 5; save(); }
+
+      requestAnimationFrame(step);
+    }
+
+    /* ================= Buttons ================= */
+
+    $("soundBtn").addEventListener("click", () => {
+      soundOn = !soundOn;
+      if (soundOn) sClick();
+      refreshHud();
+      save();
+    });
+
+    $("rebirthBtn").addEventListener("click", async () => {
+      sClick();
+      const ok = await showCard("🚀", "Fly to a brand new planet?",
+        "You'll lose your buildings and credits — but EVERY building on the new planet earns ×" + (planet + 1) +
+        " forever. Tycoons do this to get rich much faster!",
+        [{ label: "🚀 Blast off!", value: true }, { label: "Not yet", value: false, grey: true }]);
+      if (ok) doRebirth();
+    });
+
+    $("resetBtn").addEventListener("click", async () => {
+      sClick();
+      const ok = await showCard("🧹", "Start the whole game over?",
+        "Everything goes back to the very beginning — planet 1, no buildings, no credits.",
+        [{ label: "Yes, start over", value: true }, { label: "Cancel", value: false, grey: true }]);
+      if (!ok) return;
+      credits = 0; levels = {}; planet = 1; playerX = START_X; walkTo = null;
+      padCooldown = {};
+      checkRebirthReady.told = false;
+      $("rebirthBtn").hidden = true;
+      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+      buildWorld();
+      refreshAll();
+      save();
+    });
+
+    window.addEventListener("resize", () => updatePlayer(0));
+    window.addEventListener("beforeunload", save);
+
+    /* ================= Start ================= */
+
+    (function init() {
+      const had = load();
+      buildWorld();
+      refreshAll();
+      checkRebirthReady();
+      if (had) {
+        const earned = offlineEarnings();
+        if (earned > 0) {
+          credits += earned;
+          refreshAll();
+          showCard("😴", "Welcome back!",
+            "Your planet kept working while you were away and earned ⭐ " + fmt(earned) + "!",
+            [{ label: "Great!", value: true }]);
+        }
+      } else {
+        toast("👋 Tap the rocks 🪨 to earn your first credits!");
+      }
+      requestAnimationFrame(step);
+    })();
+  </script>
+</body>
+</html>
