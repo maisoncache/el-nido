@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ezra's Space Shuttle Builder</title>
+  <style>
+    :root {
+      --bg: #071a33;
+      --ink: #1f2a3d;
+      --accent: #ff7a1a;
+      --accent-deep: #c25200;
+      --steel: #4a6b8a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 10%, #0f3159 0%, transparent 45%),
+        radial-gradient(circle at 80% 85%, #143a63 0%, transparent 50%),
+        var(--bg);
+      padding: 10px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(1px 1px at 20px 30px, white, transparent),
+        radial-gradient(1.5px 1.5px at 120px 200px, white, transparent),
+        radial-gradient(1px 1px at 300px 150px, white, transparent),
+        radial-gradient(2px 2px at 80px 350px, #ffe9a8, transparent),
+        radial-gradient(1px 1px at 250px 250px, white, transparent),
+        radial-gradient(1.5px 1.5px at 500px 200px, white, transparent),
+        radial-gradient(1px 1px at 600px 350px, white, transparent),
+        radial-gradient(1.5px 1.5px at 350px 450px, #cfe4ff, transparent),
+        radial-gradient(1px 1px at 700px 100px, white, transparent),
+        radial-gradient(1.5px 1.5px at 800px 300px, white, transparent);
+      background-size: 900px 700px;
+      opacity: 0.75;
+      animation: twinkle 4s ease-in-out infinite alternate;
+      z-index: 0;
+    }
+    @keyframes twinkle { from { opacity: 0.5; } to { opacity: 0.9; } }
+
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.97);
+      border-radius: 20px;
+      box-shadow: 0 14px 40px rgba(0, 10, 40, 0.55);
+      padding: clamp(12px, 2.2vw, 18px);
+      position: relative;
+      z-index: 1;
+    }
+    .back-link {
+      display: inline-block;
+      color: var(--accent-deep);
+      font-weight: bold;
+      text-decoration: none;
+      margin-bottom: 2px;
+      font-size: 0.88rem;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 4vw, 1.95rem);
+      text-align: center;
+      color: var(--accent-deep);
+    }
+    .subtitle { text-align: center; opacity: 0.85; margin: 3px 0 10px; font-size: 0.87rem; }
+    button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+    /* ---------- materials bar ---------- */
+    .mats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+    .mat {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #eef4fb;
+      border: 2px solid #c8d9ec;
+      border-radius: 999px;
+      padding: 4px 11px;
+      font-weight: bold;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    .mat .m-emoji { font-size: 1.05rem; }
+    .mat.gain { animation: matGain 0.45s; }
+    @keyframes matGain {
+      0% { transform: scale(1); }
+      45% { transform: scale(1.18); background: #fff2c9; }
+      100% { transform: scale(1); }
+    }
+
+    .tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; }
+    .tab-btn {
+      font-size: 0.98rem;
+      font-weight: bold;
+      padding: 10px 20px;
+      border-radius: 14px;
+      border: 2px solid #c8d9ec;
+      background: #f2f7fd;
+      color: var(--ink);
+    }
+    .tab-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+    .pill-btn {
+      background: #eef4fb;
+      border: 2px solid #c8d9ec;
+      border-radius: 999px;
+      padding: 5px 11px;
+      font-weight: bold;
+      font-size: 0.82rem;
+      transition: transform 0.1s;
+    }
+    .pill-btn:active { transform: scale(0.94); }
+
+    /* ---------- mining field ---------- */
+    #field {
+      position: relative;
+      height: clamp(320px, 52vw, 420px);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 3px solid #0d2b4d;
+      background: linear-gradient(180deg, #0f2a4d 0%, #1b4470 62%, #5b4a34 63%, #3d3122 100%);
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    /* a bit of scenery: a moon in the sky and craters in the dirt */
+    #field::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(circle at 84% 16%, #dfe7f5 0 22px, transparent 23px),
+        radial-gradient(circle at 88% 12%, rgba(150,165,190,0.55) 0 6px, transparent 7px),
+        radial-gradient(circle at 80% 21%, rgba(150,165,190,0.45) 0 4px, transparent 5px),
+        radial-gradient(ellipse 40px 12px at 22% 78%, rgba(0,0,0,0.22) 0 100%, transparent),
+        radial-gradient(ellipse 26px 8px at 63% 88%, rgba(0,0,0,0.18) 0 100%, transparent),
+        radial-gradient(ellipse 34px 10px at 88% 72%, rgba(0,0,0,0.2) 0 100%, transparent);
+    }
+    .node {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 62px; height: 62px;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      border: 3px solid rgba(255,255,255,0.5);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+      cursor: pointer;
+      animation: nodeIn 0.35s cubic-bezier(0.2, 1.6, 0.4, 1);
+    }
+    @keyframes nodeIn { from { transform: translate(-50%,-50%) scale(0); } to { transform: translate(-50%,-50%) scale(1); } }
+    .node .hits {
+      font-size: 0.55rem;
+      font-weight: bold;
+      color: rgba(255,255,255,0.95);
+      letter-spacing: 1px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+    }
+    .node.hit { animation: nodeHit 0.16s; }
+    @keyframes nodeHit {
+      0% { transform: translate(-50%,-50%) scale(1); }
+      50% { transform: translate(-50%,-50%) scale(0.86) rotate(-7deg); }
+      100% { transform: translate(-50%,-50%) scale(1); }
+    }
+    .node.gone { animation: nodeGone 0.3s forwards; pointer-events: none; }
+    @keyframes nodeGone { to { transform: translate(-50%,-50%) scale(0); opacity: 0; } }
+
+    .spark {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      font-size: 0.9rem;
+      animation: sparkOut 0.7s ease-out forwards;
+    }
+    @keyframes sparkOut { to { opacity: 0; transform: translate(-50%,-50%) scale(2); } }
+    .pickup {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      font-weight: bold;
+      font-size: 1rem;
+      color: #ffe06b;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+      animation: pickUp 1s ease-out forwards;
+      white-space: nowrap;
+    }
+    @keyframes pickUp { to { opacity: 0; transform: translate(-50%,-56px); } }
+    .field-tip {
+      position: absolute;
+      top: 8px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(5, 20, 45, 0.85);
+      color: #ffe06b;
+      border-radius: 10px;
+      padding: 5px 12px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      pointer-events: none;
+    }
+
+    /* ---------- workshop ---------- */
+    .shop-grid {
+      display: grid;
+      grid-template-columns: minmax(210px, 300px) 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+    @media (max-width: 620px) { .shop-grid { grid-template-columns: 1fr; } }
+    .blueprint {
+      background: linear-gradient(180deg, #0d2b4d, #123a63);
+      border: 3px solid #0d2b4d;
+      border-radius: 16px;
+      padding: 8px;
+      position: relative;
+    }
+    .blueprint canvas { display: block; width: 100%; height: auto; }
+    .bp-caption {
+      text-align: center;
+      color: #cfe4ff;
+      font-size: 0.78rem;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+    .parts { display: grid; gap: 7px; }
+    .part {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      border: 2px solid #c8d9ec;
+      background: white;
+      border-radius: 12px;
+      padding: 7px 9px;
+      text-align: left;
+      font-size: 0.8rem;
+      transition: transform 0.1s;
+    }
+    .part:active:not(:disabled) { transform: scale(0.97); }
+    .part:disabled { cursor: not-allowed; }
+    .part.done { border-color: #a8e0b8; background: #f1fbf4; }
+    .part.cant { opacity: 0.72; }
+    .part .p-emoji { font-size: 1.4rem; flex: none; }
+    .part .p-name { font-weight: bold; display: block; }
+    .part .p-cost { font-size: 0.72rem; opacity: 0.85; }
+    .part .p-cost .short { color: #c62828; font-weight: bold; }
+    .part .p-tick { margin-left: auto; font-size: 1.1rem; flex: none; }
+    .build-all {
+      margin-top: 8px;
+      width: 100%;
+      font-size: 1.05rem;
+      font-weight: bold;
+      color: white;
+      background: linear-gradient(180deg, #ff9a3d, #e06a00);
+      border: none;
+      border-radius: 14px;
+      padding: 13px;
+      box-shadow: 0 5px 0 #a04a00;
+    }
+    .build-all:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 2px 0 #a04a00; }
+    .build-all:disabled { background: #b7c3d2; box-shadow: 0 5px 0 #94a1b2; cursor: not-allowed; }
+    .progress {
+      height: 12px;
+      background: #dce7f3;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 6px 0 2px;
+      border: 2px solid #c8d9ec;
+    }
+    .progress > div {
+      height: 100%;
+      background: linear-gradient(90deg, #ffb020, #ff7a1a);
+      width: 0%;
+      transition: width 0.4s;
+    }
+    .mission-line { font-size: 0.82rem; font-weight: bold; text-align: center; }
+
+    /* ---------- overlay ---------- */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 12, 30, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 18px;
+    }
+    .overlay.show { display: flex; }
+    .ov-card {
+      background: white;
+      border-radius: 20px;
+      padding: clamp(18px, 5vw, 28px);
+      text-align: center;
+      max-width: 380px;
+      width: 100%;
+      animation: pop 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+      box-shadow: 0 0 50px rgba(255, 180, 90, 0.55);
+    }
+    @keyframes pop { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .ov-card .o-emoji { font-size: 3.2rem; display: block; margin-bottom: 4px; }
+    .ov-card h2 { margin: 2px 0 6px; color: var(--accent-deep); font-size: 1.2rem; }
+    .ov-card p { margin: 4px 0; font-size: 0.92rem; }
+    .ov-btn {
+      margin: 12px 4px 0;
+      font-size: 1rem;
+      font-weight: bold;
+      color: white;
+      background: var(--accent);
+      border: none;
+      border-radius: 12px;
+      padding: 11px 26px;
+      box-shadow: 0 4px 0 var(--accent-deep);
+    }
+    .ov-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--accent-deep); }
+
+    /* launch screen */
+    #launch {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(180deg, #04122b 0%, #0a2a52 55%, #2b5a2b 100%);
+      display: none;
+      z-index: 120;
+      overflow: hidden;
+    }
+    #launch.show { display: block; }
+    #launchCanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+    #countdown {
+      position: absolute;
+      top: 14%;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: clamp(2.6rem, 12vw, 5rem);
+      font-weight: bold;
+      text-shadow: 0 4px 18px rgba(255, 150, 40, 0.9);
+      pointer-events: none;
+    }
+    .confetti-bit {
+      position: fixed;
+      top: -12px;
+      font-size: 1.2rem;
+      pointer-events: none;
+      z-index: 130;
+      animation: confFall linear forwards;
+    }
+    @keyframes confFall { to { transform: translateY(105vh) rotate(540deg); } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <a class="back-link" href="index.html">← Back to Game Hub</a>
+    <h1>🚀 Space Shuttle Builder</h1>
+    <p class="subtitle">Mine wood, iron, aluminium, cobalt and diamonds — then build your shuttle and blast off!</p>
+
+    <div class="mats" id="matsBar"></div>
+
+    <div class="tabs">
+      <button class="tab-btn active" id="tabMine">⛏️ Go Mining</button>
+      <button class="tab-btn" id="tabBuild">🏗️ Build Shuttle</button>
+      <button class="pill-btn" id="soundBtn">🔊</button>
+      <button class="pill-btn" id="resetBtn">🧹 Start Over</button>
+    </div>
+
+    <!-- ===== MINING ===== -->
+    <section id="viewMine">
+      <div id="field">
+        <div class="field-tip" id="fieldTip">Tap the rocks to smash them open! ⛏️</div>
+      </div>
+    </section>
+
+    <!-- ===== WORKSHOP ===== -->
+    <section id="viewBuild" hidden>
+      <div class="shop-grid">
+        <div>
+          <div class="blueprint">
+            <canvas id="bp" width="300" height="420"></canvas>
+            <div class="bp-caption" id="bpCaption"></div>
+          </div>
+          <div class="progress"><div id="progBar"></div></div>
+          <div class="mission-line" id="missionLine"></div>
+          <button class="build-all" id="launchBtn" disabled>🚀 LAUNCH!</button>
+        </div>
+        <div>
+          <div class="parts" id="partsList"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="overlay" id="ovr">
+    <div class="ov-card">
+      <span class="o-emoji" id="ovEmoji">🚀</span>
+      <h2 id="ovTitle"></h2>
+      <p id="ovText"></p>
+      <div id="ovButtons"></div>
+    </div>
+  </div>
+
+  <div id="launch">
+    <canvas id="launchCanvas"></canvas>
+    <div id="countdown"></div>
+  </div>
+
+  <script>
+    "use strict";
+
+    /* ================= Materials ================= */
+
+    const MATS = {
+      wood:      { name: "Wood",      emoji: "🪵", color: "#a5713d", dark: "#6f4a22", hits: 2, weight: 30 },
+      iron:      { name: "Iron",      emoji: "🔩", color: "#8d99a6", dark: "#5d6874", hits: 2, weight: 26 },
+      aluminium: { name: "Aluminium", emoji: "🥫", color: "#cfd8e3", dark: "#94a1b0", hits: 2, weight: 22 },
+      cobalt:    { name: "Cobalt",    emoji: "🔷", color: "#3b82f6", dark: "#1e4fad", hits: 3, weight: 14 },
+      diamond:   { name: "Diamond",   emoji: "💎", color: "#5fe8e0", dark: "#1fa39b", hits: 4, weight: 8 },
+    };
+    const MAT_KEYS = Object.keys(MATS);
+
+    /* ================= Shuttle parts ================= */
+    /* every part knows how to draw itself on the blueprint */
+
+    const PARTS = [
+      { id: "hull",    name: "Hull",          emoji: "🛢️", cost: { iron: 6, aluminium: 4 } },
+      { id: "nose",    name: "Nose Cone",     emoji: "🔺", cost: { aluminium: 5 } },
+      { id: "wingL",   name: "Left Wing",     emoji: "🪽", cost: { aluminium: 4, iron: 2 } },
+      { id: "wingR",   name: "Right Wing",    emoji: "🪽", cost: { aluminium: 4, iron: 2 } },
+      { id: "fin",     name: "Tail Fin",      emoji: "🪵", cost: { wood: 4, aluminium: 2 } },
+      { id: "engine",  name: "Engine",        emoji: "🔥", cost: { iron: 6, cobalt: 3 } },
+      { id: "window",  name: "Window",        emoji: "💠", cost: { diamond: 2 } },
+      { id: "seat",    name: "Pilot Seat",    emoji: "💺", cost: { wood: 5 } },
+      { id: "boostL",  name: "Left Booster",  cost: { iron: 4, cobalt: 2 }, emoji: "🧨" },
+      { id: "boostR",  name: "Right Booster", cost: { iron: 4, cobalt: 2 }, emoji: "🧨" },
+      { id: "legs",    name: "Landing Legs",  emoji: "🦵", cost: { iron: 5, wood: 2 } },
+      { id: "solar",   name: "Solar Panels",  emoji: "🔋", cost: { cobalt: 4, diamond: 2 } },
+      { id: "shield",  name: "Heat Shield",   emoji: "🛡️", cost: { diamond: 3, cobalt: 3 } },
+    ];
+
+    const MISSIONS = [
+      { name: "the Moon",        emoji: "🌙", mult: 1,   parts: ["hull", "nose", "wingL", "wingR", "fin", "engine", "window"] },
+      { name: "Mars",            emoji: "🔴", mult: 1.6, parts: ["hull", "nose", "wingL", "wingR", "fin", "engine", "window", "seat", "boostL", "boostR", "legs"] },
+      { name: "deep space",      emoji: "🌌", mult: 2.5, parts: PARTS.map((p) => p.id) },
+    ];
+
+    const SAVE_KEY = "shuttle-builder-save-v1";
+
+    /* ================= State ================= */
+
+    let mats = { wood: 0, iron: 0, aluminium: 0, cobalt: 0, diamond: 0 };
+    let built = {};
+    let mission = 0;
+    let soundOn = true;
+    let nodes = [];
+    let nodeSeq = 1;
+    let spawnTimer = 0;
+    let tab = "mine";
+
+    const missionDef = () => MISSIONS[Math.min(mission, MISSIONS.length - 1)];
+    const missionParts = () => missionDef().parts.map((id) => PARTS.find((p) => p.id === id));
+
+    function costFor(part) {
+      const m = missionDef().mult;
+      const out = {};
+      Object.keys(part.cost).forEach((k) => { out[k] = Math.ceil(part.cost[k] * m); });
+      return out;
+    }
+    function canBuild(part) {
+      const c = costFor(part);
+      return Object.keys(c).every((k) => mats[k] >= c[k]);
+    }
+
+    /* ================= Sound ================= */
+
+    let actx = null;
+    function audio() {
+      if (!actx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) actx = new AC();
+      }
+      if (actx && actx.state === "suspended") actx.resume();
+      return actx;
+    }
+    function tone(freq, dur, type, vol, delay, slideTo) {
+      if (!soundOn) return;
+      const ctx = audio();
+      if (!ctx) return;
+      const t0 = ctx.currentTime + (delay || 0);
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, t0);
+      if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+      g.gain.setValueAtTime(vol || 0.1, t0);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.05);
+    }
+    function noise(dur, vol) {
+      if (!soundOn) return;
+      const ctx = audio();
+      if (!ctx) return;
+      const n = Math.floor(ctx.sampleRate * dur);
+      const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(vol || 0.15, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+      src.connect(g).connect(ctx.destination);
+      src.start();
+    }
+    const sHit = () => { tone(180 + Math.random() * 80, 0.06, "square", 0.05); noise(0.06, 0.05); };
+    const sBreak = () => { noise(0.25, 0.14); tone(340, 0.14, "triangle", 0.09, 0, 620); };
+    const sBuild = () => [523, 659, 784].forEach((f, i) => tone(f, 0.15, "triangle", 0.12, i * 0.07));
+    const sDone = () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.26, "triangle", 0.13, i * 0.1));
+    const sNope = () => tone(170, 0.15, "square", 0.06);
+    const sClick = () => tone(600, 0.07, "square", 0.05);
+    const sBeep = () => tone(880, 0.16, "square", 0.09);
+    const sRumble = () => { noise(2.6, 0.3); tone(70, 2.4, "sawtooth", 0.14, 0, 190); };
+
+    /* ================= Helpers ================= */
+
+    const $ = (id) => document.getElementById(id);
+
+    function save() {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({ mats, built, mission, soundOn }));
+      } catch (e) { /* private mode */ }
+    }
+    function load() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return;
+        const s = JSON.parse(raw);
+        MAT_KEYS.forEach((k) => { mats[k] = Math.max(0, Math.floor((s.mats || {})[k] || 0)); });
+        built = {};
+        Object.keys(s.built || {}).forEach((k) => { if (PARTS.some((p) => p.id === k)) built[k] = true; });
+        mission = Math.max(0, Math.min(MISSIONS.length - 1, Math.floor(s.mission || 0)));
+        soundOn = s.soundOn !== false;
+      } catch (e) { /* corrupted */ }
+    }
+
+    /* ================= Mining ================= */
+
+    function pickMat() {
+      const total = MAT_KEYS.reduce((n, k) => n + MATS[k].weight, 0);
+      let t = Math.random() * total;
+      for (const k of MAT_KEYS) { t -= MATS[k].weight; if (t <= 0) return k; }
+      return "wood";
+    }
+
+    function spawnNode() {
+      const field = $("field");
+      if (nodes.length >= 7) return;
+      const w = field.clientWidth, h = field.clientHeight;
+      if (!w) return;
+      const key = pickMat();
+      const def = MATS[key];
+      // keep them clear of each other and inside the field
+      let x = 0, y = 0, ok = false;
+      for (let tries = 0; tries < 24 && !ok; tries++) {
+        x = 46 + Math.random() * (w - 92);
+        y = 70 + Math.random() * (h - 120);
+        ok = nodes.every((n) => Math.hypot(n.x - x, n.y - y) > 74);
+      }
+      if (!ok) return;
+      const el = document.createElement("button");
+      el.className = "node";
+      el.dataset.mat = key;
+      el.style.left = x + "px";
+      el.style.top = y + "px";
+      el.style.background = "radial-gradient(circle at 32% 28%, " + def.color + ", " + def.dark + ")";
+      const node = { id: nodeSeq++, key, x, y, el, left: def.hits };
+      el.innerHTML = def.emoji + '<span class="hits"></span>';
+      updateNodeHits(node);
+      el.addEventListener("click", (ev) => { ev.preventDefault(); hitNode(node); });
+      field.appendChild(el);
+      nodes.push(node);
+    }
+
+    function updateNodeHits(node) {
+      const span = node.el.querySelector(".hits");
+      if (span) span.textContent = "•".repeat(node.left);
+    }
+
+    function hitNode(node) {
+      if (node.left <= 0) return;
+      audio();
+      node.left -= 1;
+      updateNodeHits(node);
+      node.el.classList.remove("hit");
+      void node.el.offsetWidth;
+      node.el.classList.add("hit");
+      if (node.left > 0) { sHit(); return; }
+      // cracked open!
+      sBreak();
+      const def = MATS[node.key];
+      const amount = 1 + Math.floor(Math.random() * 2) + (node.key === "diamond" ? 0 : 1);
+      mats[node.key] += amount;
+      spark(node.x, node.y, def.emoji);
+      pickup(node.x, node.y, "+" + amount + " " + def.emoji);
+      node.el.classList.add("gone");
+      const el = node.el;
+      setTimeout(() => el.remove(), 320);
+      nodes = nodes.filter((n) => n !== node);
+      flashMat(node.key);
+      renderMats();
+      renderParts();
+      updateFieldTip();
+      save();
+    }
+
+    function spark(x, y, emoji) {
+      for (let i = 0; i < 6; i++) {
+        const s = document.createElement("div");
+        s.className = "spark";
+        s.textContent = emoji;
+        s.style.left = (x + (Math.random() * 46 - 23)) + "px";
+        s.style.top = (y + (Math.random() * 46 - 23)) + "px";
+        s.style.animationDelay = (i * 0.03) + "s";
+        $("field").appendChild(s);
+        setTimeout(() => s.remove(), 800);
+      }
+    }
+    function pickup(x, y, text) {
+      const p = document.createElement("div");
+      p.className = "pickup";
+      p.textContent = text;
+      p.style.left = x + "px";
+      p.style.top = (y - 26) + "px";
+      $("field").appendChild(p);
+      setTimeout(() => p.remove(), 1000);
+    }
+
+    /* ================= Materials bar ================= */
+
+    function renderMats() {
+      const bar = $("matsBar");
+      if (!bar.dataset.ready) {
+        bar.innerHTML = "";
+        MAT_KEYS.forEach((k) => {
+          const el = document.createElement("span");
+          el.className = "mat";
+          el.id = "mat-" + k;
+          el.innerHTML = '<span class="m-emoji">' + MATS[k].emoji + '</span><span class="m-name">' +
+            MATS[k].name + '</span> <span class="m-num">0</span>';
+          bar.appendChild(el);
+        });
+        bar.dataset.ready = "1";
+      }
+      MAT_KEYS.forEach((k) => {
+        const el = $("mat-" + k);
+        if (el) el.querySelector(".m-num").textContent = mats[k];
+      });
+    }
+    /* tells you what the shuttle still needs, so you know what to dig for */
+    function updateFieldTip() {
+      const need = {};
+      missionParts().forEach((p) => {
+        if (built[p.id]) return;
+        const c = costFor(p);
+        Object.keys(c).forEach((k) => { need[k] = (need[k] || 0) + c[k]; });
+      });
+      const short = MAT_KEYS.filter((k) => (need[k] || 0) > mats[k])
+        .map((k) => (need[k] - mats[k]) + " " + MATS[k].emoji);
+      const tip = $("fieldTip");
+      if (!tip) return;
+      tip.textContent = short.length
+        ? "Still need: " + short.join("  ") + " for " + missionDef().emoji + " " + missionDef().name
+        : "🎉 You have everything — go and build your shuttle!";
+    }
+
+    function flashMat(k) {
+      const el = $("mat-" + k);
+      if (!el) return;
+      el.classList.remove("gain");
+      void el.offsetWidth;
+      el.classList.add("gain");
+    }
+
+    /* ================= Blueprint drawing ================= */
+
+    function drawShuttle(g, w, h, opts) {
+      opts = opts || {};
+      const has = (id) => opts.all || built[id];
+      const inMission = (id) => missionDef().parts.includes(id);
+      const cx = w / 2;
+      const S = w / 300;               // everything designed against a 300-wide canvas
+      const px = (v) => v * S;
+
+      g.clearRect(0, 0, w, h);
+      if (!opts.noGrid) {
+        g.strokeStyle = "rgba(255,255,255,0.09)";
+        g.lineWidth = 1;
+        for (let x = 0; x < w; x += px(20)) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
+        for (let y = 0; y < h; y += px(20)) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+      }
+
+      const ghost = (draw) => {
+        g.save();
+        g.globalAlpha = 0.22;
+        g.setLineDash([px(5), px(5)]);
+        g.strokeStyle = "#bcd6f5";
+        g.lineWidth = px(2);
+        draw(true);
+        g.restore();
+      };
+      const solid = (draw) => { g.save(); draw(false); g.restore(); };
+
+      const part = (id, draw) => {
+        if (!inMission(id)) return;
+        if (has(id)) solid(draw); else ghost(draw);
+      };
+
+      const shape = (fill, stroke, path) => (isGhost) => {
+        g.beginPath();
+        path();
+        if (isGhost) { g.stroke(); return; }
+        g.fillStyle = fill;
+        g.fill();
+        g.strokeStyle = stroke;
+        g.lineWidth = px(2);
+        g.stroke();
+      };
+
+      // --- boosters (behind the body) ---
+      part("boostL", shape("#c0ccd8", "#7d8a97", () => {
+        g.roundRect(cx - px(78), px(240), px(30), px(112), px(12));
+      }));
+      part("boostR", shape("#c0ccd8", "#7d8a97", () => {
+        g.roundRect(cx + px(48), px(240), px(30), px(112), px(12));
+      }));
+
+      // --- wings ---
+      part("wingL", shape("#e35d3a", "#a53a1e", () => {
+        g.moveTo(cx - px(34), px(250));
+        g.lineTo(cx - px(112), px(340));
+        g.lineTo(cx - px(112), px(366));
+        g.lineTo(cx - px(34), px(330));
+        g.closePath();
+      }));
+      part("wingR", shape("#e35d3a", "#a53a1e", () => {
+        g.moveTo(cx + px(34), px(250));
+        g.lineTo(cx + px(112), px(340));
+        g.lineTo(cx + px(112), px(366));
+        g.lineTo(cx + px(34), px(330));
+        g.closePath();
+      }));
+
+      // --- hull ---
+      part("hull", shape("#eef3f8", "#9aa9b8", () => {
+        g.roundRect(cx - px(36), px(110), px(72), px(240), px(16));
+      }));
+
+      // --- heat shield band ---
+      part("shield", shape("#39424c", "#20262c", () => {
+        g.roundRect(cx - px(38), px(316), px(76), px(34), px(10));
+      }));
+
+      // --- nose cone ---
+      part("nose", shape("#e35d3a", "#a53a1e", () => {
+        g.moveTo(cx, px(34));
+        g.quadraticCurveTo(cx + px(38), px(84), cx + px(36), px(118));
+        g.lineTo(cx - px(36), px(118));
+        g.quadraticCurveTo(cx - px(38), px(84), cx, px(34));
+      }));
+
+      // --- window ---
+      part("window", (isGhost) => {
+        g.beginPath();
+        g.arc(cx, px(152), px(19), 0, Math.PI * 2);
+        if (isGhost) { g.stroke(); return; }
+        const grd = g.createRadialGradient(cx - px(6), px(146), px(3), cx, px(152), px(19));
+        grd.addColorStop(0, "#dffcff");
+        grd.addColorStop(1, "#3fb6d6");
+        g.fillStyle = grd;
+        g.fill();
+        g.strokeStyle = "#7d8a97";
+        g.lineWidth = px(4);
+        g.stroke();
+      });
+
+      // --- pilot seat (seen through the hull) ---
+      part("seat", shape("#a5713d", "#6f4a22", () => {
+        g.roundRect(cx - px(14), px(248), px(28), px(34), px(6));
+        g.roundRect(cx - px(17), px(276), px(34), px(10), px(4));
+      }));
+
+      // --- solar panels ---
+      part("solar", (isGhost) => {
+        [-1, 1].forEach((s) => {
+          g.beginPath();
+          g.roundRect(cx + s * px(38) - (s < 0 ? px(56) : 0), px(205), px(56), px(34), px(5));
+          if (isGhost) { g.stroke(); return; }
+          g.fillStyle = "#1e4fad";
+          g.fill();
+          g.strokeStyle = "#0f2f70";
+          g.lineWidth = px(2);
+          g.stroke();
+          g.strokeStyle = "rgba(255,255,255,0.35)";
+          g.lineWidth = px(1.5);
+          for (let i = 1; i < 4; i++) {
+            const xx = cx + s * px(38) - (s < 0 ? px(56) : 0) + i * px(14);
+            g.beginPath(); g.moveTo(xx, px(205)); g.lineTo(xx, px(239)); g.stroke();
+          }
+        });
+      });
+
+      // --- tail fin (swept back off the side of the hull, not across it) ---
+      part("fin", shape("#a5713d", "#6f4a22", () => {
+        g.moveTo(cx - px(34), px(126));
+        g.lineTo(cx - px(76), px(190));
+        g.lineTo(cx - px(34), px(198));
+        g.closePath();
+      }));
+
+      // --- landing legs ---
+      part("legs", (isGhost) => {
+        g.lineWidth = px(6);
+        g.strokeStyle = isGhost ? "#bcd6f5" : "#7d8a97";
+        [-1, 1].forEach((s) => {
+          g.beginPath();
+          g.moveTo(cx + s * px(30), px(330));
+          g.lineTo(cx + s * px(58), px(384));
+          g.stroke();
+          if (!isGhost) {
+            g.beginPath();
+            g.moveTo(cx + s * px(44), px(384));
+            g.lineTo(cx + s * px(70), px(384));
+            g.stroke();
+          }
+        });
+      });
+
+      // --- engine ---
+      part("engine", shape("#7d8a97", "#4a545e", () => {
+        g.moveTo(cx - px(30), px(348));
+        g.lineTo(cx + px(30), px(348));
+        g.lineTo(cx + px(46), px(392));
+        g.lineTo(cx - px(46), px(392));
+        g.closePath();
+      }));
+    }
+
+    function renderBlueprint() {
+      const c = $("bp");
+      const g = c.getContext("2d");
+      drawShuttle(g, c.width, c.height, {});
+      const done = missionParts().filter((p) => built[p.id]).length;
+      const total = missionParts().length;
+      $("bpCaption").textContent = "Mission: " + missionDef().emoji + " " + missionDef().name +
+        " — " + done + "/" + total + " parts built";
+      $("progBar").style.width = (done / total * 100) + "%";
+      $("missionLine").textContent = done === total
+        ? "🎉 Your shuttle is finished — LAUNCH IT!"
+        : "Build every part to fly to " + missionDef().name + "!";
+      $("launchBtn").disabled = done !== total;
+      updateFieldTip();
+    }
+
+    /* ================= Parts list ================= */
+
+    function renderParts() {
+      const list = $("partsList");
+      list.innerHTML = "";
+      missionParts().forEach((p) => {
+        const cost = costFor(p);
+        const done = !!built[p.id];
+        const able = canBuild(p);
+        const btn = document.createElement("button");
+        btn.className = "part" + (done ? " done" : able ? "" : " cant");
+        btn.dataset.part = p.id;
+        btn.disabled = done || !able;
+        const costHtml = Object.keys(cost).map((k) =>
+          '<span class="' + (mats[k] >= cost[k] ? "" : "short") + '">' +
+          cost[k] + " " + MATS[k].emoji + "</span>").join(" + ");
+        btn.innerHTML =
+          '<span class="p-emoji">' + p.emoji + "</span>" +
+          '<span><span class="p-name">' + p.name + "</span>" +
+          '<span class="p-cost">' + costHtml + "</span></span>" +
+          '<span class="p-tick">' + (done ? "✅" : able ? "🔨" : "") + "</span>";
+        btn.addEventListener("click", () => buildPart(p));
+        list.appendChild(btn);
+      });
+      renderBlueprint();
+    }
+
+    function buildPart(p) {
+      if (built[p.id]) return;
+      if (!canBuild(p)) { sNope(); return; }
+      const cost = costFor(p);
+      Object.keys(cost).forEach((k) => { mats[k] -= cost[k]; });
+      built[p.id] = true;
+      sBuild();
+      renderMats();
+      renderParts();
+      save();
+      const done = missionParts().filter((x) => built[x.id]).length;
+      if (done === missionParts().length) {
+        sDone();
+        showCard("🚀", "Your shuttle is FINISHED!",
+          "Every part is built. Press the big LAUNCH button and fly to " + missionDef().name + "!",
+          [{ label: "Let's fly!", value: true }]);
+      }
+    }
+
+    /* ================= Overlay ================= */
+
+    function showCard(emoji, title, text, options) {
+      return new Promise((resolve) => {
+        $("ovEmoji").textContent = emoji;
+        $("ovTitle").textContent = title;
+        $("ovText").textContent = text;
+        const box = $("ovButtons");
+        box.innerHTML = "";
+        (options || [{ label: "OK", value: true }]).forEach((o) => {
+          const b = document.createElement("button");
+          b.className = "ov-btn";
+          b.textContent = o.label;
+          if (o.grey) { b.style.background = "#8a94a3"; b.style.boxShadow = "0 4px 0 #5f6875"; }
+          b.addEventListener("click", () => {
+            sClick();
+            $("ovr").classList.remove("show");
+            resolve(o.value);
+          });
+          box.appendChild(b);
+        });
+        $("ovr").classList.add("show");
+      });
+    }
+
+    function confetti() {
+      const emo = ["🚀", "✨", "🎉", "⭐", "🛰️"];
+      for (let i = 0; i < 22; i++) {
+        const c = document.createElement("span");
+        c.className = "confetti-bit";
+        c.textContent = emo[Math.floor(Math.random() * emo.length)];
+        c.style.left = Math.random() * 100 + "vw";
+        c.style.animationDuration = 1.6 + Math.random() * 1.6 + "s";
+        c.style.animationDelay = Math.random() * 0.4 + "s";
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 4200);
+      }
+    }
+
+    /* ================= Launch sequence ================= */
+
+    let launching = false;
+
+    async function doLaunch() {
+      if (launching) return;
+      launching = true;
+      const wrap = $("launch");
+      const c = $("launchCanvas");
+      wrap.classList.add("show");
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const W = wrap.clientWidth, H = wrap.clientHeight;
+      c.width = W * dpr; c.height = H * dpr;
+      const g = c.getContext("2d");
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const stars = [];
+      for (let i = 0; i < 90; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.8 + 0.4, s: 0.2 + Math.random() });
+
+      // count down
+      for (const n of ["3", "2", "1", "GO!"]) {
+        $("countdown").textContent = n;
+        sBeep();
+        await new Promise((r) => setTimeout(r, 620));
+      }
+      $("countdown").textContent = "";
+      sRumble();
+
+      const shuttleW = Math.min(220, W * 0.5);
+      const shuttleH = shuttleW * 1.4;
+      const off = document.createElement("canvas");
+      off.width = shuttleW; off.height = shuttleH;
+      drawShuttle(off.getContext("2d"), shuttleW, shuttleH, { all: true, noGrid: true });
+
+      let t = 0, y = H * 0.62, vy = 0;
+      const flames = [];
+      await new Promise((resolve) => {
+        const tick = () => {
+          t += 1 / 60;
+          vy += 34 / 60;
+          y -= vy;
+          g.fillStyle = "#04122b";
+          g.fillRect(0, 0, W, H);
+          // stars streak down as we climb
+          for (const s of stars) {
+            s.y += vy * s.s * 0.55;
+            if (s.y > H) { s.y -= H; s.x = Math.random() * W; }
+            g.fillStyle = "rgba(255,255,255," + (0.35 + s.s * 0.5) + ")";
+            g.fillRect(s.x, s.y, s.r, s.r * (1 + vy * 0.06));
+          }
+          // ground falls away
+          const groundY = H * 0.86 + (H * 0.62 - y) * 0.35;
+          if (groundY < H + 40) {
+            g.fillStyle = "#2b5a2b";
+            g.fillRect(0, groundY, W, H - groundY + 40);
+          }
+          // flames
+          for (let i = 0; i < 3; i++) {
+            flames.push({ x: W / 2 + (Math.random() * shuttleW * 0.32 - shuttleW * 0.16),
+              y: y + shuttleH * 0.5, r: 6 + Math.random() * 14, life: 0.6 });
+          }
+          for (const f of flames) {
+            f.life -= 1 / 60;
+            f.y += 3.4 + vy * 0.35;
+            f.r *= 0.965;
+            g.globalAlpha = Math.max(0, f.life);
+            g.fillStyle = f.life > 0.4 ? "#fff0a8" : f.life > 0.22 ? "#ff9a2b" : "#c94a10";
+            g.beginPath(); g.arc(f.x, f.y, f.r, 0, Math.PI * 2); g.fill();
+          }
+          g.globalAlpha = 1;
+          while (flames.length && flames[0].life <= 0) flames.shift();
+          // the shuttle
+          g.drawImage(off, W / 2 - shuttleW / 2, y - shuttleH / 2, shuttleW, shuttleH);
+
+          if (y < -shuttleH || t > 7) { resolve(); return; }
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+
+      wrap.classList.remove("show");
+      launching = false;
+      confetti();
+      sDone();
+
+      const last = mission >= MISSIONS.length - 1;
+      const dest = missionDef();
+      if (!last) mission += 1;
+      built = {};
+      save();
+      renderMats();
+      renderParts();
+      await showCard(dest.emoji, "You made it to " + dest.name + "!",
+        last
+          ? "You built a shuttle that flew all the way into deep space. You are officially a Space Shuttle Engineer! Build another one any time."
+          : "Amazing flying! Your next mission is " + MISSIONS[mission].emoji + " " + MISSIONS[mission].name +
+            " — it needs a bigger shuttle with more parts. Go and mine some more!",
+        [{ label: "⛏️ Back to mining", value: true }]);
+      switchTab("mine");
+    }
+
+    /* ================= Tabs ================= */
+
+    function switchTab(which) {
+      tab = which;
+      $("tabMine").classList.toggle("active", which === "mine");
+      $("tabBuild").classList.toggle("active", which === "build");
+      $("viewMine").hidden = which !== "mine";
+      $("viewBuild").hidden = which !== "build";
+      if (which === "build") renderParts();
+    }
+    $("tabMine").addEventListener("click", () => { sClick(); switchTab("mine"); });
+    $("tabBuild").addEventListener("click", () => { sClick(); switchTab("build"); });
+    $("launchBtn").addEventListener("click", () => { sClick(); doLaunch(); });
+
+    $("soundBtn").addEventListener("click", () => {
+      soundOn = !soundOn;
+      $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
+      if (soundOn) sClick();
+      save();
+    });
+
+    $("resetBtn").addEventListener("click", async () => {
+      sClick();
+      const ok = await showCard("🧹", "Start the whole thing over?",
+        "All your materials and shuttle parts will be gone, back to mission 1.",
+        [{ label: "Yes, start over", value: true }, { label: "Cancel", value: false, grey: true }]);
+      if (!ok) return;
+      MAT_KEYS.forEach((k) => { mats[k] = 0; });
+      built = {};
+      mission = 0;
+      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+      save();
+      renderMats();
+      renderParts();
+    });
+
+    /* ================= Loop ================= */
+
+    let lastT = 0;
+    function frame(now) {
+      const t = now / 1000;
+      if (!lastT) lastT = t;
+      const dt = Math.min(t - lastT, 0.2);
+      lastT = t;
+      if (tab === "mine" && !launching) {
+        spawnTimer -= dt;
+        if (spawnTimer <= 0) {
+          spawnTimer = nodes.length < 3 ? 0.35 : 1.1;
+          spawnNode();
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+
+    /* ================= Start ================= */
+
+    load();
+    $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
+    renderMats();
+    renderParts();
+    switchTab("mine");
+    for (let i = 0; i < 4; i++) spawnNode();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
