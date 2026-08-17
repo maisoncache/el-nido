@@ -79,6 +79,7 @@ Pages:
 - `blocks.html` → Block World (a Minecraft-inspired 2D sandbox: a generated world of hills, trees, caves and ore veins to mine, a crafting tree from planks to a diamond pickaxe, block building, torch-lit caves, a day/night cycle and wandering mobs; leaves drop saplings that grow into new trees, and up to six worlds save side by side in a gallery with map previews. Two modes: Survival with hearts and night monsters, or Creative with free blocks, instant digging and flight — chosen per world and switchable any time)
 - `tycoon.html` → Planet Tycoon (a Roblox-style tycoon: tap asteroids to start, walk your astronaut onto buy-pads to build and upgrade 12 planet businesses, earn credits per second plus offline earnings, and rebirth onto a new planet for a permanent multiplier)
 - `fruit-merge.html` → Fruit Merge (a Suika-style physics merge game: drop fruit into a box, two of a kind combine into the next fruit up through an 11-step chain from cherry to watermelon, with a custom circle-physics engine, best score and a discovery chart)
+- `shuttle.html` → Space Shuttle Builder (mine wood, iron, aluminium, cobalt and diamonds by smashing rocks, spend them on shuttle parts that appear on a live blueprint, then launch to the Moon, Mars and deep space)
 - `flight.html` → The Game of Flight (guess the hidden country knowing only its continent — each guess flies your plane there and reports distance, direction and hot/cold, with clues unlocking; solo vs Robo or pass-and-play with two players, and star ranks that save)
 
 ## Deployment
