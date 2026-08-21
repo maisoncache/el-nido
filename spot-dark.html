@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ezra's Spot in the Dark</title>
+  <style>
+    :root {
+      --bg: #03040f;
+      --ink: #1e2438;
+      --accent: #6ee7ff;
+      --accent-deep: #1b7f96;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 10%, #0d1636 0%, transparent 45%),
+        radial-gradient(circle at 80% 85%, #0a1a30 0%, transparent 50%),
+        var(--bg);
+      padding: 10px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .page {
+      max-width: 820px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.97);
+      border-radius: 20px;
+      box-shadow: 0 14px 40px rgba(0, 0, 20, 0.7);
+      padding: clamp(12px, 2.2vw, 18px);
+      position: relative;
+      z-index: 1;
+    }
+    .back-link {
+      display: inline-block;
+      color: var(--accent-deep);
+      font-weight: bold;
+      text-decoration: none;
+      margin-bottom: 2px;
+      font-size: 0.88rem;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 4vw, 1.95rem);
+      text-align: center;
+      color: var(--accent-deep);
+    }
+    .subtitle { text-align: center; opacity: 0.85; margin: 3px 0 10px; font-size: 0.87rem; }
+    button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+    .hud { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; margin-bottom: 8px; }
+    .pill {
+      background: #e7f8fd;
+      border: 2px solid #b6e4f2;
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-weight: bold;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+    .pill-btn { transition: transform 0.1s; }
+    .pill-btn:active { transform: scale(0.94); }
+
+    /* things to find */
+    .targets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+    .target {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #f3f6fb;
+      border: 2px solid #cfdbe8;
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-weight: bold;
+      font-size: 0.82rem;
+    }
+    .target .t-emoji { font-size: 1.05rem; }
+    .target.found {
+      background: #e9fbef;
+      border-color: #a8e0b8;
+      color: #1c7a3a;
+      text-decoration: line-through;
+    }
+    .target.found .t-emoji { filter: none; }
+    .target.hunting { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(110,231,255,0.25); }
+
+    #sky {
+      position: relative;
+      width: 100%;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 3px solid #0a1230;
+      background: #04060f;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: none;
+    }
+    #sky canvas { display: block; width: 100%; height: auto; }
+    .sky-hint {
+      position: absolute;
+      top: 8px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(4, 10, 28, 0.85);
+      color: #9fe8ff;
+      border: 1px solid #2b5a70;
+      border-radius: 10px;
+      padding: 5px 12px;
+      font-size: 0.78rem;
+      font-weight: bold;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(3, 8, 22, 0.88);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 5;
+      border-radius: 13px;
+    }
+    .overlay.show { display: flex; }
+    .ov-card {
+      background: white;
+      border-radius: 18px;
+      padding: 20px 18px;
+      text-align: center;
+      width: 100%;
+      max-width: 320px;
+      animation: pop 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+    }
+    @keyframes pop { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .ov-card .o-emoji { font-size: 2.8rem; display: block; }
+    .ov-card h2 { margin: 4px 0 6px; color: var(--accent-deep); font-size: 1.15rem; }
+    .ov-card p { margin: 3px 0; font-size: 0.9rem; }
+    .ov-card .big { font-size: 1.7rem; font-weight: bold; color: #1b7f96; }
+    .ov-btn {
+      margin: 12px 4px 0;
+      font-size: 1rem;
+      font-weight: bold;
+      color: white;
+      background: #12a6c4;
+      border: none;
+      border-radius: 12px;
+      padding: 11px 24px;
+      box-shadow: 0 4px 0 var(--accent-deep);
+    }
+    .ov-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--accent-deep); }
+    .ov-btn.grey { background: #8b95a6; box-shadow: 0 4px 0 #616c7d; }
+
+    .levels { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
+    .lvl {
+      width: 42px; height: 42px;
+      border-radius: 12px;
+      border: 3px solid #cfdbe8;
+      background: white;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+    .lvl.done { background: #e9fbef; border-color: #a8e0b8; }
+    .lvl.now { background: #12a6c4; border-color: #12a6c4; color: white; }
+    .lvl:disabled { opacity: 0.4; cursor: not-allowed; }
+    .how {
+      margin-top: 10px;
+      background: #f3f9fd;
+      border: 2px solid #cfe6f2;
+      border-radius: 14px;
+      padding: 9px 12px;
+      font-size: 0.84rem;
+      line-height: 1.5;
+    }
+    .how b { color: var(--accent-deep); }
+    .confetti-bit {
+      position: fixed;
+      top: -12px;
+      font-size: 1.25rem;
+      pointer-events: none;
+      z-index: 101;
+      animation: confFall linear forwards;
+    }
+    @keyframes confFall { to { transform: translateY(105vh) rotate(540deg); } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <a class="back-link" href="index.html">← Back to Game Hub</a>
+    <h1>🔭 Spot in the Dark</h1>
+    <p class="subtitle">Move your telescope around the dark sky and find everything on the list!</p>
+
+    <div class="hud">
+      <span class="pill" id="lvlPill">Level 1</span>
+      <span class="pill" id="foundPill">🔎 0/4 found</span>
+      <span class="pill" id="timePill">⏱️ 0.0s</span>
+      <span class="pill" id="bestPill">🏆 —</span>
+      <button class="pill pill-btn" id="hintBtn">💡 Hint</button>
+      <button class="pill pill-btn" id="soundBtn">🔊</button>
+    </div>
+
+    <div class="targets" id="targets"></div>
+
+    <div id="sky">
+      <canvas id="scope" width="720" height="460"></canvas>
+      <div class="sky-hint" id="skyHint">Drag your finger to move the telescope 🔭</div>
+      <div class="overlay" id="ovr">
+        <div class="ov-card">
+          <span class="o-emoji" id="ovEmoji">🔭</span>
+          <h2 id="ovTitle"></h2>
+          <p id="ovText"></p>
+          <p class="big" id="ovBig"></p>
+          <div id="ovButtons"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="levels" id="levels"></div>
+
+    <div class="how">
+      <b>How to play:</b> the sky is pitch dark — <b>drag your finger (or mouse) around</b> to shine your telescope.
+      When you spot something from the list inside the circle, <b>let go / click on it</b> to catch it.
+      Some things <b>drift about</b>, so keep looking! Every level hides them in new places.
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    /* ================= Things hiding in the dark ================= */
+
+    const THINGS = [
+      { id: "ufo",       name: "UFO",        emoji: "🛸", drift: 26 },
+      { id: "comet",     name: "Comet",      emoji: "☄️", drift: 34 },
+      { id: "satellite", name: "Satellite",  emoji: "🛰️", drift: 20 },
+      { id: "astronaut", name: "Astronaut",  emoji: "🧑‍🚀", drift: 14 },
+      { id: "planet",    name: "Planet",     emoji: "🪐", drift: 0 },
+      { id: "alien",     name: "Alien",      emoji: "👽", drift: 22 },
+      { id: "moon",      name: "Moon",       emoji: "🌙", drift: 0 },
+      { id: "rocket",    name: "Rocket",     emoji: "🚀", drift: 30 },
+      { id: "star",      name: "Shiny Star", emoji: "🌟", drift: 0 },
+      { id: "dragon",    name: "Space Dragon", emoji: "🐉", drift: 18 },
+    ];
+
+    const LEVELS = [
+      { find: 3, decoys: 26, radius: 92, drift: 0.8 },
+      { find: 4, decoys: 34, radius: 84, drift: 1.1 },
+      { find: 5, decoys: 44, radius: 76, drift: 1.4 },
+      { find: 6, decoys: 54, radius: 68, drift: 1.7 },
+      { find: 7, decoys: 66, radius: 60, drift: 2.0 },
+      { find: 8, decoys: 80, radius: 54, drift: 2.4 },
+    ];
+
+    const SAVE_KEY = "spot-dark-save-v1";
+    const W = 720, H = 460;
+
+    /* ================= State ================= */
+
+    let level = 0;
+    let unlocked = 1;
+    let bests = {};
+    let soundOn = true;
+    let targets = [];        // things to find this level
+    let decoys = [];
+    let scope = { x: W / 2, y: H / 2 };
+    let hunting = true;
+    let startT = 0, elapsed = 0;
+    let hintUntil = 0;
+    let pointerDown = false;
+
+    /* ================= Sound ================= */
+
+    let actx = null;
+    function audio() {
+      if (!actx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) actx = new AC();
+      }
+      if (actx && actx.state === "suspended") actx.resume();
+      return actx;
+    }
+    function tone(freq, dur, type, vol, delay, slideTo) {
+      if (!soundOn) return;
+      const ctx = audio();
+      if (!ctx) return;
+      const t0 = ctx.currentTime + (delay || 0);
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, t0);
+      if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+      g.gain.setValueAtTime(vol || 0.1, t0);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.05);
+    }
+    const sFound = (i) => [660 + i * 60, 880 + i * 60, 1180 + i * 60].forEach((f, k) => tone(f, 0.15, "triangle", 0.12, k * 0.06));
+    const sMiss = () => tone(220, 0.12, "square", 0.05);
+    const sBlip = () => tone(1400, 0.04, "sine", 0.045);
+    const sWin = () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.25, "triangle", 0.13, i * 0.09));
+    const sClick = () => tone(600, 0.07, "square", 0.05);
+
+    /* ================= Helpers ================= */
+
+    const $ = (id) => document.getElementById(id);
+    const cv = $("scope");
+    const g = cv.getContext("2d");
+
+    function save() {
+      try { localStorage.setItem(SAVE_KEY, JSON.stringify({ unlocked, bests, soundOn })); } catch (e) {}
+    }
+    function load() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return;
+        const s = JSON.parse(raw);
+        unlocked = Math.max(1, Math.min(LEVELS.length, Math.floor(s.unlocked || 1)));
+        bests = s.bests && typeof s.bests === "object" ? s.bests : {};
+        soundOn = s.soundOn !== false;
+      } catch (e) {}
+    }
+
+    const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+    /* ================= Building a level ================= */
+
+    function startLevel(n) {
+      level = Math.max(0, Math.min(LEVELS.length - 1, n));
+      const def = LEVELS[level];
+      const pool = shuffle(THINGS.slice()).slice(0, def.find);
+      targets = pool.map((t) => ({
+        ...t,
+        x: 60 + Math.random() * (W - 120),
+        y: 60 + Math.random() * (H - 120),
+        vx: (Math.random() * 2 - 1) * t.drift * def.drift,
+        vy: (Math.random() * 2 - 1) * t.drift * def.drift * 0.6,
+        found: false,
+        glow: 0,
+      }));
+      // background clutter: plain stars and dust that are NOT on the list
+      decoys = [];
+      for (let i = 0; i < def.decoys; i++) {
+        decoys.push({
+          x: Math.random() * W, y: Math.random() * H,
+          r: 0.8 + Math.random() * 2.4,
+          tw: Math.random() * Math.PI * 2,
+          big: Math.random() < 0.12,
+        });
+      }
+      scope = { x: W / 2, y: H / 2 };
+      hunting = true;
+      startT = performance.now();
+      elapsed = 0;
+      hintUntil = 0;
+      $("ovr").classList.remove("show");
+      $("skyHint").style.display = "block";
+      renderTargets();
+      renderLevels();
+      updateHud();
+    }
+
+    /* ================= Rendering ================= */
+
+    function scopeRadius() { return LEVELS[level].radius; }
+
+    function draw(now) {
+      const R = scopeRadius();
+      // deep space
+      g.fillStyle = "#04060f";
+      g.fillRect(0, 0, W, H);
+
+      // faint nebula so it isn't totally featureless
+      const neb = g.createRadialGradient(W * 0.3, H * 0.35, 10, W * 0.3, H * 0.35, 260);
+      neb.addColorStop(0, "rgba(60, 30, 110, 0.25)");
+      neb.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = neb;
+      g.fillRect(0, 0, W, H);
+      const neb2 = g.createRadialGradient(W * 0.78, H * 0.7, 10, W * 0.78, H * 0.7, 220);
+      neb2.addColorStop(0, "rgba(20, 70, 110, 0.22)");
+      neb2.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = neb2;
+      g.fillRect(0, 0, W, H);
+
+      // everything is drawn, then hidden by the darkness layer
+      for (const d of decoys) {
+        const tw = 0.55 + 0.45 * Math.sin(now / 600 + d.tw);
+        g.globalAlpha = tw;
+        g.fillStyle = d.big ? "#cfe4ff" : "#ffffff";
+        g.beginPath();
+        g.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+        g.fill();
+      }
+      g.globalAlpha = 1;
+
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      for (const t of targets) {
+        if (t.found) continue;
+        const inScope = Math.hypot(t.x - scope.x, t.y - scope.y) < R * 0.92;
+        t.glow = inScope ? Math.min(1, t.glow + 0.09) : Math.max(0, t.glow - 0.09);
+        if (t.glow > 0) {
+          g.save();
+          g.globalAlpha = t.glow * (0.45 + 0.25 * Math.sin(now / 160));
+          g.fillStyle = "#9fe8ff";
+          g.beginPath();
+          g.arc(t.x, t.y, 30, 0, Math.PI * 2);
+          g.fill();
+          g.restore();
+        }
+        g.font = "34px serif";
+        g.fillText(t.emoji, t.x, t.y);
+      }
+      // found things stay visible with a tick
+      for (const t of targets) {
+        if (!t.found) continue;
+        g.globalAlpha = 0.5;
+        g.font = "30px serif";
+        g.fillText(t.emoji, t.x, t.y);
+        g.globalAlpha = 1;
+        g.font = "20px serif";
+        g.fillText("✅", t.x + 16, t.y - 14);
+      }
+
+      // hint arrow points at the nearest thing still hiding
+      if (now < hintUntil) {
+        const left = targets.filter((t) => !t.found);
+        if (left.length) {
+          let near = left[0], nd = Infinity;
+          for (const t of left) {
+            const d = Math.hypot(t.x - scope.x, t.y - scope.y);
+            if (d < nd) { nd = d; near = t; }
+          }
+          const a = Math.atan2(near.y - scope.y, near.x - scope.x);
+          g.save();
+          g.translate(scope.x + Math.cos(a) * (R + 22), scope.y + Math.sin(a) * (R + 22));
+          g.rotate(a);
+          g.fillStyle = "#ffe06b";
+          g.beginPath();
+          g.moveTo(16, 0); g.lineTo(-10, -11); g.lineTo(-10, 11);
+          g.closePath();
+          g.fill();
+          g.restore();
+        }
+      }
+
+      // ---- darkness with a hole where the telescope points ----
+      g.save();
+      g.beginPath();
+      g.rect(0, 0, W, H);
+      g.arc(scope.x, scope.y, R, 0, Math.PI * 2, true);   // punch a hole
+      // fully opaque, or bright emoji ghost through and give the hiding places away
+      g.fillStyle = "#02040c";
+      g.fill("evenodd");
+      g.restore();
+
+      // soft edge + brass ring around the view
+      const edge = g.createRadialGradient(scope.x, scope.y, R * 0.62, scope.x, scope.y, R);
+      edge.addColorStop(0, "rgba(2,4,12,0)");
+      edge.addColorStop(1, "rgba(2,4,12,0.92)");
+      g.fillStyle = edge;
+      g.beginPath();
+      g.arc(scope.x, scope.y, R, 0, Math.PI * 2);
+      g.fill();
+
+      g.strokeStyle = "#c9a227";
+      g.lineWidth = 7;
+      g.beginPath();
+      g.arc(scope.x, scope.y, R + 3, 0, Math.PI * 2);
+      g.stroke();
+      g.strokeStyle = "rgba(255,240,190,0.55)";
+      g.lineWidth = 2;
+      g.beginPath();
+      g.arc(scope.x, scope.y, R - 1, 0, Math.PI * 2);
+      g.stroke();
+
+      // cross hairs
+      g.strokeStyle = "rgba(190, 235, 255, 0.35)";
+      g.lineWidth = 1.5;
+      g.beginPath();
+      g.moveTo(scope.x - R * 0.22, scope.y); g.lineTo(scope.x + R * 0.22, scope.y);
+      g.moveTo(scope.x, scope.y - R * 0.22); g.lineTo(scope.x, scope.y + R * 0.22);
+      g.stroke();
+    }
+
+    /* ================= Loop ================= */
+
+    let lastT = 0, blipT = 0;
+    function frame(now) {
+      if (!lastT) lastT = now;
+      const dt = Math.min((now - lastT) / 1000, 0.05);
+      lastT = now;
+
+      if (hunting) {
+        elapsed = (now - startT) / 1000;
+        // drifting things
+        for (const t of targets) {
+          if (t.found || (!t.vx && !t.vy)) continue;
+          t.x += t.vx * dt;
+          t.y += t.vy * dt;
+          if (t.x < 40 || t.x > W - 40) { t.vx *= -1; t.x = Math.max(40, Math.min(W - 40, t.x)); }
+          if (t.y < 40 || t.y > H - 40) { t.vy *= -1; t.y = Math.max(40, Math.min(H - 40, t.y)); }
+        }
+        // a soft blip when something is in view, like a radar
+        const R = scopeRadius();
+        const anyClose = targets.some((t) => !t.found && Math.hypot(t.x - scope.x, t.y - scope.y) < R * 0.92);
+        blipT -= dt;
+        if (anyClose && blipT <= 0) { blipT = 0.55; sBlip(); }
+        updateHud();
+      }
+      draw(now);
+      requestAnimationFrame(frame);
+    }
+
+    /* ================= Finding things ================= */
+
+    function tryCatch() {
+      if (!hunting) return;
+      const R = scopeRadius();
+      let best = null, bd = Infinity;
+      for (const t of targets) {
+        if (t.found) continue;
+        const d = Math.hypot(t.x - scope.x, t.y - scope.y);
+        if (d < R * 0.92 && d < bd) { bd = d; best = t; }
+      }
+      if (!best) { sMiss(); return; }
+      best.found = true;
+      const n = targets.filter((t) => t.found).length;
+      sFound(n);
+      renderTargets();
+      updateHud();
+      if (targets.every((t) => t.found)) finishLevel();
+    }
+
+    function finishLevel() {
+      hunting = false;
+      const secs = elapsed;
+      const key = "L" + level;
+      const isBest = !bests[key] || secs < bests[key];
+      if (isBest) bests[key] = secs;
+      if (level + 1 >= unlocked && level + 1 < LEVELS.length) unlocked = level + 2;
+      save();
+      sWin();
+      confetti();
+      renderLevels();
+      const last = level >= LEVELS.length - 1;
+      $("ovEmoji").textContent = isBest ? "🏆" : "🔭";
+      $("ovTitle").textContent = last ? "You found everything!" : "Level " + (level + 1) + " complete!";
+      $("ovText").textContent = isBest ? "That's your fastest time yet!" : "Your best is " + bests[key].toFixed(1) + "s";
+      $("ovBig").textContent = secs.toFixed(1) + "s";
+      const box = $("ovButtons");
+      box.innerHTML = "";
+      if (!last) {
+        const b = document.createElement("button");
+        b.className = "ov-btn";
+        b.id = "nextBtn";
+        b.textContent = "Level " + (level + 2) + " →";
+        b.addEventListener("click", () => { sClick(); startLevel(level + 1); });
+        box.appendChild(b);
+      }
+      const again = document.createElement("button");
+      again.className = "ov-btn" + (last ? "" : " grey");
+      again.id = "againBtn";
+      again.textContent = "🔄 Again";
+      again.addEventListener("click", () => { sClick(); startLevel(level); });
+      box.appendChild(again);
+      $("ovr").classList.add("show");
+    }
+
+    /* ================= UI ================= */
+
+    function renderTargets() {
+      const box = $("targets");
+      box.innerHTML = "";
+      targets.forEach((t) => {
+        const el = document.createElement("span");
+        el.className = "target" + (t.found ? " found" : "");
+        el.dataset.thing = t.id;
+        el.innerHTML = '<span class="t-emoji">' + t.emoji + "</span>" + t.name;
+        box.appendChild(el);
+      });
+    }
+
+    function renderLevels() {
+      const box = $("levels");
+      box.innerHTML = "";
+      LEVELS.forEach((l, i) => {
+        const b = document.createElement("button");
+        b.className = "lvl" + (i === level ? " now" : (bests["L" + i] ? " done" : ""));
+        b.textContent = i + 1;
+        b.dataset.level = i;
+        b.disabled = i >= unlocked;
+        b.title = "Level " + (i + 1) + " — find " + l.find;
+        b.addEventListener("click", () => { sClick(); startLevel(i); });
+        box.appendChild(b);
+      });
+    }
+
+    function updateHud() {
+      const found = targets.filter((t) => t.found).length;
+      $("lvlPill").textContent = "Level " + (level + 1);
+      $("foundPill").textContent = "🔎 " + found + "/" + targets.length + " found";
+      $("timePill").textContent = "⏱️ " + elapsed.toFixed(1) + "s";
+      const b = bests["L" + level];
+      $("bestPill").textContent = "🏆 " + (b ? b.toFixed(1) + "s" : "—");
+      $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
+    }
+
+    function confetti() {
+      const emo = ["🔭", "✨", "⭐", "🎉", "🛸"];
+      for (let i = 0; i < 18; i++) {
+        const c = document.createElement("span");
+        c.className = "confetti-bit";
+        c.textContent = emo[Math.floor(Math.random() * emo.length)];
+        c.style.left = Math.random() * 100 + "vw";
+        c.style.animationDuration = 1.6 + Math.random() * 1.6 + "s";
+        c.style.animationDelay = Math.random() * 0.4 + "s";
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 4000);
+      }
+    }
+
+    /* ================= Input ================= */
+
+    function toSky(ev) {
+      const r = cv.getBoundingClientRect();
+      return {
+        x: (ev.clientX - r.left) / r.width * W,
+        y: (ev.clientY - r.top) / r.height * H,
+      };
+    }
+
+    cv.addEventListener("pointerdown", (ev) => {
+      ev.preventDefault();
+      audio();
+      cv.setPointerCapture(ev.pointerId);
+      pointerDown = true;
+      const p = toSky(ev);
+      scope.x = p.x; scope.y = p.y;
+      $("skyHint").style.display = "none";
+    });
+    cv.addEventListener("pointermove", (ev) => {
+      const p = toSky(ev);
+      // the mouse can look around freely; a finger has to be down
+      if (pointerDown || ev.pointerType === "mouse") { scope.x = p.x; scope.y = p.y; }
+    });
+    cv.addEventListener("pointerup", (ev) => {
+      const p = toSky(ev);
+      scope.x = p.x; scope.y = p.y;
+      pointerDown = false;
+      tryCatch();
+    });
+    cv.addEventListener("pointercancel", () => { pointerDown = false; });
+
+    window.addEventListener("keydown", (ev) => {
+      const step = 24;
+      if (ev.key === "ArrowLeft") { scope.x -= step; ev.preventDefault(); }
+      if (ev.key === "ArrowRight") { scope.x += step; ev.preventDefault(); }
+      if (ev.key === "ArrowUp") { scope.y -= step; ev.preventDefault(); }
+      if (ev.key === "ArrowDown") { scope.y += step; ev.preventDefault(); }
+      if (ev.key === " " || ev.key === "Enter") { tryCatch(); ev.preventDefault(); }
+      scope.x = Math.max(0, Math.min(W, scope.x));
+      scope.y = Math.max(0, Math.min(H, scope.y));
+    });
+
+    $("hintBtn").addEventListener("click", () => {
+      if (!hunting) return;
+      sClick();
+      hintUntil = performance.now() + 2600;
+    });
+    $("soundBtn").addEventListener("click", () => {
+      soundOn = !soundOn;
+      if (soundOn) sClick();
+      updateHud();
+      save();
+    });
+
+    /* ================= Start ================= */
+
+    load();
+    startLevel(0);
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
