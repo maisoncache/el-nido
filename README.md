@@ -82,6 +82,7 @@ Pages:
 - `shuttle.html` → Space Shuttle Builder (mine wood, iron, aluminium, cobalt and diamonds by smashing rocks, spend them on shuttle parts that appear on a live blueprint, then launch to the Moon, Mars and deep space)
 - `wheel.html` → Spinning Wheel (a decision wheel with themed categories and a build-your-own list, plus Number Hunt: guess where it lands and each landed number is removed, so the odds shorten every spin)
 - `spot-dark.html` → Spot in the Dark (a pitch-black sky revealed only through a draggable telescope — find the listed objects among decoy stars, with some drifting and new hiding places each round, over six levels)
+- `terraform.html` → Planet Crafter (open chests for materials and build a base of terraforming machines on a dead planet; heat, air, oxygen and plants raise a terraformation index through six stages that visibly change the world — melting ice, bluing sky, spreading forests — until a Habitat Dome brings people to live there)
 - `flight.html` → The Game of Flight (guess the hidden country knowing only its continent — each guess flies your plane there and reports distance, direction and hot/cold, with clues unlocking; solo vs Robo or pass-and-play with two players, and star ranks that save)
 
 ## Deployment

@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ezra's Planet Crafter</title>
+  <style>
+    :root {
+      --bg: #2b1207;
+      --ink: #26241f;
+      --accent: #2fa36b;
+      --accent-deep: #1b7048;
+      --rust: #c2551f;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 10%, #5a2410 0%, transparent 45%),
+        radial-gradient(circle at 80% 85%, #3d1a0c 0%, transparent 50%),
+        var(--bg);
+      padding: 10px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.97);
+      border-radius: 20px;
+      box-shadow: 0 14px 40px rgba(30, 10, 0, 0.55);
+      padding: clamp(12px, 2.2vw, 18px);
+      position: relative;
+      z-index: 1;
+    }
+    .back-link {
+      display: inline-block;
+      color: var(--accent-deep);
+      font-weight: bold;
+      text-decoration: none;
+      margin-bottom: 2px;
+      font-size: 0.88rem;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(1.3rem, 4vw, 1.9rem);
+      text-align: center;
+      color: var(--accent-deep);
+    }
+    .subtitle { text-align: center; opacity: 0.85; margin: 3px 0 8px; font-size: 0.86rem; }
+    button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+    /* ---------- terraform meter ---------- */
+    .ti-wrap { margin-bottom: 8px; }
+    .ti-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-weight: bold;
+      font-size: 0.86rem;
+      margin-bottom: 3px;
+    }
+    .ti-stage { color: var(--accent-deep); }
+    .ti-bar {
+      height: 16px;
+      background: #e6e2da;
+      border: 2px solid #cbc4b8;
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+    .ti-bar > div {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #d9642a, #e8a13a, #7ec850, #2fa36b);
+      transition: width 0.35s;
+    }
+    .stats { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-top: 6px; }
+    .stat {
+      background: #f4f2ed;
+      border: 2px solid #ddd7cc;
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-weight: bold;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+    .stat.up { animation: statUp 0.5s; }
+    @keyframes statUp { 0% { transform: scale(1); } 45% { transform: scale(1.14); background: #fff2c9; } 100% { transform: scale(1); } }
+
+    .mats { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-bottom: 8px; }
+    .mat {
+      background: #eef4fb;
+      border: 2px solid #c8d9ec;
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-weight: bold;
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+    .mat.gain { animation: statUp 0.5s; }
+    .pill-btn {
+      background: #f4f2ed;
+      border: 2px solid #ddd7cc;
+      border-radius: 999px;
+      padding: 5px 11px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      transition: transform 0.1s;
+    }
+    .pill-btn:active { transform: scale(0.94); }
+
+    /* ---------- world ---------- */
+    #world {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 3px solid #4a2a18;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #world canvas { display: block; width: 100%; height: auto; }
+    .touch-btn {
+      position: absolute;
+      bottom: 10px;
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.75);
+      background: rgba(30, 15, 5, 0.42);
+      color: white;
+      font-size: 1.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      touch-action: none;
+    }
+    .touch-btn:active, .touch-btn.held { background: rgba(90, 200, 120, 0.75); }
+    #btnLeft { left: 10px; }
+    #btnRight { left: 74px; }
+    #toast {
+      position: absolute;
+      top: 8px; left: 50%;
+      transform: translateX(-50%);
+      max-width: 92%;
+      background: rgba(25, 12, 4, 0.9);
+      color: #fff;
+      border: 2px solid #ffd34d;
+      border-radius: 12px;
+      padding: 6px 13px;
+      font-weight: bold;
+      font-size: 0.82rem;
+      text-align: center;
+      z-index: 30;
+      display: none;
+      line-height: 1.3;
+    }
+    #toast.show { display: block; animation: toastIn 0.3s; }
+    @keyframes toastIn { from { transform: translateX(-50%) translateY(-18px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
+    #buildHint {
+      position: absolute;
+      bottom: 10px; right: 10px;
+      background: rgba(25, 12, 4, 0.82);
+      color: #b6f5c8;
+      border-radius: 10px;
+      padding: 5px 11px;
+      font-size: 0.76rem;
+      font-weight: bold;
+      z-index: 20;
+      pointer-events: none;
+      display: none;
+    }
+    #buildHint.show { display: block; }
+
+    /* ---------- build menu ---------- */
+    .panel {
+      margin-top: 10px;
+      background: #f6f4ef;
+      border: 2px solid #ddd7cc;
+      border-radius: 14px;
+      padding: 11px;
+    }
+    .panel h3 { margin: 0 0 2px; font-size: 0.98rem; }
+    .panel .tip { margin: 0 0 9px; font-size: 0.79rem; opacity: 0.8; }
+    .builds {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 7px;
+    }
+    .build {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      border: 2px solid #ddd7cc;
+      background: white;
+      border-radius: 12px;
+      padding: 7px 8px;
+      text-align: left;
+      font-size: 0.78rem;
+      transition: transform 0.1s;
+    }
+    .build:active:not(:disabled) { transform: scale(0.97); }
+    .build:disabled { cursor: not-allowed; }
+    .build.locked { opacity: 0.45; }
+    .build.cant { opacity: 0.72; }
+    .build.picked { border-color: var(--accent); background: #e9f9f0; box-shadow: 0 0 0 3px rgba(47,163,107,0.22); }
+    .build .b-emoji { font-size: 1.5rem; flex: none; }
+    .build .b-name { font-weight: bold; display: block; }
+    .build .b-info { font-size: 0.71rem; opacity: 0.85; }
+    .build .b-info .short { color: #c62828; font-weight: bold; }
+    .build .b-made { margin-left: auto; font-size: 0.72rem; font-weight: bold; opacity: 0.7; flex: none; }
+
+    /* ---------- overlay ---------- */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 8, 2, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 18px;
+    }
+    .overlay.show { display: flex; }
+    .ov-card {
+      background: white;
+      border-radius: 20px;
+      padding: clamp(18px, 5vw, 28px);
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+      animation: pop 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+      box-shadow: 0 0 50px rgba(120, 220, 150, 0.6);
+    }
+    @keyframes pop { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .ov-card .o-emoji { font-size: 3rem; display: block; margin-bottom: 4px; }
+    .ov-card h2 { margin: 2px 0 6px; color: var(--accent-deep); font-size: 1.15rem; }
+    .ov-card p { margin: 4px 0; font-size: 0.9rem; }
+    .ov-btn {
+      margin: 12px 4px 0;
+      font-size: 1rem;
+      font-weight: bold;
+      color: white;
+      background: var(--accent);
+      border: none;
+      border-radius: 12px;
+      padding: 11px 24px;
+      box-shadow: 0 4px 0 var(--accent-deep);
+    }
+    .ov-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--accent-deep); }
+    .ov-btn.grey { background: #8b95a6; box-shadow: 0 4px 0 #616c7d; }
+    .confetti-bit {
+      position: fixed;
+      top: -12px;
+      font-size: 1.25rem;
+      pointer-events: none;
+      z-index: 130;
+      animation: confFall linear forwards;
+    }
+    @keyframes confFall { to { transform: translateY(105vh) rotate(540deg); } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <a class="back-link" href="index.html">← Back to Game Hub</a>
+    <h1>🌍 Planet Crafter</h1>
+    <p class="subtitle">Open chests for materials, build machines, and turn this dead rock into a world people can live on.</p>
+
+    <div class="ti-wrap">
+      <div class="ti-top">
+        <span class="ti-stage" id="stageName">Stage 1 · Dead Rock</span>
+        <span id="tiNum">0 / 60 Ti</span>
+      </div>
+      <div class="ti-bar"><div id="tiBar"></div></div>
+      <div class="stats">
+        <span class="stat" id="statHeat">🔥 Heat 0</span>
+        <span class="stat" id="statPress">💨 Air 0</span>
+        <span class="stat" id="statOxy">🫧 Oxygen 0</span>
+        <span class="stat" id="statBio">🌱 Plants 0</span>
+        <span class="stat" id="statRate">📈 0.0/sec</span>
+      </div>
+    </div>
+
+    <div class="mats" id="matsBar"></div>
+
+    <div id="world">
+      <canvas id="cv" width="760" height="420"></canvas>
+      <div id="toast"></div>
+      <div id="buildHint"></div>
+      <button class="touch-btn" id="btnLeft" aria-label="walk left">◀</button>
+      <button class="touch-btn" id="btnRight" aria-label="walk right">▶</button>
+    </div>
+
+    <div class="panel">
+      <h3>🏗️ Build your base</h3>
+      <p class="tip" id="buildTip">Tap a machine, then tap the ground next to you to put it down.</p>
+      <div class="builds" id="builds"></div>
+      <div style="margin-top:9px; display:flex; gap:6px; flex-wrap:wrap; justify-content:center;">
+        <button class="pill-btn" id="soundBtn">🔊</button>
+        <button class="pill-btn" id="resetBtn">🧹 New Planet</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="ovr">
+    <div class="ov-card">
+      <span class="o-emoji" id="ovEmoji">🌍</span>
+      <h2 id="ovTitle"></h2>
+      <p id="ovText"></p>
+      <div id="ovButtons"></div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    /* ================= Materials ================= */
+
+    const MATS = {
+      iron:     { name: "Iron",     emoji: "🪨", color: "#9aa3ad", from: 0 },
+      ice:      { name: "Ice",      emoji: "🧊", color: "#bfe8ff", from: 0 },
+      silicon:  { name: "Silicon",  emoji: "🔹", color: "#7fb2ff", from: 1 },
+      titanium: { name: "Titanium", emoji: "⚙️", color: "#d8dee6", from: 2 },
+      seeds:    { name: "Seeds",    emoji: "🌰", color: "#a5713d", from: 3 },
+    };
+    const MAT_KEYS = Object.keys(MATS);
+
+    /* ================= Machines ================= */
+
+    const BUILDS = [
+      { id: "heater",  name: "Heater",        emoji: "🔥", stage: 0, cost: { iron: 4 },                       gives: { heat: 0.55 } },
+      { id: "drill",   name: "Ore Drill",     emoji: "⛏️", stage: 0, cost: { iron: 6 },                       gives: {}, mine: true },
+      { id: "vapor",   name: "Air Vaporator", emoji: "💨", stage: 1, cost: { iron: 5, ice: 4 },               gives: { press: 0.9 } },
+      { id: "oxy",     name: "Oxygen Maker",  emoji: "🫧", stage: 2, cost: { titanium: 4, silicon: 5 },       gives: { oxy: 1.5 } },
+      { id: "green",   name: "Greenhouse",    emoji: "🌱", stage: 3, cost: { seeds: 4, silicon: 5 },          gives: { bio: 2.4 } },
+      { id: "trees",   name: "Tree Farm",     emoji: "🌳", stage: 4, cost: { seeds: 6, titanium: 6 },         gives: { bio: 5, oxy: 1.6 } },
+      { id: "habitat", name: "Habitat Dome",  emoji: "🏠", stage: 4, cost: { iron: 8, silicon: 6, titanium: 5 }, gives: {}, habitat: true },
+    ];
+
+    const STAGES = [
+      { at: 0,    name: "Dead Rock",   emoji: "🪨", note: "Freezing, no air. Build Heaters to warm it up!" },
+      { at: 60,   name: "Warming Up",  emoji: "🔥", note: "The ice is starting to melt! Air Vaporators unlocked." },
+      { at: 260,  name: "Windy",       emoji: "💨", note: "There's an atmosphere now — clouds! Oxygen Makers unlocked." },
+      { at: 700,  name: "Breathable",  emoji: "🫧", note: "The sky is turning blue! Greenhouses unlocked." },
+      { at: 1500, name: "Green World", emoji: "🌱", note: "Plants are spreading! Tree Farms and Habitat Domes unlocked." },
+      { at: 3000, name: "HABITABLE",   emoji: "🏡", note: "The planet is alive! Build a Habitat Dome to bring people here." },
+    ];
+
+    const W = 760, H = 420;
+    const WORLD_W = 2600;
+    const GROUND_H = 92;
+    const SAVE_KEY = "planet-crafter-save-v1";
+
+    /* ================= State ================= */
+
+    let mats = { iron: 0, ice: 0, silicon: 0, titanium: 0, seeds: 0 };
+    let stats = { heat: 0, press: 0, oxy: 0, bio: 0 };
+    let machines = [];        // { t, x }
+    let chests = [];          // { x, open, t }
+    let playerX = 160;
+    let facing = 1;
+    let picked = null;        // machine id chosen to place
+    let soundOn = true;
+    let won = false;
+    let chestTimer = 4;
+    let seedRand = 1;
+
+    const ti = () => stats.heat + stats.press + stats.oxy + stats.bio;
+    function stageIndex() {
+      let s = 0;
+      for (let i = 0; i < STAGES.length; i++) if (ti() >= STAGES[i].at) s = i;
+      return s;
+    }
+    function rate() {
+      let r = 0;
+      machines.forEach((m) => {
+        const def = BUILDS.find((b) => b.id === m.t);
+        if (def) Object.keys(def.gives).forEach((k) => { r += def.gives[k]; });
+      });
+      return r;
+    }
+
+    /* ================= Ground shape ================= */
+
+    function groundY(x) {
+      return H - GROUND_H + Math.sin(x / 260) * 16 + Math.sin(x / 97 + 1.7) * 7;
+    }
+
+    /* ================= Sound ================= */
+
+    let actx = null;
+    function audio() {
+      if (!actx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) actx = new AC();
+      }
+      if (actx && actx.state === "suspended") actx.resume();
+      return actx;
+    }
+    function tone(freq, dur, type, vol, delay, slideTo) {
+      if (!soundOn) return;
+      const ctx = audio();
+      if (!ctx) return;
+      const t0 = ctx.currentTime + (delay || 0);
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, t0);
+      if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+      g.gain.setValueAtTime(vol || 0.1, t0);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.05);
+    }
+    const sClick = () => tone(600, 0.07, "square", 0.05);
+    const sChest = () => { tone(420, 0.12, "triangle", 0.1, 0, 700); tone(880, 0.14, "sine", 0.07, 0.08); };
+    const sBuild = () => [440, 587, 784].forEach((f, i) => tone(f, 0.16, "triangle", 0.12, i * 0.07));
+    const sStage = () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.3, "triangle", 0.13, i * 0.11));
+    const sNope = () => tone(170, 0.14, "square", 0.06);
+    const sDrop = () => tone(300, 0.5, "sine", 0.07, 0, 140);
+
+    /* ================= Helpers ================= */
+
+    const $ = (id) => document.getElementById(id);
+    const cv = $("cv");
+    const g = cv.getContext("2d");
+    const lerp = (a, b, t) => a + (b - a) * t;
+    function mixCol(c1, c2, t) {
+      return [0, 1, 2].map((i) => Math.round(lerp(c1[i], c2[i], t)));
+    }
+    const rgb = (c) => "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")";
+
+    let toastTimer = null;
+    function toast(msg) {
+      const t = $("toast");
+      t.textContent = msg;
+      t.classList.remove("show");
+      void t.offsetWidth;
+      t.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove("show"), 3000);
+    }
+
+    /* ================= Chests ================= */
+
+    function chestLoot() {
+      const s = stageIndex();
+      const pool = MAT_KEYS.filter((k) => MATS[k].from <= s);
+      const out = {};
+      const n = 2 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < n; i++) {
+        const k = pool[Math.floor(Math.random() * pool.length)];
+        out[k] = (out[k] || 0) + 1 + Math.floor(Math.random() * 2);
+      }
+      return out;
+    }
+
+    function spawnChest(fromSky) {
+      if (chests.filter((c) => !c.open).length >= 7) return;
+      let x = 0, ok = false;
+      for (let i = 0; i < 20 && !ok; i++) {
+        x = 80 + Math.random() * (WORLD_W - 160);
+        ok = chests.every((c) => Math.abs(c.x - x) > 110) && machines.every((m) => Math.abs(m.x - x) > 70);
+      }
+      if (!ok) return;
+      chests.push({ x, open: false, fall: fromSky ? 1 : 0, pop: 0 });
+      if (fromSky) { sDrop(); toast("🪂 A supply chest dropped from the sky!"); }
+    }
+
+    function openChest(c) {
+      if (c.open) return;
+      c.open = true;
+      c.pop = 1;
+      const loot = chestLoot();
+      Object.keys(loot).forEach((k) => { mats[k] += loot[k]; flashMat(k); });
+      c.loot = Object.keys(loot).map((k) => "+" + loot[k] + " " + MATS[k].emoji).join(" ");
+      sChest();
+      renderMats();
+      renderBuilds();
+      save();
+    }
+
+    /* ================= Building ================= */
+
+    function unlocked(def) { return stageIndex() >= def.stage; }
+    function canAfford(def) { return Object.keys(def.cost).every((k) => mats[k] >= def.cost[k]); }
+    function countOf(id) { return machines.filter((m) => m.t === id).length; }
+
+    function placeAt(x) {
+      if (!picked) return;
+      const def = BUILDS.find((b) => b.id === picked);
+      if (!def) return;
+      if (!unlocked(def)) { sNope(); toast("That unlocks at a later stage!"); return; }
+      if (!canAfford(def)) { sNope(); toast("Not enough materials for a " + def.name + "!"); return; }
+      if (Math.abs(x - playerX) > 210) { sNope(); toast("Too far away — walk closer to build there! 🚶"); return; }
+      if (machines.some((m) => Math.abs(m.x - x) < 62)) { sNope(); toast("Too close to another machine!"); return; }
+      if (x < 40 || x > WORLD_W - 40) return;
+      Object.keys(def.cost).forEach((k) => { mats[k] -= def.cost[k]; });
+      machines.push({ t: def.id, x, born: performance.now() / 1000 });
+      sBuild();
+      toast("🏗️ " + def.name + " built!");
+      if (def.habitat) checkWin();
+      picked = null;
+      renderMats();
+      renderBuilds();
+      updateBuildHint();
+      save();
+    }
+
+    /* ================= Stage changes ================= */
+
+    let lastStage = 0;
+    function checkStage() {
+      const s = stageIndex();
+      if (s === lastStage) return;
+      lastStage = s;
+      sStage();
+      confetti(14);
+      const st = STAGES[s];
+      showCard(st.emoji, "Stage " + (s + 1) + ": " + st.name + "!", st.note, [{ label: "Keep going!", value: true }]);
+      renderBuilds();
+      save();
+    }
+
+    function checkWin() {
+      if (won) return;
+      if (stageIndex() >= STAGES.length - 1 && machines.some((m) => m.t === "habitat")) {
+        won = true;
+        save();
+        sStage();
+        confetti(30);
+        setTimeout(() => {
+          showCard("🏡", "THE PLANET IS ALIVE!",
+            "Blue sky, warm air, water and forests — and your Habitat Dome is ready. A ship is landing with the first people to live here. You terraformed a whole world!",
+            [{ label: "Amazing!", value: true }]);
+        }, 500);
+      }
+    }
+
+    /* ================= Drawing ================= */
+
+    let cam = 0;
+
+    function skyColours(p) {
+      // p = 0..1 across the whole terraforming journey
+      const stops = [
+        { t: 0.00, top: [58, 22, 14],  bot: [150, 62, 28] },   // dusty dead rock
+        { t: 0.22, top: [96, 44, 26],  bot: [196, 104, 46] },  // warming
+        { t: 0.45, top: [110, 86, 78], bot: [214, 150, 106] }, // dusty air
+        { t: 0.68, top: [78, 116, 158], bot: [176, 200, 220] },// thinning to blue
+        { t: 1.00, top: [74, 150, 226], bot: [186, 226, 250] },// proper blue sky
+      ];
+      let a = stops[0], b = stops[stops.length - 1];
+      for (let i = 0; i < stops.length - 1; i++) {
+        if (p >= stops[i].t && p <= stops[i + 1].t) { a = stops[i]; b = stops[i + 1]; break; }
+      }
+      const f = (p - a.t) / Math.max(0.0001, b.t - a.t);
+      return { top: mixCol(a.top, b.top, f), bot: mixCol(a.bot, b.bot, f) };
+    }
+
+    function prog() {
+      return Math.max(0, Math.min(1, ti() / STAGES[STAGES.length - 1].at));
+    }
+
+    function draw(now) {
+      const p = prog();
+      const s = stageIndex();
+      cam = Math.max(0, Math.min(WORLD_W - W, playerX - W / 2));
+
+      // ---- sky ----
+      const sky = skyColours(p);
+      const grd = g.createLinearGradient(0, 0, 0, H);
+      grd.addColorStop(0, rgb(sky.top));
+      grd.addColorStop(1, rgb(sky.bot));
+      g.fillStyle = grd;
+      g.fillRect(0, 0, W, H);
+
+      // stars fade out as the air thickens
+      const starAlpha = Math.max(0, 1 - p * 2.2);
+      if (starAlpha > 0.01) {
+        g.globalAlpha = starAlpha * 0.85;
+        for (let i = 0; i < 60; i++) {
+          const sx = ((i * 137.5) % WORLD_W) - cam * 0.25;
+          const sy = (i * 53) % (H * 0.55);
+          if (sx < -5 || sx > W + 5) continue;
+          g.fillStyle = "#fff";
+          g.fillRect(sx, sy, 1.6, 1.6);
+        }
+        g.globalAlpha = 1;
+      }
+
+      // sun
+      g.globalAlpha = 0.9;
+      g.font = "30px serif";
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      g.fillText(p > 0.55 ? "☀️" : "🔅", W - 70, 54);
+      g.globalAlpha = 1;
+
+      // clouds once there's pressure
+      const cloudAlpha = Math.max(0, Math.min(0.85, (stats.press / 500)));
+      if (cloudAlpha > 0.02) {
+        g.globalAlpha = cloudAlpha;
+        for (let i = 0; i < 7; i++) {
+          const cxp = ((i * 431 + now / 60) % (WORLD_W + 400)) - cam * 0.45 - 200;
+          const cyp = 40 + (i * 37) % 90;
+          if (cxp < -140 || cxp > W + 140) continue;
+          g.fillStyle = p > 0.6 ? "#ffffff" : "#e8d3c2";
+          [[0, 0, 34], [26, 6, 26], [-26, 7, 24], [8, -12, 22]].forEach(([dx, dy, r]) => {
+            g.beginPath(); g.arc(cxp + dx, cyp + dy, r, 0, Math.PI * 2); g.fill();
+          });
+        }
+        g.globalAlpha = 1;
+      }
+
+      // ---- ground ----
+      const dead = [122, 62, 38], soil = [110, 78, 48], grass = [86, 160, 66];
+      const gcol = p < 0.5 ? mixCol(dead, soil, p / 0.5) : mixCol(soil, grass, (p - 0.5) / 0.5);
+      g.beginPath();
+      g.moveTo(0, H);
+      for (let sx = 0; sx <= W; sx += 8) g.lineTo(sx, groundY(sx + cam));
+      g.lineTo(W, H);
+      g.closePath();
+      g.fillStyle = rgb(gcol);
+      g.fill();
+      // grassy top once things are growing
+      if (p > 0.45) {
+        g.save();
+        g.globalAlpha = Math.min(1, (p - 0.45) / 0.3);
+        g.strokeStyle = "rgb(" + grass[0] + "," + (grass[1] + 30) + "," + grass[2] + ")";
+        g.lineWidth = 7;
+        g.beginPath();
+        for (let sx = 0; sx <= W; sx += 8) {
+          const y = groundY(sx + cam);
+          if (sx === 0) g.moveTo(sx, y); else g.lineTo(sx, y);
+        }
+        g.stroke();
+        g.restore();
+      }
+
+      // ---- ice patches melting into water ----
+      const melt = Math.max(0, Math.min(1, stats.heat / 220));
+      for (let i = 0; i < 14; i++) {
+        const wx = 120 + (i * 187) % (WORLD_W - 240);
+        const sx = wx - cam;
+        if (sx < -90 || sx > W + 90) continue;
+        const gy = groundY(wx);
+        const wide = 46 + (i % 3) * 14;
+        if (melt < 1) {
+          g.globalAlpha = 1 - melt;
+          g.fillStyle = "#dff2ff";
+          g.beginPath();
+          g.ellipse(sx, gy + 4, wide * (1 - melt * 0.4), 11, 0, 0, Math.PI * 2);
+          g.fill();
+          g.globalAlpha = 1;
+        }
+        if (melt > 0.25) {
+          g.globalAlpha = Math.min(0.9, (melt - 0.25) / 0.5);
+          g.fillStyle = "#3d8fd4";
+          g.beginPath();
+          g.ellipse(sx, gy + 7, wide * 0.9, 9, 0, 0, Math.PI * 2);
+          g.fill();
+          g.globalAlpha = 1;
+        }
+      }
+
+      // ---- plants growing as biomass rises ----
+      const plantCount = Math.min(46, Math.floor(stats.bio / 22));
+      for (let i = 0; i < plantCount; i++) {
+        const wx = 70 + (i * 311) % (WORLD_W - 140);
+        const sx = wx - cam;
+        if (sx < -40 || sx > W + 40) continue;
+        const gy = groundY(wx);
+        const big = i % 4 === 0 && stats.bio > 400;
+        g.font = (big ? 30 : 18) + "px serif";
+        g.textAlign = "center";
+        g.textBaseline = "alphabetic";
+        g.fillText(big ? "🌳" : (i % 3 === 0 ? "🌿" : "🌱"), sx, gy + 4);
+      }
+
+      // ---- chests ----
+      chests.forEach((c) => {
+        const sx = c.x - cam;
+        if (sx < -60 || sx > W + 60) return;
+        const gy = groundY(c.x);
+        const fallOff = c.fall > 0 ? c.fall * 220 : 0;
+        g.font = "30px serif";
+        g.textAlign = "center";
+        g.textBaseline = "alphabetic";
+        if (c.open) {
+          g.globalAlpha = Math.max(0, 1 - (c.pop || 0));
+          g.fillText("📭", sx, gy - 2);
+          if (c.loot && c.pop > 0) {
+            g.globalAlpha = Math.min(1, c.pop);
+            g.font = "bold 15px 'Trebuchet MS', sans-serif";
+            g.fillStyle = "#fff2a8";
+            g.strokeStyle = "rgba(0,0,0,0.6)";
+            g.lineWidth = 3;
+            const ty = gy - 34 - (1 - c.pop) * 26;
+            g.strokeText(c.loot, sx, ty);
+            g.fillText(c.loot, sx, ty);
+          }
+          g.globalAlpha = 1;
+          return;
+        }
+        if (c.fall > 0) { g.font = "26px serif"; g.fillText("🪂", sx, gy - 34 - fallOff); }
+        // a nudge when you're close enough to open it
+        const near = Math.abs(c.x - playerX) < 90;
+        if (near) {
+          g.globalAlpha = 0.35 + 0.3 * Math.sin(now / 170);
+          g.fillStyle = "#ffe06b";
+          g.beginPath();
+          g.arc(sx, gy - 14, 26, 0, Math.PI * 2);
+          g.fill();
+          g.globalAlpha = 1;
+        }
+        g.font = "30px serif";
+        g.fillText("📦", sx, gy - fallOff);
+        if (near) {
+          g.font = "bold 12px 'Trebuchet MS', sans-serif";
+          g.fillStyle = "#fff";
+          g.strokeStyle = "rgba(0,0,0,0.6)";
+          g.lineWidth = 3;
+          g.strokeText("tap!", sx, gy - 36);
+          g.fillText("tap!", sx, gy - 36);
+        }
+      });
+
+      // ---- machines ----
+      machines.forEach((m) => {
+        const sx = m.x - cam;
+        if (sx < -70 || sx > W + 70) return;
+        const gy = groundY(m.x);
+        const def = BUILDS.find((b) => b.id === m.t);
+        if (!def) return;
+        const age = Math.min(1, (now / 1000 - (m.born || 0)) / 0.5);
+        const sc = age < 1 ? 0.4 + 0.6 * age : 1;
+        g.save();
+        g.translate(sx, gy);
+        g.scale(sc, sc);
+        // plinth
+        g.fillStyle = "#5c6570";
+        g.fillRect(-24, -14, 48, 16);
+        g.fillStyle = "#7b8794";
+        g.fillRect(-24, -18, 48, 6);
+        g.fillStyle = "#3f4750";
+        g.fillRect(-26, -2, 52, 5);
+        // body
+        g.font = "30px serif";
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.fillText(def.emoji, 0, -34);
+        // working glow
+        if (Object.keys(def.gives).length) {
+          g.globalAlpha = 0.3 + 0.25 * Math.sin(now / 220 + m.x);
+          g.fillStyle = "#8effc0";
+          g.beginPath();
+          g.arc(0, -34, 22, 0, Math.PI * 2);
+          g.fill();
+          g.globalAlpha = 1;
+        }
+        g.restore();
+      });
+
+      // ---- ghost of the machine you're about to place ----
+      if (picked) {
+        const def = BUILDS.find((b) => b.id === picked);
+        const gx = ghostX === null ? playerX + facing * 70 : ghostX;
+        const sx = gx - cam;
+        const gy = groundY(gx);
+        const okSpot = Math.abs(gx - playerX) <= 210 && !machines.some((m) => Math.abs(m.x - gx) < 62);
+        g.save();
+        g.globalAlpha = 0.55;
+        g.fillStyle = okSpot ? "#8effc0" : "#ff9a9a";
+        g.fillRect(sx - 26, gy - 20, 52, 22);
+        g.font = "28px serif";
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.globalAlpha = 0.85;
+        g.fillText(def.emoji, sx, gy - 36);
+        g.restore();
+      }
+
+      // ---- the astronaut ----
+      const px = playerX - cam, py = groundY(playerX);
+      g.save();
+      g.translate(px, py);
+      g.scale(facing, 1);
+      g.font = "34px serif";
+      g.textAlign = "center";
+      g.textBaseline = "alphabetic";
+      g.fillText("🧑‍🚀", 0, 0);
+      g.restore();
+
+      // ---- people arriving once it's habitable, gathered by the dome ----
+      if (won) {
+        const home = machines.find((m) => m.t === "habitat");
+        const base = home ? home.x + 54 : 360;
+        g.font = "24px serif";
+        g.textAlign = "center";
+        g.textBaseline = "alphabetic";
+        ["👩", "🧑", "👶", "🐕"].forEach((e, i) => {
+          const wx = base + i * 32 + Math.sin(now / 900 + i) * 9;
+          const sx = wx - cam;
+          if (sx > -40 && sx < W + 40) g.fillText(e, sx, groundY(wx));
+        });
+      }
+    }
+
+    /* ================= Loop ================= */
+
+    let lastT = 0, saveT = 0, hudT = 0;
+    function frame(now) {
+      const t = now / 1000;
+      if (!lastT) lastT = t;
+      const dt = Math.min(t - lastT, 0.1);
+      lastT = t;
+
+      // walking
+      const left = held.left || keys["arrowleft"] || keys["a"];
+      const right = held.right || keys["arrowright"] || keys["d"];
+      const sp = 210;
+      if (left) { playerX -= sp * dt; facing = -1; }
+      if (right) { playerX += sp * dt; facing = 1; }
+      playerX = Math.max(30, Math.min(WORLD_W - 30, playerX));
+
+      // machines working
+      machines.forEach((m) => {
+        const def = BUILDS.find((b) => b.id === m.t);
+        if (!def) return;
+        Object.keys(def.gives).forEach((k) => { stats[k] += def.gives[k] * dt; });
+      });
+      // ore drills quietly top up your iron
+      const drills = machines.filter((m) => m.t === "drill").length;
+      if (drills) {
+        drillAcc += drills * 0.22 * dt;
+        while (drillAcc >= 1) { drillAcc -= 1; mats.iron += 1; flashMat("iron"); renderMats(); renderBuilds(); }
+      }
+
+      // chests keep appearing
+      chestTimer -= dt;
+      if (chestTimer <= 0) {
+        chestTimer = 9 + Math.random() * 8;
+        spawnChest(Math.random() < 0.4);
+      }
+      chests.forEach((c) => {
+        if (c.fall > 0) c.fall = Math.max(0, c.fall - dt * 0.55);
+        if (c.pop > 0) c.pop = Math.max(0, c.pop - dt * 0.7);
+      });
+      // tidy away chests that were opened a while ago
+      chests = chests.filter((c) => !(c.open && c.pop <= 0));
+
+      checkStage();
+      checkWin();
+
+      hudT -= dt;
+      if (hudT <= 0) { hudT = 0.25; updateHud(); }
+      saveT -= dt;
+      if (saveT <= 0) { saveT = 6; save(); }
+
+      draw(now);
+      requestAnimationFrame(frame);
+    }
+    let drillAcc = 0;
+
+    /* ================= HUD ================= */
+
+    function renderMats() {
+      const bar = $("matsBar");
+      if (!bar.dataset.ready) {
+        bar.innerHTML = "";
+        MAT_KEYS.forEach((k) => {
+          const el = document.createElement("span");
+          el.className = "mat";
+          el.id = "mat-" + k;
+          el.innerHTML = MATS[k].emoji + " " + MATS[k].name + ' <span class="m-num">0</span>';
+          bar.appendChild(el);
+        });
+        bar.dataset.ready = "1";
+      }
+      MAT_KEYS.forEach((k) => {
+        const el = $("mat-" + k);
+        if (el) el.querySelector(".m-num").textContent = mats[k];
+      });
+    }
+    function flashMat(k) {
+      const el = $("mat-" + k);
+      if (!el) return;
+      el.classList.remove("gain");
+      void el.offsetWidth;
+      el.classList.add("gain");
+    }
+
+    function updateHud() {
+      const s = stageIndex();
+      const st = STAGES[s];
+      const next = STAGES[s + 1];
+      $("stageName").textContent = "Stage " + (s + 1) + " · " + st.emoji + " " + st.name;
+      const cur = Math.floor(ti());
+      $("tiNum").textContent = next ? cur + " / " + next.at + " Ti" : cur + " Ti — done!";
+      const from = st.at, to = next ? next.at : st.at + 1;
+      $("tiBar").style.width = Math.max(0, Math.min(100, ((ti() - from) / (to - from)) * 100)) + "%";
+      $("statHeat").textContent = "🔥 Heat " + Math.floor(stats.heat);
+      $("statPress").textContent = "💨 Air " + Math.floor(stats.press);
+      $("statOxy").textContent = "🫧 Oxygen " + Math.floor(stats.oxy);
+      $("statBio").textContent = "🌱 Plants " + Math.floor(stats.bio);
+      $("statRate").textContent = "📈 " + rate().toFixed(1) + "/sec";
+      $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
+    }
+
+    function renderBuilds() {
+      const box = $("builds");
+      box.innerHTML = "";
+      BUILDS.forEach((def) => {
+        const lock = !unlocked(def);
+        const afford = canAfford(def);
+        const btn = document.createElement("button");
+        btn.className = "build" + (lock ? " locked" : afford ? "" : " cant") + (picked === def.id ? " picked" : "");
+        btn.dataset.build = def.id;
+        btn.disabled = lock;
+        const costHtml = Object.keys(def.cost).map((k) =>
+          '<span class="' + (mats[k] >= def.cost[k] ? "" : "short") + '">' + def.cost[k] + " " + MATS[k].emoji + "</span>").join(" + ");
+        const gives = def.mine ? "digs up 🪨 iron for you"
+          : def.habitat ? "where the people will live!"
+          : Object.keys(def.gives).map((k) => "+" + def.gives[k] + " " + ({ heat: "🔥", press: "💨", oxy: "🫧", bio: "🌱" }[k])).join(" ");
+        btn.innerHTML =
+          '<span class="b-emoji">' + (lock ? "🔒" : def.emoji) + "</span>" +
+          '<span><span class="b-name">' + def.name + "</span>" +
+          '<span class="b-info">' + (lock ? "Unlocks at stage " + (def.stage + 1) : costHtml + " · " + gives) + "</span></span>" +
+          '<span class="b-made">' + (countOf(def.id) ? "×" + countOf(def.id) : "") + "</span>";
+        if (!lock) {
+          btn.addEventListener("click", () => {
+            sClick();
+            if (!afford && picked !== def.id) { toast("You need more materials — open some chests! 📦"); }
+            picked = picked === def.id ? null : def.id;
+            renderBuilds();
+            updateBuildHint();
+          });
+        }
+        box.appendChild(btn);
+      });
+    }
+
+    function updateBuildHint() {
+      const el = $("buildHint");
+      if (picked) {
+        const def = BUILDS.find((b) => b.id === picked);
+        el.textContent = "Tap the ground to place your " + def.name;
+        el.classList.add("show");
+      } else {
+        el.classList.remove("show");
+      }
+    }
+
+    /* ================= Input ================= */
+
+    const held = { left: false, right: false };
+    const keys = {};
+    let ghostX = null;
+
+    function bindTouch(id, prop) {
+      const el = $(id);
+      const on = (e) => { e.preventDefault(); held[prop] = true; el.classList.add("held"); audio(); };
+      const off = (e) => { if (e) e.preventDefault(); held[prop] = false; el.classList.remove("held"); };
+      el.addEventListener("pointerdown", on);
+      el.addEventListener("pointerup", off);
+      el.addEventListener("pointerleave", off);
+      el.addEventListener("pointercancel", off);
+    }
+    bindTouch("btnLeft", "left");
+    bindTouch("btnRight", "right");
+
+    window.addEventListener("keydown", (e) => {
+      if (["ArrowLeft", "ArrowRight"].includes(e.key)) e.preventDefault();
+      keys[e.key.toLowerCase()] = true;
+    });
+    window.addEventListener("keyup", (e) => { keys[e.key.toLowerCase()] = false; });
+
+    function worldXFrom(ev) {
+      const r = cv.getBoundingClientRect();
+      return (ev.clientX - r.left) / r.width * W + cam;
+    }
+
+    cv.addEventListener("pointermove", (ev) => {
+      if (picked) ghostX = worldXFrom(ev);
+    });
+    cv.addEventListener("pointerleave", () => { ghostX = null; });
+    cv.addEventListener("pointerdown", (ev) => {
+      ev.preventDefault();
+      audio();
+      const wx = worldXFrom(ev);
+      if (picked) { ghostX = wx; placeAt(wx); return; }
+      // otherwise, try to open a chest you're standing near
+      let best = null, bd = Infinity;
+      chests.forEach((c) => {
+        if (c.open) return;
+        const d = Math.abs(c.x - wx);
+        if (d < 46 && d < bd && Math.abs(c.x - playerX) < 110) { bd = d; best = c; }
+      });
+      if (best) { openChest(best); return; }
+      const anyNear = chests.some((c) => !c.open && Math.abs(c.x - playerX) < 110);
+      if (anyNear) toast("Tap right on the chest to open it! 📦");
+    });
+
+    /* ================= Overlay ================= */
+
+    function showCard(emoji, title, text, options) {
+      return new Promise((resolve) => {
+        $("ovEmoji").textContent = emoji;
+        $("ovTitle").textContent = title;
+        $("ovText").textContent = text;
+        const box = $("ovButtons");
+        box.innerHTML = "";
+        (options || [{ label: "OK", value: true }]).forEach((o) => {
+          const b = document.createElement("button");
+          b.className = "ov-btn" + (o.grey ? " grey" : "");
+          b.textContent = o.label;
+          b.addEventListener("click", () => {
+            sClick();
+            $("ovr").classList.remove("show");
+            resolve(o.value);
+          });
+          box.appendChild(b);
+        });
+        $("ovr").classList.add("show");
+      });
+    }
+
+    function confetti(n) {
+      const emo = ["🌱", "✨", "🌍", "🎉", "💧"];
+      for (let i = 0; i < n; i++) {
+        const c = document.createElement("span");
+        c.className = "confetti-bit";
+        c.textContent = emo[Math.floor(Math.random() * emo.length)];
+        c.style.left = Math.random() * 100 + "vw";
+        c.style.animationDuration = 1.6 + Math.random() * 1.6 + "s";
+        c.style.animationDelay = Math.random() * 0.4 + "s";
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 4200);
+      }
+    }
+
+    /* ================= Save ================= */
+
+    function save() {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({
+          mats, stats, won, soundOn, playerX,
+          machines: machines.map((m) => ({ t: m.t, x: Math.round(m.x) })),
+          chests: chests.filter((c) => !c.open).map((c) => Math.round(c.x)),
+        }));
+      } catch (e) { /* private mode */ }
+    }
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return false;
+        const s = JSON.parse(raw);
+        MAT_KEYS.forEach((k) => { mats[k] = Math.max(0, Math.floor((s.mats || {})[k] || 0)); });
+        ["heat", "press", "oxy", "bio"].forEach((k) => {
+          stats[k] = Math.max(0, Number((s.stats || {})[k]) || 0);
+        });
+        machines = (s.machines || []).filter((m) => BUILDS.some((b) => b.id === m.t))
+          .map((m) => ({ t: m.t, x: m.x, born: 0 }));
+        chests = (s.chests || []).map((x) => ({ x, open: false, fall: 0, pop: 0 }));
+        won = !!s.won;
+        soundOn = s.soundOn !== false;
+        playerX = typeof s.playerX === "number" ? s.playerX : 160;
+        lastStage = stageIndex();
+        return true;
+      } catch (e) { return false; }
+    }
+
+    function newPlanet() {
+      MAT_KEYS.forEach((k) => { mats[k] = 0; });
+      ["heat", "press", "oxy", "bio"].forEach((k) => { stats[k] = 0; });
+      machines = [];
+      chests = [];
+      won = false;
+      picked = null;
+      playerX = 160;
+      lastStage = 0;
+      mats.iron = 6;   // a little starter kit so you can build straight away
+      mats.ice = 2;
+      for (let i = 0; i < 5; i++) spawnChest(false);
+      renderMats();
+      renderBuilds();
+      updateHud();
+      save();
+    }
+
+    /* ================= Buttons ================= */
+
+    $("soundBtn").addEventListener("click", () => {
+      soundOn = !soundOn;
+      if (soundOn) sClick();
+      updateHud();
+      save();
+    });
+    $("resetBtn").addEventListener("click", async () => {
+      sClick();
+      const ok = await showCard("🧹", "Start a brand new planet?",
+        "Your machines, materials and all your terraforming will be gone.",
+        [{ label: "Yes, new planet", value: true }, { label: "Cancel", value: false, grey: true }]);
+      if (!ok) return;
+      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+      newPlanet();
+    });
+
+    /* ================= Start ================= */
+
+    if (!load()) {
+      newPlanet();
+      setTimeout(() => toast("📦 Walk to a chest and tap it to get materials!"), 600);
+    } else {
+      if (chests.length < 3) for (let i = chests.length; i < 4; i++) spawnChest(false);
+      renderMats();
+      renderBuilds();
+      updateHud();
+    }
+    renderMats();
+    renderBuilds();
+    updateHud();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
