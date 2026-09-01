@@ -385,8 +385,32 @@
 
     /* ================= Ground shape ================= */
 
-    function groundY(x) {
+    // hollows in the land that fill up with water as the ice melts
+    const BASINS = [
+      { x: 430,  w: 260, d: 52 },    // a little pond
+      { x: 1230, w: 520, d: 96 },    // THE LAKE
+      { x: 2080, w: 340, d: 70 },    // a second lake further out
+    ];
+    function rockY(x) {
       return H - GROUND_H + Math.sin(x / 260) * 16 + Math.sin(x / 97 + 1.7) * 7;
+    }
+    function basinDip(x) {
+      let d = 0;
+      for (const b of BASINS) {
+        const t = (x - b.x) / (b.w / 2);
+        if (t > -1 && t < 1) d += b.d * Math.pow(Math.cos(t * Math.PI / 2), 2);
+      }
+      return d;
+    }
+    function inBasin(x) {
+      return BASINS.some((b) => Math.abs(x - b.x) < b.w / 2 - 10);
+    }
+    function groundY(x) {
+      return rockY(x) + basinDip(x);
+    }
+    // how full the lakes are: the ice has to melt before there's water
+    function waterFill() {
+      return Math.max(0, Math.min(1, stats.heat / 240));
     }
 
     /* ================= Sound ================= */
@@ -464,7 +488,8 @@
       let x = 0, ok = false;
       for (let i = 0; i < 20 && !ok; i++) {
         x = 80 + Math.random() * (WORLD_W - 160);
-        ok = chests.every((c) => Math.abs(c.x - x) > 110) && machines.every((m) => Math.abs(m.x - x) > 70);
+        ok = !inBasin(x) && chests.every((c) => Math.abs(c.x - x) > 110) &&
+          machines.every((m) => Math.abs(m.x - x) > 70);
       }
       if (!ok) return;
       chests.push({ x, open: false, fall: fromSky ? 1 : 0, pop: 0 });
@@ -498,7 +523,7 @@
       if (!canAfford(def)) { sNope(); toast("Not enough materials for a " + def.name + "!"); return; }
       if (Math.abs(x - playerX) > 210) { sNope(); toast("Too far away — walk closer to build there! 🚶"); return; }
       if (machines.some((m) => Math.abs(m.x - x) < 62)) { sNope(); toast("Too close to another machine!"); return; }
-      if (x < 40 || x > WORLD_W - 40) return;
+      if (x < 40 || x > WORLD_W - 40) { sNope(); toast("That's the edge of the planet — build a bit further in!"); return; }
       Object.keys(def.cost).forEach((k) => { mats[k] -= def.cost[k]; });
       machines.push({ t: def.id, x, born: performance.now() / 1000 });
       sBuild();
@@ -544,6 +569,87 @@
     /* ================= Drawing ================= */
 
     let cam = 0;
+
+    /* the lakes: each basin fills from the bottom up as the ice melts */
+    function waveAt(x, now) {
+      return Math.sin((x + now / 7) / 30) * 2.4 + Math.sin((x - now / 11) / 17) * 1.2;
+    }
+
+    // the water surface at a point, or null if you're not standing in a lake
+    function waterSurfaceAt(x) {
+      const fill = waterFill();
+      if (fill <= 0.02) return null;
+      for (const b of BASINS) {
+        if (Math.abs(x - b.x) < b.w / 2) {
+          const surf = rockY(b.x) + (1 - fill) * b.d;
+          if (groundY(x) > surf + 1) return surf;
+        }
+      }
+      return null;
+    }
+
+    function drawWater(now) {
+      const fill = waterFill();
+      if (fill <= 0.02) return;
+      BASINS.forEach((b) => {
+        const surf = rockY(b.x) + (1 - fill) * b.d;
+        const x0 = b.x - b.w / 2, x1 = b.x + b.w / 2;
+        if (x1 - cam < -20 || x0 - cam > W + 20) return;
+        // the stretch of basin that is actually below the water line
+        const pts = [];
+        for (let x = x0; x <= x1; x += 4) if (groundY(x) > surf + 0.5) pts.push(x);
+        if (pts.length < 2) return;
+
+        const top = (x) => surf + waveAt(x, now);
+        g.beginPath();
+        pts.forEach((x, i) => {
+          const sx = x - cam, sy = top(x);
+          if (i === 0) g.moveTo(sx, sy); else g.lineTo(sx, sy);
+        });
+        for (let i = pts.length - 1; i >= 0; i--) g.lineTo(pts[i] - cam, groundY(pts[i]));
+        g.closePath();
+        const grd = g.createLinearGradient(0, surf, 0, surf + b.d);
+        grd.addColorStop(0, "rgba(146, 216, 250, 0.78)");
+        grd.addColorStop(1, "rgba(16, 74, 146, 0.9)");
+        g.fillStyle = grd;
+        g.fill();
+
+        // glinting surface
+        g.strokeStyle = "rgba(255,255,255,0.6)";
+        g.lineWidth = 2.5;
+        g.beginPath();
+        pts.forEach((x, i) => {
+          const sx = x - cam, sy = top(x);
+          if (i === 0) g.moveTo(sx, sy); else g.lineTo(sx, sy);
+        });
+        g.stroke();
+
+        // sparkles dancing on the water
+        g.fillStyle = "rgba(255,255,255,0.75)";
+        for (let i = 0; i < 7; i++) {
+          const x = pts[0] + ((i * 97 + now / 26) % (pts[pts.length - 1] - pts[0]));
+          const sx = x - cam;
+          const a = 0.35 + 0.4 * Math.sin(now / 220 + i);
+          g.globalAlpha = a;
+          g.fillRect(sx, top(x) - 1, 9, 2);
+        }
+        g.globalAlpha = 1;
+
+        // once the world is green, things come to live in the lake
+        if (fill > 0.55 && stats.bio > 150) {
+          g.font = "20px serif";
+          g.textAlign = "center";
+          g.textBaseline = "alphabetic";
+          const dx = b.x + Math.sin(now / 1400) * (b.w * 0.24);
+          g.fillText("🦆", dx - cam, top(dx) + 4);
+          const fx = b.x - b.w * 0.2 + Math.sin(now / 900 + 2) * (b.w * 0.18);
+          g.globalAlpha = 0.75;
+          g.font = "17px serif";
+          g.fillText("🐟", fx - cam, top(fx) + 26);
+          g.globalAlpha = 1;
+        }
+      });
+    }
 
     function skyColours(p) {
       // p = 0..1 across the whole terraforming journey
@@ -648,6 +754,7 @@
         const wx = 120 + (i * 187) % (WORLD_W - 240);
         const sx = wx - cam;
         if (sx < -90 || sx > W + 90) continue;
+        if (inBasin(wx)) continue;      // the lakes handle their own water
         const gy = groundY(wx);
         const wide = 46 + (i % 3) * 14;
         if (melt < 1) {
@@ -674,6 +781,7 @@
         const wx = 70 + (i * 311) % (WORLD_W - 140);
         const sx = wx - cam;
         if (sx < -40 || sx > W + 40) continue;
+        if (inBasin(wx)) continue;      // nothing grows at the bottom of a lake
         const gy = groundY(wx);
         const big = i % 4 === 0 && stats.bio > 400;
         g.font = (big ? 30 : 18) + "px serif";
@@ -785,8 +893,21 @@
         g.restore();
       }
 
-      // ---- the astronaut ----
-      const px = playerX - cam, py = groundY(playerX);
+      // ---- the lakes ----
+      drawWater(now);
+
+      // ---- the astronaut (drawn over the water so he swims rather than sinks) ----
+      const surfHere = waterSurfaceAt(playerX);
+      const swimming = surfHere !== null && groundY(playerX) > surfHere + 26;
+      const px = playerX - cam;
+      const py = swimming ? surfHere + 10 + Math.sin(now / 420) * 3 : groundY(playerX);
+      if (swimming) {
+        g.strokeStyle = "rgba(255,255,255,0.8)";
+        g.lineWidth = 2.5;
+        g.beginPath();
+        g.ellipse(px, py - 6, 22 + Math.sin(now / 300) * 3, 6, 0, 0, Math.PI * 2);
+        g.stroke();
+      }
       g.save();
       g.translate(px, py);
       g.scale(facing, 1);
