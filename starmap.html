@@ -1,0 +1,2135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ezra's Antarctic Star-Map</title>
+  <style>
+    :root {
+      --bg: #04091f;
+      --ink: #1c2438;
+      --ice: #bfe6ff;
+      --accent: #4dc9f0;
+      --accent-deep: #1a7fa8;
+      --gold: #ffd76b;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 8%, #0d2246 0%, transparent 45%),
+        radial-gradient(circle at 82% 88%, #08213f 0%, transparent 50%),
+        var(--bg);
+      padding: 10px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(1px 1px at 20px 30px, white, transparent),
+        radial-gradient(1.5px 1.5px at 120px 200px, white, transparent),
+        radial-gradient(1px 1px at 300px 150px, white, transparent),
+        radial-gradient(2px 2px at 80px 350px, #cfe4ff, transparent),
+        radial-gradient(1px 1px at 250px 250px, white, transparent),
+        radial-gradient(1.5px 1.5px at 500px 200px, white, transparent),
+        radial-gradient(1px 1px at 600px 350px, white, transparent),
+        radial-gradient(1.5px 1.5px at 350px 450px, #bfe6ff, transparent),
+        radial-gradient(1px 1px at 700px 100px, white, transparent),
+        radial-gradient(1.5px 1.5px at 800px 300px, white, transparent),
+        radial-gradient(1px 1px at 450px 650px, white, transparent);
+      background-size: 900px 700px;
+      opacity: 0.8;
+      animation: tw 4s ease-in-out infinite alternate;
+      z-index: 0;
+    }
+    @keyframes tw { from { opacity: 0.55; } to { opacity: 0.95; } }
+
+    .page {
+      max-width: 920px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.97);
+      border-radius: 20px;
+      box-shadow: 0 14px 44px rgba(0, 5, 30, 0.65);
+      padding: clamp(10px, 2vw, 16px);
+      position: relative;
+      z-index: 1;
+    }
+    .back-link {
+      display: inline-block;
+      color: var(--accent-deep);
+      font-weight: bold;
+      text-decoration: none;
+      font-size: 0.85rem;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(1.25rem, 3.8vw, 1.8rem);
+      text-align: center;
+      color: var(--accent-deep);
+    }
+    .subtitle { text-align: center; opacity: 0.85; margin: 3px 0 8px; font-size: 0.84rem; }
+    button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+    .hud { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; justify-content: center; margin-bottom: 7px; }
+    .pill {
+      background: #e8f6fd;
+      border: 2px solid #b9e0f2;
+      border-radius: 999px;
+      padding: 4px 11px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+    .pill.gold { background: #fff6dd; border-color: #f0d896; }
+    .pill-btn { transition: transform 0.1s; min-height: 38px; padding: 6px 14px; }
+    .pill-btn:active { transform: scale(0.94); }
+    .pill-btn.on { background: var(--accent); border-color: var(--accent); color: white; }
+
+    .stage {
+      position: relative;
+      border-radius: 15px;
+      overflow: hidden;
+      border: 3px solid #0d2246;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .stage canvas { display: block; width: 100%; height: auto; }
+
+    /* on a phone the sky is small, so the banner sits under it instead of over it */
+    @media (max-width: 560px) {
+      .banner {
+        position: static !important;
+        transform: none !important;
+        max-width: 100%;
+        margin: 7px auto 0;
+        font-size: 0.74rem;
+        padding: 6px 10px;
+      }
+      .pill { font-size: 0.72rem; padding: 4px 8px; }
+      .pill-btn { padding: 5px 10px; }
+    }
+
+    .banner {
+      position: absolute;
+      top: 8px; left: 50%;
+      transform: translateX(-50%);
+      max-width: 94%;
+      background: rgba(4, 14, 36, 0.9);
+      color: #d6f2ff;
+      border: 2px solid var(--accent);
+      border-radius: 11px;
+      padding: 5px 13px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      text-align: center;
+      z-index: 20;
+      pointer-events: none;
+      line-height: 1.3;
+    }
+    #toast {
+      position: fixed;
+      bottom: 16px; left: 50%;
+      transform: translateX(-50%);
+      max-width: 92vw;
+      background: rgba(6, 18, 44, 0.95);
+      color: #fff;
+      border: 2px solid var(--gold);
+      border-radius: 12px;
+      padding: 8px 16px;
+      font-weight: bold;
+      font-size: 0.86rem;
+      text-align: center;
+      z-index: 200;
+      display: none;
+      line-height: 1.35;
+    }
+    #toast.show { display: block; animation: tIn 0.3s; }
+    @keyframes tIn { from { transform: translateX(-50%) translateY(20px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
+
+    .touch-btn {
+      position: absolute;
+      width: 54px; height: 54px;
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.8);
+      background: rgba(10, 30, 60, 0.5);
+      color: white;
+      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 25;
+    }
+    .touch-btn:active { background: rgba(77, 201, 240, 0.8); }
+    #digBtn {
+      right: 12px; bottom: 12px;
+      width: auto; height: auto;
+      border-radius: 14px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      font-weight: bold;
+      background: linear-gradient(180deg, #ffd76b, #e8a13a);
+      color: #4a2d00;
+      border-color: #b87400;
+      display: none;
+    }
+    #digBtn.show { display: block; animation: pulse 1s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+
+    /* ---- bottom bars ---- */
+    .bar { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 8px; }
+    .btn {
+      font-weight: bold;
+      font-size: 0.88rem;
+      border-radius: 12px;
+      border: 2px solid #b9e0f2;
+      background: #eef9ff;
+      color: var(--ink);
+      padding: 9px 15px;
+      transition: transform 0.1s;
+    }
+    .btn:active:not(:disabled) { transform: scale(0.96); }
+    .btn.primary {
+      background: linear-gradient(180deg, #5ed3f5, #189fd0);
+      border-color: #0f7ba5;
+      color: white;
+      box-shadow: 0 4px 0 #0b6183;
+    }
+    .btn.primary:active { transform: translateY(3px); box-shadow: 0 1px 0 #0b6183; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ---- identify ---- */
+    .clues { display: grid; gap: 5px; margin: 8px auto; max-width: 480px; }
+    .clue {
+      background: #f2f9ff;
+      border: 2px solid #cbe6f5;
+      border-radius: 11px;
+      padding: 7px 12px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      animation: cIn 0.35s;
+    }
+    @keyframes cIn { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 7px; max-width: 520px; margin: 0 auto; }
+    .opt {
+      border: 3px solid #cbe6f5;
+      background: white;
+      border-radius: 13px;
+      padding: 10px 8px;
+      font-weight: bold;
+      font-size: 0.88rem;
+    }
+    .opt .f { font-size: 1.5rem; display: block; }
+    .opt.right { background: #e9fbef; border-color: #6dcf8e; }
+    .opt.wrong { background: #ffeceb; border-color: #e58b86; opacity: 0.6; }
+
+    /* ---- log ---- */
+    .log-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 6px; }
+    .log-card {
+      border: 2px solid #cbe6f5;
+      background: #f7fcff;
+      border-radius: 11px;
+      padding: 7px 5px;
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: bold;
+    }
+    .log-card.done { background: #eefaf1; border-color: #a8e0b8; }
+    .log-card .f { font-size: 1.4rem; display: block; }
+    .log-card .sub { display: block; font-weight: normal; font-size: 0.64rem; opacity: 0.75; margin-top: 2px; }
+    .log-sec { font-weight: bold; font-size: 0.86rem; margin: 10px 0 5px; color: var(--accent-deep); }
+    .stamps { display: flex; flex-wrap: wrap; gap: 4px; }
+    .stamp {
+      width: 34px; height: 34px;
+      border: 2px dashed #c8a24a;
+      border-radius: 6px;
+      background: #fffaf0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.05rem;
+    }
+    .stamp.got { border-style: solid; background: #fff2cf; }
+
+    /* ---- shop ---- */
+    .shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 7px; }
+    .up {
+      display: flex; gap: 8px; align-items: center;
+      border: 2px solid #cbe6f5;
+      background: white;
+      border-radius: 12px;
+      padding: 8px;
+      text-align: left;
+      font-size: 0.78rem;
+    }
+    .up .e { font-size: 1.4rem; flex: none; }
+    .up .n { font-weight: bold; display: block; }
+    .up .d { font-size: 0.7rem; opacity: 0.82; }
+    .up.maxed { background: #eefaf1; border-color: #a8e0b8; }
+    .up:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* ---- overlay ---- */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(3, 10, 28, 0.86);
+      display: none; align-items: center; justify-content: center;
+      z-index: 150; padding: 16px;
+    }
+    .overlay.show { display: flex; }
+    .ov-card {
+      background: white;
+      border-radius: 20px;
+      padding: clamp(16px, 4.5vw, 26px);
+      text-align: center;
+      max-width: 420px;
+      width: 100%;
+      max-height: 88vh;
+      overflow-y: auto;
+      animation: pop 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+      box-shadow: 0 0 50px rgba(77, 201, 240, 0.55);
+    }
+    @keyframes pop { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .ov-card .e { font-size: 2.9rem; display: block; }
+    .ov-card h2 { margin: 3px 0 6px; color: var(--accent-deep); font-size: 1.12rem; }
+    .ov-card p { margin: 5px 0; font-size: 0.88rem; line-height: 1.45; }
+    .ov-card .fact { background: #f2f9ff; border-radius: 10px; padding: 8px 10px; font-size: 0.82rem; }
+    .confetti-bit {
+      position: fixed; top: -14px;
+      font-size: 1.25rem; pointer-events: none; z-index: 300;
+      animation: cf linear forwards;
+    }
+    @keyframes cf { to { transform: translateY(106vh) rotate(560deg); } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <a class="back-link" href="index.html">← Back to Game Hub</a>
+    <h1>🔭 Antarctic Star-Map</h1>
+    <p class="subtitle" id="sub">The sky over the South Pole is a jigsaw of the Earth — and the pieces blew away.</p>
+
+    <div class="hud" id="hud">
+      <span class="pill gold" id="pFrag">✨ 0</span>
+      <span class="pill" id="pDone">🌍 0/0</span>
+      <span class="pill" id="pStamp">📮 0</span>
+      <button class="pill pill-btn" id="bLog">📖 Log</button>
+      <button class="pill pill-btn" id="bSound">🔊</button>
+      <button class="pill pill-btn" id="bReset">🧹</button>
+    </div>
+
+    <!-- ===== TITLE ===== -->
+    <section id="scTitle">
+      <div class="stage"><canvas id="cvTitle" width="760" height="380"></canvas></div>
+      <div class="bar">
+        <button class="btn primary" id="bStart">🐧 Begin the Expedition</button>
+      </div>
+      <div style="margin-top:9px; background:#f2f9ff; border:2px solid #cbe6f5; border-radius:13px; padding:10px 13px; font-size:0.83rem; line-height:1.5;">
+        <b>You are the astronomer at an Antarctic research station.</b><br />
+        🧊 <b>Hunt the ice</b> for meteorites — Antarctica really is the best place on Earth to find them, because dark rocks show up on white ice.<br />
+        🚀 Each one holds a lost <b>constellation</b>. Fly up and gather its stars.<br />
+        🔍 Work out <b>which country</b> it belongs to from the clues.<br />
+        🌍 Then spin it the right way up and <b>place it on the star-map</b> to put the world back together.<br />
+        <i>Every constellation is made from that country's real cities.</i>
+      </div>
+    </section>
+
+    <!-- ===== ICE ===== -->
+    <section id="scIce" hidden>
+      <div class="stage">
+        <canvas id="cvIce" width="760" height="430"></canvas>
+        <div class="banner" id="iceBanner"></div>
+        <button class="touch-btn" id="digBtn">⛏️ DIG!</button>
+      </div>
+      <div class="bar">
+        <button class="btn" id="bMapFromIce">🌍 Star-Map</button>
+        <button class="btn" id="bScan">📡 Scan</button>
+      </div>
+    </section>
+
+    <!-- ===== SPACE ===== -->
+    <section id="scSpace" hidden>
+      <div class="stage">
+        <canvas id="cvSpace" width="760" height="430"></canvas>
+        <div class="banner" id="spaceBanner"></div>
+      </div>
+      <div class="bar"><button class="btn" id="bSkipSpace">Skip →</button></div>
+    </section>
+
+    <!-- ===== IDENTIFY ===== -->
+    <section id="scId" hidden>
+      <div class="stage"><canvas id="cvId" width="760" height="300"></canvas></div>
+      <div class="clues" id="clues"></div>
+      <div class="options" id="options"></div>
+      <div class="bar">
+        <button class="btn" id="bClue">💡 Another clue</button>
+        <button class="btn" id="bLeaveId">🧊 Leave it for now</button>
+      </div>
+    </section>
+
+    <!-- ===== STAR-MAP ===== -->
+    <section id="scMap" hidden>
+      <div class="stage">
+        <canvas id="cvMap" width="760" height="420"></canvas>
+        <div class="banner" id="mapBanner"></div>
+      </div>
+      <div class="bar" id="mapBar">
+        <button class="btn" id="bRotL">↺</button>
+        <button class="btn" id="bRotR">↻</button>
+        <button class="btn" id="bHint">💡 Where?</button>
+        <button class="btn" id="bOwnOpen" hidden>🌟 My constellation</button>
+        <button class="btn" id="bBackIce">🧊 Back to the Ice</button>
+      </div>
+    </section>
+
+    <!-- ===== YOUR OWN CONSTELLATION ===== -->
+    <section id="scOwn" hidden>
+      <div class="stage">
+        <canvas id="cvOwn" width="760" height="420"></canvas>
+        <div class="banner" id="ownBanner"></div>
+      </div>
+      <div class="bar" id="ownBar">
+        <button class="btn" id="bOwnUndo">↩ Undo star</button>
+        <button class="btn" id="bOwnClear">🧹 Start again</button>
+        <button class="btn primary" id="bOwnDone">✍️ Name it</button>
+        <button class="btn" id="bOwnLeave">🌍 Star-Map</button>
+      </div>
+    </section>
+
+    <!-- ===== LOG ===== -->
+    <section id="scLog" hidden>
+      <div id="logBody" style="max-height:64vh; overflow-y:auto; padding-right:4px;"></div>
+      <div class="bar"><button class="btn primary" id="bCloseLog">← Back</button></div>
+    </section>
+  </div>
+
+  <div id="toast"></div>
+  <div class="overlay" id="ovr">
+    <div class="ov-card">
+      <span class="e" id="ovE">🐧</span>
+      <h2 id="ovT"></h2>
+      <div id="ovBody"></div>
+      <div id="ovBtns"></div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    /* ==========================================================
+       THE WORLD: every constellation is a country's real cities
+       ========================================================== */
+
+    const COUNTRIES = [
+      { id: "au", name: "Australia", flag: "🇦🇺", cont: "Oceania",
+        cities: [["Canberra",-35.3,149.1],["Sydney",-33.9,151.2],["Melbourne",-37.8,145.0],["Brisbane",-27.5,153.0],["Perth",-31.9,115.9],["Darwin",-12.5,130.8]],
+        fact: "Canberra is the capital — not Sydney! It was built in the middle as a compromise because Sydney and Melbourne both wanted the job." },
+      { id: "nz", name: "New Zealand", flag: "🇳🇿", cont: "Oceania",
+        cities: [["Wellington",-41.3,174.8],["Auckland",-36.8,174.8],["Christchurch",-43.5,172.6],["Dunedin",-45.9,170.5]],
+        fact: "Wellington is the windiest capital city in the world, and the southernmost capital of any country." },
+      { id: "jp", name: "Japan", flag: "🇯🇵", cont: "Asia",
+        cities: [["Tokyo",35.7,139.7],["Osaka",34.7,135.5],["Sapporo",43.1,141.4],["Fukuoka",33.6,130.4],["Nagoya",35.2,137.0]],
+        fact: "Japan is made of thousands of islands, and its bullet trains are famous for almost never being late." },
+      { id: "cn", name: "China", flag: "🇨🇳", cont: "Asia",
+        cities: [["Beijing",39.9,116.4],["Shanghai",31.2,121.5],["Guangzhou",23.1,113.3],["Chengdu",30.7,104.1],["Harbin",45.8,126.5]],
+        fact: "Harbin builds a whole city out of ice every winter, with palaces you can walk inside." },
+      { id: "in", name: "India", flag: "🇮🇳", cont: "Asia",
+        cities: [["New Delhi",28.6,77.2],["Mumbai",19.1,72.9],["Chennai",13.1,80.3],["Kolkata",22.6,88.4],["Bengaluru",13.0,77.6]],
+        fact: "India has more people than any other country, and over a hundred different languages are spoken there." },
+      { id: "id", name: "Indonesia", flag: "🇮🇩", cont: "Asia",
+        cities: [["Jakarta",-6.2,106.8],["Surabaya",-7.3,112.7],["Medan",3.6,98.7],["Makassar",-5.1,119.4]],
+        fact: "Indonesia is spread over thousands of islands and sits on the Ring of Fire, so it has loads of volcanoes." },
+      { id: "th", name: "Thailand", flag: "🇹🇭", cont: "Asia",
+        cities: [["Bangkok",13.8,100.5],["Chiang Mai",18.8,99.0],["Phuket",7.9,98.4],["Khon Kaen",16.4,102.8]],
+        fact: "Bangkok's full ceremonial name is so long it holds the record for the longest place name in the world." },
+      { id: "kr", name: "South Korea", flag: "🇰🇷", cont: "Asia",
+        cities: [["Seoul",37.6,127.0],["Busan",35.2,129.1],["Incheon",37.5,126.7],["Daegu",35.9,128.6]],
+        fact: "South Korea runs an Antarctic research station too — it's called King Sejong Station." },
+      { id: "sa", name: "Saudi Arabia", flag: "🇸🇦", cont: "Asia",
+        cities: [["Riyadh",24.7,46.7],["Jeddah",21.5,39.2],["Mecca",21.4,39.9],["Dammam",26.4,50.1]],
+        fact: "Part of Saudi Arabia is a desert called the Empty Quarter — one of the biggest sand deserts on Earth." },
+      { id: "gb", name: "United Kingdom", flag: "🇬🇧", cont: "Europe",
+        cities: [["London",51.5,-0.1],["Edinburgh",55.9,-3.2],["Cardiff",51.5,-3.2],["Belfast",54.6,-5.9],["Manchester",53.5,-2.2]],
+        fact: "Britain runs Port Lockroy in Antarctica — a tiny post office with penguins living all around it." },
+      { id: "fr", name: "France", flag: "🇫🇷", cont: "Europe",
+        cities: [["Paris",48.9,2.4],["Marseille",43.3,5.4],["Lyon",45.8,4.8],["Bordeaux",44.8,-0.6],["Nice",43.7,7.3]],
+        fact: "France and Italy share an Antarctic base called Concordia, where it gets so cold and dark it's used to practise for Mars." },
+      { id: "it", name: "Italy", flag: "🇮🇹", cont: "Europe",
+        cities: [["Rome",41.9,12.5],["Milan",45.5,9.2],["Naples",40.9,14.3],["Palermo",38.1,13.4],["Venice",45.4,12.3]],
+        fact: "Venice is built on water — instead of roads between the buildings there are canals and boats." },
+      { id: "es", name: "Spain", flag: "🇪🇸", cont: "Europe",
+        cities: [["Madrid",40.4,-3.7],["Barcelona",41.4,2.2],["Seville",37.4,-6.0],["Bilbao",43.3,-2.9],["Valencia",39.5,-0.4]],
+        fact: "Madrid sits almost exactly in the middle of Spain, and it's one of the highest capital cities in Europe." },
+      { id: "de", name: "Germany", flag: "🇩🇪", cont: "Europe",
+        cities: [["Berlin",52.5,13.4],["Munich",48.1,11.6],["Hamburg",53.6,10.0],["Cologne",50.9,6.9],["Frankfurt",50.1,8.7]],
+        fact: "Germany's Antarctic base is called Neumayer Station, and it stands on legs so the snow doesn't bury it." },
+      { id: "no", name: "Norway", flag: "🇳🇴", cont: "Europe",
+        cities: [["Oslo",59.9,10.8],["Bergen",60.4,5.3],["Trondheim",63.4,10.4],["Tromsø",69.6,18.9]],
+        fact: "A Norwegian, Roald Amundsen, was the first person ever to reach the South Pole — in 1911." },
+      { id: "gr", name: "Greece", flag: "🇬🇷", cont: "Europe",
+        cities: [["Athens",38.0,23.7],["Thessaloniki",40.6,23.0],["Patras",38.2,21.7],["Heraklion",35.3,25.1]],
+        fact: "The ancient Greeks named loads of the constellations we still use today, like Orion and Ursa Major." },
+      { id: "eg", name: "Egypt", flag: "🇪🇬", cont: "Africa",
+        cities: [["Cairo",30.0,31.2],["Alexandria",31.2,29.9],["Luxor",25.7,32.6],["Aswan",24.1,32.9],["Port Said",31.3,32.3]],
+        fact: "The ancient Egyptians lined up their pyramids using the stars — the world's first star-maps." },
+      { id: "za", name: "South Africa", flag: "🇿🇦", cont: "Africa",
+        cities: [["Pretoria",-25.7,28.2],["Johannesburg",-26.2,28.0],["Cape Town",-33.9,18.4],["Durban",-29.9,31.0],["Gqeberha",-33.9,25.6]],
+        fact: "South Africa has THREE capital cities, and ships sail from Cape Town down to Antarctica." },
+      { id: "ke", name: "Kenya", flag: "🇰🇪", cont: "Africa",
+        cities: [["Nairobi",-1.3,36.8],["Mombasa",-4.0,39.7],["Kisumu",-0.1,34.8],["Nakuru",-0.3,36.1]],
+        fact: "The equator runs straight through Kenya, so you can stand with one foot in each half of the world." },
+      { id: "ng", name: "Nigeria", flag: "🇳🇬", cont: "Africa",
+        cities: [["Abuja",9.1,7.5],["Lagos",6.5,3.4],["Kano",12.0,8.5],["Port Harcourt",4.8,7.0]],
+        fact: "More people live in Nigeria than in any other country in Africa." },
+      { id: "ma", name: "Morocco", flag: "🇲🇦", cont: "Africa",
+        cities: [["Rabat",34.0,-6.8],["Casablanca",33.6,-7.6],["Marrakesh",31.6,-8.0],["Fez",34.0,-5.0],["Tangier",35.8,-5.8]],
+        fact: "From Tangier you can see Spain across the water — Africa and Europe are only about 14 km apart there." },
+      { id: "us", name: "United States", flag: "🇺🇸", cont: "North America",
+        cities: [["Washington DC",38.9,-77.0],["New York",40.7,-74.0],["Chicago",41.9,-87.6],["Los Angeles",34.1,-118.2],["Houston",29.8,-95.4],["Seattle",47.6,-122.3]],
+        fact: "The USA runs the Amundsen–Scott base right on the South Pole itself, where every direction is north." },
+      { id: "ca", name: "Canada", flag: "🇨🇦", cont: "North America",
+        cities: [["Ottawa",45.4,-75.7],["Toronto",43.7,-79.4],["Vancouver",49.3,-123.1],["Montreal",45.5,-73.6],["Calgary",51.0,-114.1]],
+        fact: "Canada has more lakes than the rest of the world put together, and brilliant northern lights." },
+      { id: "mx", name: "Mexico", flag: "🇲🇽", cont: "North America",
+        cities: [["Mexico City",19.4,-99.1],["Guadalajara",20.7,-103.3],["Monterrey",25.7,-100.3],["Cancún",21.2,-86.8],["Tijuana",32.5,-117.0]],
+        fact: "Mexico City is sinking slowly, because it was built on top of an old lake bed." },
+      { id: "br", name: "Brazil", flag: "🇧🇷", cont: "South America",
+        cities: [["Brasília",-15.8,-47.9],["São Paulo",-23.6,-46.6],["Rio de Janeiro",-22.9,-43.2],["Manaus",-3.1,-60.0],["Salvador",-13.0,-38.5]],
+        fact: "Brasília was built from nothing in the 1950s, and from above it's shaped a bit like an aeroplane." },
+      { id: "ar", name: "Argentina", flag: "🇦🇷", cont: "South America",
+        cities: [["Buenos Aires",-34.6,-58.4],["Córdoba",-31.4,-64.2],["Mendoza",-32.9,-68.8],["Ushuaia",-54.8,-68.3],["Rosario",-32.9,-60.7]],
+        fact: "Ushuaia calls itself the city at the end of the world — most ships to Antarctica leave from there." },
+      { id: "pe", name: "Peru", flag: "🇵🇪", cont: "South America",
+        cities: [["Lima",-12.0,-77.0],["Cusco",-13.5,-72.0],["Arequipa",-16.4,-71.5],["Iquitos",-3.7,-73.2]],
+        fact: "The Nazca Lines in Peru are giant pictures scratched into the desert that you can only really see from the sky." },
+      { id: "cl", name: "Chile", flag: "🇨🇱", cont: "South America",
+        cities: [["Santiago",-33.4,-70.7],["Valparaíso",-33.0,-71.6],["Antofagasta",-23.6,-70.4],["Punta Arenas",-53.2,-70.9]],
+        fact: "Chile's Atacama Desert has some of the clearest skies on Earth, so the world's biggest telescopes live there." },
+      { id: "aq", name: "Antarctica", flag: "🇦🇶", cont: "Antarctica", last: true,
+        cities: [["South Pole",-89.0,0],["McMurdo",-77.8,166.7],["Mawson",-67.6,62.9],["Davis",-68.6,78.0],["Casey",-66.3,110.5],["Rothera",-67.6,-68.1],["Vostok",-78.5,106.8]],
+        fact: "Antarctica belongs to nobody and everybody — no country owns it, and the people there are all scientists. The coldest temperature ever recorded on Earth was at Vostok." },
+    ];
+
+    const CONTINENTS = [
+      { id: "Oceania",       lat: -25, lon: 140, r: 30 },
+      { id: "Asia",          lat: 35,  lon: 95,  r: 45 },
+      { id: "Europe",        lat: 52,  lon: 12,  r: 24 },
+      { id: "Africa",        lat: 3,   lon: 20,  r: 36 },
+      { id: "North America", lat: 45,  lon: -100, r: 38 },
+      { id: "South America", lat: -20, lon: -60, r: 32 },
+      { id: "Antarctica",    lat: -75, lon: 0,   r: 40 },
+    ];
+
+    /* Antarctic bases you can visit on the ice */
+    const STATIONS = [
+      { id: "mawson",  name: "Mawson",         emoji: "🇦🇺", x: 300, y: 250,
+        blurb: "Australia's oldest Antarctic base, running since 1954. Huskies used to pull sledges from here." },
+      { id: "davis",   name: "Davis",          emoji: "🔬", x: 900, y: 190,
+        blurb: "Another Australian station. Scientists here study the ice, the sea and the wildlife." },
+      { id: "casey",   name: "Casey",          emoji: "🐧", x: 1290, y: 470,
+        blurb: "An Australian station near a big Adélie penguin colony. Very noisy neighbours." },
+      { id: "pole",    name: "Amundsen–Scott", emoji: "🎯", x: 690, y: 640,
+        blurb: "Right on the South Pole. Stand here and every single direction you look is north." },
+      { id: "lockroy", name: "Port Lockroy",   emoji: "📮", x: 180, y: 690, post: true,
+        blurb: "The Penguin Post Office! A real post office in Antarctica, with penguins nesting outside." },
+      { id: "vostok",  name: "Vostok",         emoji: "🥶", x: 1180, y: 820,
+        blurb: "The coldest place ever recorded on Earth. The ice below holds air from hundreds of thousands of years ago." },
+    ];
+
+    const PENGUIN_NAMES = ["Nucky", "Pingu", "Sir Waddleworth", "Bloop", "Captain Fluff", "Noodle", "Sergeant Snow", "Biscuit"];
+
+    const UPGRADES = [
+      { id: "range",  name: "Big Antenna",     emoji: "📡", desc: "Your detector senses meteorites from further away.", cost: 8,  max: 4 },
+      { id: "speed",  name: "Rocket Skidoo",   emoji: "🛷", desc: "Zoom across the ice faster.",                        cost: 6,  max: 4 },
+      { id: "magnet", name: "Star Magnet",     emoji: "🧲", desc: "Catch stars in space from further away.",            cost: 10, max: 3 },
+      { id: "lens",   name: "Sharper Lens",    emoji: "🔭", desc: "The star-map hint shows you a smaller area.",        cost: 12, max: 3 },
+      { id: "lucky",  name: "Lucky Compass",   emoji: "🧭", desc: "More meteorites hide on the ice at once.",           cost: 9,  max: 3 },
+    ];
+
+    const SAVE_KEY = "antarctic-starmap-v1";
+    const ICE_W = 1500, ICE_H = 950;
+    const MAP_W = 760, MAP_H = 420;
+    const MAP_PAD = { l: 24, r: 24, t: 26, b: 26 };
+
+    /* ==========================================================
+       STATE
+       ========================================================== */
+
+    let screen = "title";
+    let frags = 0;
+    let placed = {};          // id -> true
+    let found = {};           // id -> true (constellation retrieved)
+    let stamps = {};          // country id -> true (postcards sent)
+    let ups = {};             // upgrade id -> level
+    let eggs = {};            // easter eggs discovered
+    let soundOn = true;
+    let visitedStations = {};
+
+    // ice
+    let ice = { x: 300, y: 400, tx: 300, ty: 400 };
+    let rocks = [];           // { x, y, real, id, dug, kind }
+    let penguins = [];
+    let auroraT = 0;
+    let snowmanTaps = {};
+    let ufo = null;
+
+    // expedition
+    let quest = null;         // { country, stars:[], collected }
+    let cluesShown = 1;
+    let idOptions = [];
+    let idLocked = false;
+
+    // the astronomer's own constellation, once the map is finished
+    let myStar = null;        // { name, stars:[{x,y}] }
+
+    // map puzzle
+    let piece = null;         // { country, x, y, rot }
+    let dragging = false;
+    let hintUntil = 0;
+    let mapMsg = "";
+
+    const esc = (s) => String(s).replace(/[&<>"']/g, (ch) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+    const byId = (id) => COUNTRIES.find((c) => c.id === id);
+    const remaining = () => COUNTRIES.filter((c) => !placed[c.id] && (!c.last || allButLastDone()));
+    const allButLastDone = () => COUNTRIES.filter((c) => !c.last).every((c) => placed[c.id]);
+    const totalCountries = () => COUNTRIES.length;
+    const doneCount = () => Object.keys(placed).length;
+    const upLvl = (id) => ups[id] || 0;
+
+    /* ==========================================================
+       SOUND
+       ========================================================== */
+
+    let actx = null;
+    function audio() {
+      if (!actx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) actx = new AC();
+      }
+      if (actx && actx.state === "suspended") actx.resume();
+      return actx;
+    }
+    function tone(f, dur, type, vol, delay, slide) {
+      if (!soundOn) return;
+      const ctx = audio();
+      if (!ctx) return;
+      const t0 = ctx.currentTime + (delay || 0);
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type || "sine";
+      o.frequency.setValueAtTime(f, t0);
+      if (slide) o.frequency.exponentialRampToValueAtTime(slide, t0 + dur);
+      g.gain.setValueAtTime(vol || 0.1, t0);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      o.connect(g).connect(ctx.destination);
+      o.start(t0); o.stop(t0 + dur + 0.05);
+    }
+    function noise(dur, vol) {
+      if (!soundOn) return;
+      const ctx = audio();
+      if (!ctx) return;
+      const n = Math.floor(ctx.sampleRate * dur);
+      const b = ctx.createBuffer(1, n, ctx.sampleRate);
+      const d = b.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      const s = ctx.createBufferSource(); s.buffer = b;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(vol || 0.12, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+      s.connect(g).connect(ctx.destination); s.start();
+    }
+    const sClick = () => tone(620, 0.06, "square", 0.05);
+    const sPing = (near) => tone(700 + near * 700, 0.05, "sine", 0.055);
+    const sDig = () => { noise(0.3, 0.15); tone(240, 0.2, "triangle", 0.08, 0, 420); };
+    const sStar = (i) => tone(520 + i * 90, 0.13, "triangle", 0.1, 0, 900 + i * 90);
+    const sGood = () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.18, "triangle", 0.12, i * 0.07));
+    const sBig = () => [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => tone(f, 0.3, "triangle", 0.13, i * 0.1));
+    const sBad = () => tone(200, 0.22, "sawtooth", 0.07, 0, 120);
+    const sSnap = () => { tone(880, 0.1, "sine", 0.1, 0, 1500); tone(1320, 0.14, "triangle", 0.08, 0.06); };
+    const sWhoosh = () => tone(200, 0.5, "sawtooth", 0.09, 0, 800);
+    const sQuack = () => { tone(320, 0.1, "sawtooth", 0.1, 0, 200); tone(300, 0.12, "sawtooth", 0.09, 0.1, 190); };
+
+    /* ==========================================================
+       HELPERS
+       ========================================================== */
+
+    const $ = (id) => document.getElementById(id);
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const rnd = (a) => a[Math.floor(Math.random() * a.length)];
+
+    let toastT = null;
+    function toast(msg, ms) {
+      const t = $("toast");
+      t.innerHTML = msg;
+      t.classList.remove("show");
+      void t.offsetWidth;
+      t.classList.add("show");
+      clearTimeout(toastT);
+      toastT = setTimeout(() => t.classList.remove("show"), ms || 3200);
+    }
+
+    function confetti(n, set) {
+      const emo = set || ["⭐", "✨", "🐧", "🎉", "🔭"];
+      for (let i = 0; i < n; i++) {
+        const c = document.createElement("span");
+        c.className = "confetti-bit";
+        c.textContent = rnd(emo);
+        c.style.left = Math.random() * 100 + "vw";
+        c.style.animationDuration = 1.7 + Math.random() * 1.7 + "s";
+        c.style.animationDelay = Math.random() * 0.5 + "s";
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 4400);
+      }
+    }
+
+    function card(emoji, title, bodyHtml, buttons) {
+      return new Promise((resolve) => {
+        $("ovE").textContent = emoji;
+        $("ovT").textContent = title;
+        $("ovBody").innerHTML = bodyHtml || "";
+        const box = $("ovBtns");
+        box.innerHTML = "";
+        (buttons || [{ label: "OK", value: true }]).forEach((b) => {
+          const el = document.createElement("button");
+          el.className = "btn primary";
+          el.style.margin = "10px 4px 0";
+          el.textContent = b.label;
+          el.addEventListener("click", () => { sClick(); $("ovr").classList.remove("show"); resolve(b.value); });
+          box.appendChild(el);
+        });
+        $("ovr").classList.add("show");
+      });
+    }
+
+    /* ==========================================================
+       SAVE
+       ========================================================== */
+
+    function save() {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({
+          frags, placed, found, stamps, ups, eggs, soundOn, visitedStations, myStar,
+          ice: { x: Math.round(ice.x), y: Math.round(ice.y) },
+          rocks: rocks.map((r) => ({ x: Math.round(r.x), y: Math.round(r.y), real: r.real, id: r.id, kind: r.kind })),
+        }));
+      } catch (e) { /* private mode */ }
+    }
+    function load() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return false;
+        const s = JSON.parse(raw);
+        frags = Math.max(0, Math.floor(Number(s.frags) || 0));
+        placed = {}; Object.keys(s.placed || {}).forEach((k) => { if (byId(k)) placed[k] = true; });
+        found = {}; Object.keys(s.found || {}).forEach((k) => { if (byId(k)) found[k] = true; });
+        stamps = {}; Object.keys(s.stamps || {}).forEach((k) => { if (byId(k)) stamps[k] = true; });
+        ups = {}; Object.keys(s.ups || {}).forEach((k) => { if (UPGRADES.some((u) => u.id === k)) ups[k] = Math.max(0, Math.min(4, Math.floor(Number(s.ups[k]) || 0))); });
+        eggs = s.eggs && typeof s.eggs === "object" ? s.eggs : {};
+        visitedStations = s.visitedStations || {};
+        myStar = null;
+        if (s.myStar && Array.isArray(s.myStar.stars) && s.myStar.stars.length >= 3) {
+          myStar = {
+            name: String(s.myStar.name || "My Constellation").slice(0, 24),
+            stars: s.myStar.stars.slice(0, OWN_MAX)
+              .filter((p) => p && isFinite(p.x) && isFinite(p.y))
+              .map((p) => ({ x: Number(p.x), y: Number(p.y) })),
+          };
+          if (myStar.stars.length < 3) myStar = null;
+          else ownStars = myStar.stars.map((p) => ({ ...p }));
+        }
+        soundOn = s.soundOn !== false;
+        if (s.ice) { ice.x = ice.tx = s.ice.x; ice.y = ice.ty = s.ice.y; }
+        if (Array.isArray(s.rocks) && s.rocks.length) {
+          rocks = s.rocks.filter((r) => !r.real || byId(r.id)).map((r) => ({ ...r, dug: false }));
+        }
+        return true;
+      } catch (e) { return false; }
+    }
+
+    /* ==========================================================
+       ICE FIELD
+       ========================================================== */
+
+    const DECOY_KINDS = [
+      { e: "🪨", label: "just a rock" },
+      { e: "🧊", label: "a lump of ice" },
+      { e: "🐟", label: "a frozen fish — a penguin's lost lunch" },
+      { e: "🧦", label: "a LOST SOCK. All the way out here?!", egg: "sock" },
+      { e: "🥪", label: "someone's frozen sandwich. Still edible? Probably not.", egg: "sandwich" },
+      { e: "🪥", label: "a toothbrush. Antarctic mystery." },
+    ];
+
+    function meteoriteTarget() {
+      // anything not yet ON the map can still turn up, so nothing is ever lost
+      const held = piece ? piece.country.id : (quest ? quest.country.id : null);
+      const pool = COUNTRIES.filter((c) => !placed[c.id] && !c.last && c.id !== held);
+      if (pool.length) return rnd(pool);
+      if (allButLastDone() && !placed["aq"] && held !== "aq") return byId("aq");
+      return null;
+    }
+
+    function seedRocks() {
+      const wantReal = 2 + upLvl("lucky");
+      const wantDecoy = 7;
+      rocks = [];
+      for (let i = 0; i < wantReal; i++) addRock(true);
+      for (let i = 0; i < wantDecoy; i++) addRock(false);
+    }
+
+    function addRock(real) {
+      let x = 0, y = 0, ok = false;
+      for (let i = 0; i < 40 && !ok; i++) {
+        x = 70 + Math.random() * (ICE_W - 140);
+        y = 70 + Math.random() * (ICE_H - 140);
+        ok = rocks.every((r) => Math.hypot(r.x - x, r.y - y) > 130) &&
+             STATIONS.every((s) => Math.hypot(s.x - x, s.y - y) > 110) &&
+             Math.hypot(ice.x - x, ice.y - y) > 200;
+      }
+      if (!ok) return;
+      const t = real ? meteoriteTarget() : null;
+      if (real && !t) return;
+      rocks.push({ x, y, real, id: t ? t.id : null, dug: false, kind: real ? null : Math.floor(Math.random() * DECOY_KINDS.length) });
+    }
+
+    function nearestRock() {
+      let best = null, bd = Infinity;
+      rocks.forEach((r) => {
+        if (r.dug) return;
+        const d = Math.hypot(r.x - ice.x, r.y - ice.y);
+        if (d < bd) { bd = d; best = r; }
+      });
+      return { rock: best, dist: bd };
+    }
+    function nearestReal() {
+      let best = null, bd = Infinity;
+      rocks.forEach((r) => {
+        if (r.dug || !r.real) return;
+        const d = Math.hypot(r.x - ice.x, r.y - ice.y);
+        if (d < bd) { bd = d; best = r; }
+      });
+      return { rock: best, dist: bd };
+    }
+    const detectRange = () => 260 + upLvl("range") * 110;
+
+    function digHere() {
+      const { rock, dist } = nearestRock();
+      if (!rock || dist > 46) return;
+      rock.dug = true;
+      sDig();
+      if (!rock.real) {
+        const k = DECOY_KINDS[rock.kind || 0];
+        frags += 1;
+        if (k.egg && !eggs[k.egg]) { eggs[k.egg] = true; confetti(10); toast("🥚 Easter egg found: " + k.e + " " + k.label); }
+        else toast(k.e + " " + k.label + " — but you kept a ✨ fragment.");
+        setTimeout(() => addRock(false), 2500);
+        updateHud(); save();
+        return;
+      }
+      if (piece) {
+        // you can only carry one constellation at a time
+        rock.dug = false;
+        sBad();
+        toast("🪨 It's a meteorite — but your hands are full! Place " + piece.country.flag + " " +
+          piece.country.name + " on the Star-Map first.");
+        return;
+      }
+      const c = byId(rock.id);
+      frags += 3;
+      updateHud();
+      setTimeout(() => addRock(true), 4000);
+      startQuest(c);
+      save();
+    }
+
+    function drawIce(now) {
+      const g = $("cvIce").getContext("2d");
+      const W = 760, H = 430;
+      const camX = clamp(ice.x - W / 2, 0, ICE_W - W);
+      const camY = clamp(ice.y - H / 2, 0, ICE_H - H);
+
+      // polar night: moonlit snow, seen from above
+      g.fillStyle = "#25405e";
+      g.fillRect(0, 0, W, H);
+      g.fillStyle = "#2f4f72";
+      for (let i = 0; i < 90; i++) {
+        const x = ((i * 173) % ICE_W) - camX, y = ((i * 271) % ICE_H) - camY;
+        if (x < -50 || x > W + 50) continue;
+        g.beginPath();
+        g.ellipse(x, y, 32 + (i % 5) * 10, 10 + (i % 3) * 4, 0, 0, Math.PI * 2);
+        g.fill();
+      }
+      // sastrugi — the wind-carved ridges in the snow
+      g.strokeStyle = "rgba(190,220,245,0.28)";
+      g.lineWidth = 2;
+      for (let i = 0; i < 40; i++) {
+        const x = ((i * 331) % ICE_W) - camX, y = ((i * 197) % ICE_H) - camY;
+        if (x < -70 || x > W + 70) continue;
+        g.beginPath();
+        g.moveTo(x, y);
+        g.quadraticCurveTo(x + 30, y - 6, x + 62, y);
+        g.stroke();
+      }
+      // blue-ice fields — where meteorites really do collect
+      g.fillStyle = "rgba(120, 200, 245, 0.22)";
+      [[430, 330, 170, 70], [1050, 660, 200, 80], [780, 160, 150, 60]].forEach(([x, y, rx, ry]) => {
+        g.beginPath(); g.ellipse(x - camX, y - camY, rx, ry, 0, 0, Math.PI * 2); g.fill();
+      });
+
+      // the aurora australis, painting the snow green and purple
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (let k = 0; k < 3; k++) {
+        const cxp = (W / 2) + Math.sin(now / (3400 + k * 900) + k * 2) * W * 0.42;
+        const cyp = (H / 2) + Math.cos(now / (4200 + k * 700) + k) * H * 0.36;
+        const rad = 210 + k * 60 + Math.sin(now / 1700 + k) * 40;
+        const grd = g.createRadialGradient(cxp, cyp, 10, cxp, cyp, rad);
+        grd.addColorStop(0, ["rgba(70,235,150,0.28)", "rgba(90,170,255,0.24)", "rgba(180,120,255,0.22)"][k]);
+        grd.addColorStop(1, "rgba(0,0,0,0)");
+        g.fillStyle = grd;
+        g.fillRect(0, 0, W, H);
+      }
+      g.restore();
+      // a few stars, because it's the middle of the polar night
+      for (let i = 0; i < 26; i++) {
+        g.globalAlpha = 0.25 + 0.5 * Math.abs(Math.sin(now / 900 + i));
+        g.fillStyle = "#eaf4ff";
+        g.fillRect((i * 271) % W, (i * 149) % H, 1.5, 1.5);
+      }
+      g.globalAlpha = 1;
+
+      // stations
+      STATIONS.forEach((s) => {
+        const x = s.x - camX, y = s.y - camY;
+        if (x < -60 || x > W + 60 || y < -60 || y > H + 60) return;
+        g.font = "13px 'Trebuchet MS', sans-serif";
+        g.textAlign = "center";
+        g.fillStyle = "rgba(10,40,70,0.75)";
+        g.fillRect(x - 46, y + 16, 92, 17);
+        g.fillStyle = "#eaf7ff";
+        g.fillText(s.name, x, y + 29);
+        g.font = "30px serif";
+        g.textBaseline = "middle";
+        g.fillText("🏠", x, y - 6);
+        g.font = "16px serif";
+        g.fillText(s.emoji, x + 16, y - 18);
+        if (Math.hypot(s.x - ice.x, s.y - ice.y) < 70) {
+          g.strokeStyle = "rgba(77,201,240,0.9)";
+          g.lineWidth = 3;
+          g.beginPath(); g.arc(x, y, 40, 0, Math.PI * 2); g.stroke();
+        }
+      });
+
+      // rocks (only the ones you've spotted are drawn as specks)
+      rocks.forEach((r) => {
+        if (r.dug) return;
+        const x = r.x - camX, y = r.y - camY;
+        if (x < -30 || x > W + 30 || y < -30 || y > H + 30) return;
+        g.font = "17px serif";
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.fillStyle = "#2b2b33";
+        g.beginPath(); g.ellipse(x, y + 5, 11, 4, 0, 0, Math.PI * 2);
+        g.fillStyle = "rgba(60,80,100,0.25)"; g.fill();
+        g.fillText("🪨", x, y);
+      });
+
+      // penguins
+      penguins.forEach((p) => {
+        const x = p.x - camX, y = p.y - camY;
+        if (x < -30 || x > W + 30) return;
+        g.font = "22px serif";
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.save();
+        g.translate(x, y + (p.flip > 0 ? -18 : 0));
+        if (p.flip > 0) g.rotate((1 - p.flip) * Math.PI * 4);
+        g.fillText("🐧", 0, 0);
+        g.restore();
+      });
+
+      // UFO easter egg
+      if (ufo) {
+        g.font = "26px serif";
+        g.textAlign = "center";
+        g.fillText("🛸", ufo.x - camX, ufo.y - camY);
+      }
+
+      // the explorer
+      const px = ice.x - camX, py = ice.y - camY;
+      // detector sweep
+      const { dist } = nearestReal();
+      const near = clamp(1 - dist / detectRange(), 0, 1);
+      g.save();
+      g.strokeStyle = "rgba(77,201,240," + (0.25 + near * 0.6) + ")";
+      g.lineWidth = 3;
+      const rr = 26 + (now / 7 % 40);
+      g.beginPath(); g.arc(px, py, rr, 0, Math.PI * 2); g.stroke();
+      g.restore();
+      g.font = "30px serif";
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      g.fillText("🧑‍🔬", px, py);
+
+      // direction arrow to the nearest meteorite
+      const nr = nearestReal();
+      if (nr.rock) {
+        const a = Math.atan2(nr.rock.y - ice.y, nr.rock.x - ice.x);
+        g.save();
+        g.translate(px + Math.cos(a) * 46, py + Math.sin(a) * 46);
+        g.rotate(a);
+        g.fillStyle = near > 0.55 ? "#e8462f" : near > 0.25 ? "#f0a020" : "#5aa9d0";
+        g.beginPath(); g.moveTo(13, 0); g.lineTo(-8, -9); g.lineTo(-8, 9); g.closePath(); g.fill();
+        g.restore();
+      }
+
+      // mini-map
+      const mw = 120, mh = Math.round(120 * ICE_H / ICE_W);
+      g.fillStyle = "rgba(8, 26, 50, 0.75)";
+      g.fillRect(W - mw - 10, 10, mw, mh);
+      g.strokeStyle = "rgba(255,255,255,0.5)";
+      g.strokeRect(W - mw - 10, 10, mw, mh);
+      STATIONS.forEach((s) => {
+        g.fillStyle = "#8fd0ff";
+        g.fillRect(W - mw - 10 + s.x / ICE_W * mw - 1, 10 + s.y / ICE_H * mh - 1, 3, 3);
+      });
+      g.fillStyle = "#ffd76b";
+      g.fillRect(W - mw - 10 + ice.x / ICE_W * mw - 2, 10 + ice.y / ICE_H * mh - 2, 5, 5);
+    }
+
+    function updateIce(dt, now) {
+      const sp = 190 + upLvl("speed") * 70;
+      const dx = ice.tx - ice.x, dy = ice.ty - ice.y;
+      const d = Math.hypot(dx, dy);
+      if (d > 3) {
+        ice.x += (dx / d) * Math.min(sp * dt, d);
+        ice.y += (dy / d) * Math.min(sp * dt, d);
+      }
+      ice.x = clamp(ice.x, 20, ICE_W - 20);
+      ice.y = clamp(ice.y, 20, ICE_H - 20);
+
+      // detector ping
+      const nr = nearestReal();
+      if (nr.rock) {
+        const near = clamp(1 - nr.dist / detectRange(), 0, 1);
+        if (near > 0.02) {
+          pingT -= dt;
+          if (pingT <= 0) { pingT = 1.15 - near; sPing(near); }
+        }
+      }
+
+      // penguins wander
+      penguins.forEach((p) => {
+        p.t -= dt;
+        if (p.flip > 0) p.flip = Math.max(0, p.flip - dt * 1.6);
+        if (p.t <= 0) { p.t = 1.5 + Math.random() * 3; p.vx = (Math.random() * 2 - 1) * 26; p.vy = (Math.random() * 2 - 1) * 18; }
+        p.x = clamp(p.x + p.vx * dt, 20, ICE_W - 20);
+        p.y = clamp(p.y + p.vy * dt, 20, ICE_H - 20);
+      });
+
+      // rare UFO flyby
+      if (!ufo && Math.random() < dt * 0.02) ufo = { x: -60, y: 80 + Math.random() * (ICE_H - 200) };
+      if (ufo) {
+        ufo.x += 150 * dt;
+        if (ufo.x > ICE_W + 60) ufo = null;
+      }
+
+      // dig button
+      const nrk = nearestRock();
+      $("digBtn").classList.toggle("show", !!nrk.rock && nrk.dist <= 46);
+
+      // station banner
+      const st = STATIONS.find((s) => Math.hypot(s.x - ice.x, s.y - ice.y) < 60);
+      const nr2 = nearestReal();
+      const nearness = nr2.rock ? clamp(1 - nr2.dist / detectRange(), 0, 1) : 0;
+      $("iceBanner").innerHTML = st
+        ? "🏠 <b>" + st.name + "</b> — tap the station to go inside"
+        : nr2.rock
+          ? (nearness > 0.75 ? "📡 BEEP BEEP BEEP — it's right here!"
+            : nearness > 0.45 ? "📡 beep beep — getting warm…"
+            : nearness > 0.12 ? "📡 beep… something's out there"
+            : "📡 …quiet. Follow the arrow.")
+          : "🎉 Every meteorite found! Head to the Star-Map.";
+    }
+    let pingT = 0;
+
+    function iceTap(wx, wy) {
+      // station?
+      const st = STATIONS.find((s) => Math.hypot(s.x - wx, s.y - wy) < 46);
+      if (st && Math.hypot(st.x - ice.x, st.y - ice.y) < 70) { openStation(st); return; }
+      // penguin?
+      const pg = penguins.find((p) => Math.hypot(p.x - wx, p.y - wy) < 26);
+      if (pg) { tapPenguin(pg); return; }
+      // ufo?
+      if (ufo && Math.hypot(ufo.x - wx, ufo.y - wy) < 34) {
+        ufo = null;
+        frags += 10;
+        if (!eggs.ufo) { eggs.ufo = true; confetti(16, ["🛸", "👽", "✨"]); }
+        toast("🛸 You tapped a UFO! It dropped ✨10 fragments and zoomed off.");
+        updateHud(); save();
+        return;
+      }
+      ice.tx = clamp(wx, 20, ICE_W - 20);
+      ice.ty = clamp(wy, 20, ICE_H - 20);
+    }
+
+    function tapPenguin(p) {
+      p.taps = (p.taps || 0) + 1;
+      p.flip = 1;
+      sQuack();
+      if (p.taps === 5) {
+        frags += 4;
+        toast("🐧 " + p.name + " does a backflip! “Thanks for the tickle.” ✨4");
+        if (!eggs["peng_" + p.name]) { eggs["peng_" + p.name] = true; confetti(8, ["🐧", "✨"]); }
+        updateHud(); save();
+      } else {
+        toast("🐧 " + p.name + " waddles happily.", 1500);
+      }
+    }
+
+    /* ==========================================================
+       STATIONS
+       ========================================================== */
+
+    async function openStation(st) {
+      sClick();
+      const first = !visitedStations[st.id];
+      visitedStations[st.id] = true;
+      if (st.post) { await postOffice(st); save(); return; }
+      if (st.id === "pole" && !eggs.pole) {
+        eggs.pole = true;
+        confetti(12, ["🎯", "❄️", "✨"]);
+      }
+      let body = '<p class="fact">' + st.blurb + "</p>";
+      if (first) { frags += 5; body += "<p>✨ <b>+5 fragments</b> for visiting for the first time!</p>"; }
+      body += '<div class="shop" style="margin-top:10px">' + shopHtml() + "</div>";
+      body += '<p style="font-size:0.78rem;opacity:0.75">You have ✨ ' + frags + " fragments.</p>";
+      await card(st.emoji, st.name + " Station", body, [{ label: "Back outside", value: true }]);
+      updateHud(); save();
+      // shop buttons are wired after render via delegation below
+    }
+
+    function shopHtml() {
+      return UPGRADES.map((u) => {
+        const lv = upLvl(u.id);
+        const maxed = lv >= u.max;
+        const cost = u.cost + lv * Math.ceil(u.cost * 0.6);
+        return '<button class="up' + (maxed ? " maxed" : "") + '" data-up="' + u.id + '"' +
+          (maxed || frags < cost ? " disabled" : "") + '>' +
+          '<span class="e">' + u.emoji + "</span>" +
+          '<span><span class="n">' + u.name + " " + "★".repeat(lv) + "</span>" +
+          '<span class="d">' + (maxed ? "Fully upgraded!" : u.desc + " — ✨" + cost) + "</span></span></button>";
+      }).join("");
+    }
+
+    document.addEventListener("click", (ev) => {
+      const b = ev.target.closest && ev.target.closest("[data-up]");
+      if (!b) return;
+      const u = UPGRADES.find((x) => x.id === b.dataset.up);
+      if (!u) return;
+      const lv = upLvl(u.id);
+      const cost = u.cost + lv * Math.ceil(u.cost * 0.6);
+      if (lv >= u.max || frags < cost) { sBad(); return; }
+      frags -= cost;
+      ups[u.id] = lv + 1;
+      sGood();
+      toast("🔧 " + u.name + " upgraded to ★" + (lv + 1) + "!");
+      updateHud(); save();
+      // refresh the shop in place
+      const shop = b.closest(".shop");
+      if (shop) shop.innerHTML = shopHtml();
+    });
+
+    async function postOffice(st) {
+      const sendable = COUNTRIES.filter((c) => placed[c.id] && !stamps[c.id]);
+      let body = '<p class="fact">' + st.blurb + "</p>";
+      if (!sendable.length) {
+        body += "<p>No postcards to send yet — put a country back on the star-map first, then come and post it a card!</p>";
+      } else {
+        body += "<p>Send a postcard to a country you've restored. Each one earns a stamp for your collection!</p>";
+        body += '<div class="options" style="margin-top:8px">' +
+          sendable.slice(0, 6).map((c) => '<button class="opt" data-post="' + c.id + '"><span class="f">' + c.flag + "</span>" + c.name + "</button>").join("") +
+          "</div>";
+      }
+      const got = Object.keys(stamps).length;
+      body += '<p style="font-size:0.78rem;opacity:0.8;margin-top:8px">📮 Stamps collected: <b>' + got + "</b></p>";
+      await card("📮", "The Penguin Post Office", body, [{ label: "Back outside", value: true }]);
+    }
+
+    document.addEventListener("click", (ev) => {
+      const b = ev.target.closest && ev.target.closest("[data-post]");
+      if (!b) return;
+      const c = byId(b.dataset.post);
+      if (!c || stamps[c.id]) return;
+      stamps[c.id] = true;
+      frags += 2;
+      sGood();
+      b.classList.add("right");
+      b.disabled = true;
+      const n = Object.keys(stamps).length;
+      toast("📮 Postcard posted to " + c.flag + " " + c.name + "! Stamp #" + n + " ✨+2");
+      if (n === 10 && !eggs.tenStamps) {
+        eggs.tenStamps = true;
+        confetti(18, ["📮", "✉️", "🐧"]);
+        setTimeout(() => card("✉️", "A postcard for YOU",
+          "<p>The penguins have sent one back.</p><p class='fact'>“Dear Ezra — thanks for putting the world back together. Come and visit any time. Love, the penguins of Port Lockroy 🐧”</p>",
+          [{ label: "Aww", value: true }]), 700);
+      }
+      updateHud(); save();
+    });
+
+    /* ==========================================================
+       THE EXPEDITION: space dash
+       ========================================================== */
+
+    let sp = null;   // space state
+
+    function startQuest(c) {
+      quest = { country: c };
+      sWhoosh();
+      setScreen("space");
+      const n = c.cities.length;
+      sp = {
+        rx: 380, ry: 340, tx: 380, ty: 340,
+        stars: [], rocksSp: [], got: 0, t: 0, done: false,
+      };
+      for (let i = 0; i < n; i++) {
+        sp.stars.push({
+          x: 70 + Math.random() * 620, y: 50 + Math.random() * 250,
+          vx: (Math.random() * 2 - 1) * 22, vy: (Math.random() * 2 - 1) * 16,
+          got: false, name: c.cities[i][0],
+        });
+      }
+      for (let i = 0; i < 7; i++) {
+        sp.rocksSp.push({ x: Math.random() * 760, y: Math.random() * 430, vx: (Math.random() * 2 - 1) * 55, vy: (Math.random() * 2 - 1) * 40, r: 12 + Math.random() * 12 });
+      }
+      $("spaceBanner").innerHTML = "🚀 Fly through the stars of <b>" + n + " cities</b> to gather the constellation!";
+    }
+
+    function updateSpace(dt) {
+      if (!sp || sp.done) return;
+      sp.t += dt;
+      const d = Math.hypot(sp.tx - sp.rx, sp.ty - sp.ry);
+      const spd = 300;
+      if (d > 2) {
+        sp.rx += (sp.tx - sp.rx) / d * Math.min(spd * dt, d);
+        sp.ry += (sp.ty - sp.ry) / d * Math.min(spd * dt, d);
+      }
+      const grab = 26 + upLvl("magnet") * 13;
+      sp.stars.forEach((s, i) => {
+        if (s.got) return;
+        s.x += s.vx * dt; s.y += s.vy * dt;
+        if (s.x < 30 || s.x > 730) s.vx *= -1;
+        if (s.y < 30 || s.y > 400) s.vy *= -1;
+        if (Math.hypot(s.x - sp.rx, s.y - sp.ry) < grab) {
+          s.got = true;
+          sp.got++;
+          sStar(sp.got);
+          if (sp.got === sp.stars.length) finishSpace();
+        }
+      });
+      sp.rocksSp.forEach((r) => {
+        r.x += r.vx * dt; r.y += r.vy * dt;
+        if (r.x < 0) r.x = 760; if (r.x > 760) r.x = 0;
+        if (r.y < 0) r.y = 430; if (r.y > 430) r.y = 0;
+        if (Math.hypot(r.x - sp.rx, r.y - sp.ry) < r.r + 14) {
+          // a bump just spins you, nothing nasty
+          const a = Math.atan2(sp.ry - r.y, sp.rx - r.x);
+          sp.rx += Math.cos(a) * 6; sp.ry += Math.sin(a) * 6;
+          sp.tx = sp.rx; sp.ty = sp.ry;
+        }
+      });
+    }
+
+    function finishSpace() {
+      if (!sp || sp.done) return;
+      sp.done = true;
+      sGood();
+      setTimeout(() => startIdentify(), 700);
+    }
+
+    function drawSpace(now) {
+      const g = $("cvSpace").getContext("2d");
+      const W = 760, H = 430;
+      g.fillStyle = "#050b22";
+      g.fillRect(0, 0, W, H);
+      for (let i = 0; i < 110; i++) {
+        const x = (i * 137.5) % W, y = (i * 61.7) % H;
+        g.globalAlpha = 0.3 + 0.6 * Math.abs(Math.sin(now / 800 + i));
+        g.fillStyle = "#fff";
+        g.fillRect(x, y, 1.6, 1.6);
+      }
+      g.globalAlpha = 1;
+      if (!sp) return;
+      // debris
+      sp.rocksSp.forEach((r) => {
+        g.fillStyle = "#6b6f7d";
+        g.beginPath(); g.arc(r.x, r.y, r.r, 0, Math.PI * 2); g.fill();
+        g.fillStyle = "#565a66";
+        g.beginPath(); g.arc(r.x - r.r * 0.3, r.y - r.r * 0.2, r.r * 0.4, 0, Math.PI * 2); g.fill();
+      });
+      // stars to collect
+      sp.stars.forEach((s) => {
+        if (s.got) return;
+        const pu = 0.6 + 0.4 * Math.sin(now / 190 + s.x);
+        g.save();
+        g.globalAlpha = pu;
+        g.fillStyle = "#ffe98a";
+        g.beginPath(); g.arc(s.x, s.y, 16, 0, Math.PI * 2); g.fill();
+        g.restore();
+        g.fillStyle = "#fffbe6";
+        g.beginPath(); g.arc(s.x, s.y, 6, 0, Math.PI * 2); g.fill();
+        g.font = "bold 11px 'Trebuchet MS', sans-serif";
+        g.textAlign = "center";
+        g.fillStyle = "#cfe4ff";
+        g.fillText(s.name, s.x, s.y - 22);
+      });
+      // rocket
+      g.save();
+      g.translate(sp.rx, sp.ry);
+      g.font = "30px serif";
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      g.fillText("🚀", 0, 0);
+      g.restore();
+      // progress
+      g.font = "bold 15px 'Trebuchet MS', sans-serif";
+      g.fillStyle = "#ffe98a";
+      g.textAlign = "left";
+      g.fillText("⭐ " + sp.got + " / " + sp.stars.length, 14, H - 16);
+    }
+
+    /* ==========================================================
+       IDENTIFY
+       ========================================================== */
+
+    function clueList(c) {
+      const hemi = c.cities[0][1] >= 0 ? "northern" : "southern";
+      const list = [
+        "Its capital city is <b>" + c.cities[0][0] + "</b>.",
+        "It's in <b>" + c.cont + "</b>.",
+        "It's in the <b>" + hemi + "</b> half of the world.",
+        "One of its cities is <b>" + c.cities[c.cities.length - 1][0] + "</b>.",
+        "Its name begins with <b>" + c.name[0] + "</b> and has <b>" + c.name.replace(/[^A-Za-z]/g, "").length + "</b> letters.",
+      ];
+      return list;
+    }
+
+    function startIdentify() {
+      const c = quest.country;
+      cluesShown = 1;
+      idLocked = false;
+      const sameCont = COUNTRIES.filter((x) => x.id !== c.id && x.cont === c.cont);
+      const others = COUNTRIES.filter((x) => x.id !== c.id);
+      const pool = (sameCont.length >= 3 ? sameCont : others).slice();
+      const decoys = [];
+      while (decoys.length < 3 && pool.length) decoys.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+      idOptions = [c, ...decoys].sort(() => Math.random() - 0.5);
+      setScreen("id");
+      renderIdentify();
+    }
+
+    function renderIdentify() {
+      const c = quest.country;
+      const list = clueList(c);
+      $("clues").innerHTML = list.slice(0, cluesShown).map((t) => '<div class="clue">🔍 ' + t + "</div>").join("");
+      $("bClue").disabled = cluesShown >= list.length || idLocked;
+      $("options").innerHTML = idOptions.map((o) =>
+        '<button class="opt" data-guess="' + o.id + '"><span class="f">' + o.flag + "</span>" + o.name + "</button>").join("");
+      drawConstellationPreview();
+    }
+
+    function drawConstellationPreview() {
+      const g = $("cvId").getContext("2d");
+      const W = 760, H = 300;
+      g.fillStyle = "#050b22";
+      g.fillRect(0, 0, W, H);
+      for (let i = 0; i < 70; i++) {
+        g.globalAlpha = 0.25 + 0.5 * Math.abs(Math.sin(i * 3.3));
+        g.fillStyle = "#fff";
+        g.fillRect((i * 149) % W, (i * 83) % H, 1.4, 1.4);
+      }
+      g.globalAlpha = 1;
+      const pts = shapeOf(quest.country, 150);
+      g.save();
+      g.translate(W / 2, H / 2);
+      g.strokeStyle = "rgba(140, 220, 255, 0.55)";
+      g.lineWidth = 2;
+      g.beginPath();
+      pts.forEach((p, i) => { if (i === 0) g.moveTo(p.x, p.y); else g.lineTo(p.x, p.y); });
+      g.stroke();
+      pts.forEach((p) => {
+        g.fillStyle = "#ffe98a";
+        g.beginPath(); g.arc(p.x, p.y, 6, 0, Math.PI * 2); g.fill();
+        g.fillStyle = "rgba(255,255,255,0.9)";
+        g.beginPath(); g.arc(p.x, p.y, 2.5, 0, Math.PI * 2); g.fill();
+      });
+      g.restore();
+      g.font = "bold 15px 'Trebuchet MS', sans-serif";
+      g.fillStyle = "#cfe4ff";
+      g.textAlign = "center";
+      g.fillText("Which country's cities are these?", W / 2, 28);
+    }
+
+    document.addEventListener("click", (ev) => {
+      const b = ev.target.closest && ev.target.closest("[data-guess]");
+      if (!b || idLocked) return;
+      const c = quest.country;
+      if (b.dataset.guess === c.id) {
+        idLocked = true;
+        b.classList.add("right");
+        const bonus = Math.max(1, 6 - cluesShown);
+        frags += bonus;
+        sGood();
+        confetti(10);
+        updateHud();
+        toast("✅ Yes — " + c.flag + " <b>" + c.name + "</b>! ✨+" + bonus + " for using only " + cluesShown + " clue" + (cluesShown === 1 ? "" : "s") + ".");
+        found[c.id] = true;
+        save();
+        setTimeout(() => startPlacing(c), 1200);
+      } else {
+        b.classList.add("wrong");
+        b.disabled = true;
+        sBad();
+        const guessed = byId(b.dataset.guess);
+        toast("Not quite — that's " + guessed.flag + " " + guessed.name + ". Have another clue!");
+        if (cluesShown < clueList(c).length) cluesShown++;
+        const list = clueList(c);
+        $("clues").innerHTML = list.slice(0, cluesShown).map((t) => '<div class="clue">🔍 ' + t + "</div>").join("");
+      }
+    });
+
+    /* ==========================================================
+       STAR-MAP: projection + the placing puzzle
+       ========================================================== */
+
+    const mapX = (lon) => MAP_PAD.l + (lon + 180) / 360 * (MAP_W - MAP_PAD.l - MAP_PAD.r);
+    const mapY = (lat) => MAP_PAD.t + (90 - lat) / 180 * (MAP_H - MAP_PAD.t - MAP_PAD.b);
+
+    function centroid(c) {
+      const la = c.cities.reduce((s, x) => s + x[1], 0) / c.cities.length;
+      const lo = c.cities.reduce((s, x) => s + x[2], 0) / c.cities.length;
+      return { lat: la, lon: lo };
+    }
+
+    /* the constellation shape, centred on 0,0 and scaled to `size` px across */
+    function shapeOf(c, size) {
+      const cen = centroid(c);
+      const raw = c.cities.map((ct) => ({
+        x: (ct[2] - cen.lon) * Math.cos(cen.lat * Math.PI / 180),
+        y: -(ct[1] - cen.lat),
+        name: ct[0],
+      }));
+      let max = 0.001;
+      raw.forEach((p) => { max = Math.max(max, Math.abs(p.x), Math.abs(p.y)); });
+      const k = (size / 2) / max;
+      return raw.map((p) => ({ x: p.x * k, y: p.y * k, name: p.name }));
+    }
+
+    /* the same shape at the map's true scale */
+    function trueShape(c) {
+      const cen = centroid(c);
+      const cx = mapX(cen.lon), cy = mapY(cen.lat);
+      return c.cities.map((ct) => ({ x: mapX(ct[2]) - cx, y: mapY(ct[1]) - cy, name: ct[0] }));
+    }
+
+    function startPlacing(c) {
+      piece = { country: c, x: MAP_W / 2, y: MAP_H - 104, rot: 0, size: 130 };
+      // start it rotated the wrong way (a multiple of 30° so it can always be fixed)
+      const steps = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+      piece.rot = rnd(steps) * 30;
+      mapMsg = "";
+      setScreen("map");
+      updateMapBanner();
+    }
+
+    function updateMapBanner() {
+      if (!piece) {
+        $("mapBanner").innerHTML = doneCount() >= totalCountries()
+          ? "🏆 The whole world is back in the sky!"
+          : "🌍 " + doneCount() + " of " + totalCountries() + " constellations restored. Head back to the ice for the next one.";
+        return;
+      }
+      $("mapBanner").innerHTML = mapMsg ||
+        ("Drag " + piece.country.flag + " <b>" + piece.country.name + "</b> to where it belongs, and spin it the right way up (" +
+          "<b>" + ((360 - piece.rot) % 360) + "°</b> to go)");
+    }
+
+    function drawMap(now) {
+      const g = $("cvMap").getContext("2d");
+      g.fillStyle = "#040a1e";
+      g.fillRect(0, 0, MAP_W, MAP_H);
+      // stars in the background
+      for (let i = 0; i < 90; i++) {
+        g.globalAlpha = 0.18 + 0.4 * Math.abs(Math.sin(i * 2.1 + now / 1400));
+        g.fillStyle = "#fff";
+        g.fillRect((i * 173) % MAP_W, (i * 97) % MAP_H, 1.4, 1.4);
+      }
+      g.globalAlpha = 1;
+
+      // graticule
+      g.strokeStyle = "rgba(120,180,230,0.16)";
+      g.lineWidth = 1;
+      for (let lon = -180; lon <= 180; lon += 30) {
+        g.beginPath(); g.moveTo(mapX(lon), mapY(90)); g.lineTo(mapX(lon), mapY(-90)); g.stroke();
+      }
+      for (let lat = -60; lat <= 60; lat += 30) {
+        g.beginPath(); g.moveTo(mapX(-180), mapY(lat)); g.lineTo(mapX(180), mapY(lat)); g.stroke();
+      }
+      // equator + prime meridian
+      g.strokeStyle = "rgba(255,215,107,0.45)";
+      g.setLineDash([7, 6]);
+      g.lineWidth = 1.5;
+      g.beginPath(); g.moveTo(mapX(-180), mapY(0)); g.lineTo(mapX(180), mapY(0)); g.stroke();
+      g.beginPath(); g.moveTo(mapX(0), mapY(90)); g.lineTo(mapX(0), mapY(-90)); g.stroke();
+      g.setLineDash([]);
+      g.font = "10px 'Trebuchet MS', sans-serif";
+      g.fillStyle = "rgba(255,215,107,0.75)";
+      g.textAlign = "left";
+      g.fillText("equator", mapX(-176), mapY(0) - 4);
+
+      // continent haze
+      CONTINENTS.forEach((k) => {
+        const x = mapX(k.lon), y = mapY(k.lat);
+        const rx = k.r / 360 * (MAP_W - MAP_PAD.l - MAP_PAD.r) * 1.15;
+        const ry = k.r / 180 * (MAP_H - MAP_PAD.t - MAP_PAD.b) * 0.95;
+        const grd = g.createRadialGradient(x, y, 4, x, y, Math.max(rx, ry));
+        grd.addColorStop(0, "rgba(60,120,170,0.30)");
+        grd.addColorStop(1, "rgba(60,120,170,0)");
+        g.fillStyle = grd;
+        g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); g.fill();
+        g.font = "bold 11px 'Trebuchet MS', sans-serif";
+        g.fillStyle = "rgba(160,205,240,0.55)";
+        g.textAlign = "center";
+        g.fillText(k.id, x, y - ry * 0.55);
+      });
+
+      // hint glow
+      if (piece && now < hintUntil) {
+        const cen = centroid(piece.country);
+        const r = 110 - upLvl("lens") * 24;
+        g.save();
+        g.globalAlpha = 0.35 + 0.25 * Math.sin(now / 160);
+        g.strokeStyle = "#ffd76b";
+        g.lineWidth = 3;
+        g.beginPath(); g.arc(mapX(cen.lon), mapY(cen.lat), r, 0, Math.PI * 2); g.stroke();
+        g.restore();
+      }
+
+      // already-placed constellations
+      COUNTRIES.forEach((c) => {
+        if (!placed[c.id]) return;
+        const cen = centroid(c);
+        const cx = mapX(cen.lon), cy = mapY(cen.lat);
+        const pts = trueShape(c);
+        g.strokeStyle = "rgba(130, 215, 255, 0.5)";
+        g.lineWidth = 1.4;
+        g.beginPath();
+        pts.forEach((p, i) => { if (i === 0) g.moveTo(cx + p.x, cy + p.y); else g.lineTo(cx + p.x, cy + p.y); });
+        g.stroke();
+        pts.forEach((p) => {
+          g.fillStyle = "#ffe98a";
+          g.beginPath(); g.arc(cx + p.x, cy + p.y, 2.6, 0, Math.PI * 2); g.fill();
+        });
+        g.font = "13px serif";
+        g.textAlign = "center";
+        g.fillText(c.flag, cx, cy + 4);
+      });
+
+      // the piece in your hand
+      if (piece) {
+        const pts = shapeOf(piece.country, piece.size);
+        const a = piece.rot * Math.PI / 180;
+        const cos = Math.cos(a), sin = Math.sin(a);
+        g.save();
+        g.translate(piece.x, piece.y);
+        g.strokeStyle = "rgba(255, 233, 138, 0.75)";
+        g.lineWidth = 2.5;
+        g.beginPath();
+        pts.forEach((p, i) => {
+          const x = p.x * cos - p.y * sin, y = p.x * sin + p.y * cos;
+          if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+        });
+        g.stroke();
+        pts.forEach((p) => {
+          const x = p.x * cos - p.y * sin, y = p.x * sin + p.y * cos;
+          g.fillStyle = "#fff6c4";
+          g.beginPath(); g.arc(x, y, 5.5, 0, Math.PI * 2); g.fill();
+          g.font = "9px 'Trebuchet MS', sans-serif";
+          g.fillStyle = "rgba(210,235,255,0.9)";
+          g.textAlign = "center";
+          g.fillText(p.name, x, y - 9);
+        });
+        // a little compass so you can tell which way is up
+        g.strokeStyle = piece.rot % 360 === 0 ? "#7CFFB2" : "rgba(255,120,120,0.8)";
+        g.lineWidth = 2;
+        g.beginPath();
+        g.moveTo(0, 0);
+        g.lineTo(Math.sin(a) * 34, -Math.cos(a) * 34);
+        g.stroke();
+        g.fillStyle = piece.rot % 360 === 0 ? "#7CFFB2" : "rgba(255,120,120,0.9)";
+        g.font = "bold 11px 'Trebuchet MS', sans-serif";
+        g.textAlign = "center";
+        g.fillText("N", Math.sin(a) * 44, -Math.cos(a) * 44 + 4);
+        g.restore();
+      }
+
+      // your own constellation, hanging over the whole map in gold
+      if (myStar) {
+        g.save();
+        g.strokeStyle = "rgba(255, 214, 110, 0.55)";
+        g.lineWidth = 2;
+        g.beginPath();
+        myStar.stars.forEach((s, i) => (i ? g.lineTo(s.x, s.y) : g.moveTo(s.x, s.y)));
+        g.stroke();
+        myStar.stars.forEach((s, i) => {
+          const tw = 3 + 1.2 * Math.sin(now / 400 + i);
+          g.fillStyle = "rgba(255, 240, 190, 0.95)";
+          g.beginPath(); g.arc(s.x, s.y, tw, 0, Math.PI * 2); g.fill();
+        });
+        const last = myStar.stars[myStar.stars.length - 1];
+        g.fillStyle = "rgba(255, 224, 150, 0.9)";
+        g.font = "italic bold 13px 'Trebuchet MS', sans-serif";
+        g.textAlign = "left";
+        g.fillText(myStar.name, Math.min(last.x + 10, MAP_W - 140), last.y + 4);
+        g.restore();
+      }
+    }
+
+    function tryDrop() {
+      if (!piece) return;
+      const c = piece.country;
+      const cen = centroid(c);
+      const tx = mapX(cen.lon), ty = mapY(cen.lat);
+      const dist = Math.hypot(piece.x - tx, piece.y - ty);
+      const rotOff = Math.min(piece.rot % 360, 360 - (piece.rot % 360));
+      if (rotOff > 1) {
+        mapMsg = "🧭 Almost — but it's not the right way up. Use ↺ / ↻ until the <b>N</b> arrow points straight up and turns green.";
+        sBad();
+        updateMapBanner();
+        return;
+      }
+      if (dist > 55) {
+        const dx = tx - piece.x, dy = ty - piece.y;
+        const dir = (Math.abs(dy) > Math.abs(dx))
+          ? (dy < 0 ? "further north ⬆️" : "further south ⬇️")
+          : (dx < 0 ? "further west ⬅️" : "further east ➡️");
+        mapMsg = "Not there — try " + dir + " (" + (dist > 200 ? "a long way" : "a bit") + " off)";
+        sBad();
+        updateMapBanner();
+        return;
+      }
+      // snapped!
+      placed[c.id] = true;
+      piece = null;
+      mapMsg = "";
+      sSnap();
+      sGood();
+      confetti(14);
+      frags += 5;
+      updateHud();
+      save();
+      afterPlace(c);
+    }
+
+    async function afterPlace(c) {
+      const done = doneCount();
+      let body = '<p>Its stars are the cities of <b>' + c.name + "</b>: " +
+        c.cities.map((x) => x[0]).join(", ") + ".</p>" +
+        '<p class="fact">💡 ' + c.fact + "</p>" +
+        "<p>✨ +5 fragments · 🌍 " + done + " of " + totalCountries() + " restored</p>";
+      await card(c.flag, c.name + " is back in the sky!", body, [{ label: "Brilliant", value: true }]);
+
+      // continent finished?
+      const cont = c.cont;
+      const inCont = COUNTRIES.filter((x) => x.cont === cont);
+      if (inCont.every((x) => placed[x.id]) && !eggs["cont_" + cont]) {
+        eggs["cont_" + cont] = true;
+        frags += 15;
+        updateHud(); save();
+        confetti(20);
+        await card("🌟", cont + " complete!",
+          "<p>Every country in <b>" + cont + "</b> is back where it belongs.</p><p>✨ +15 fragments!</p>",
+          [{ label: "Onwards", value: true }]);
+      }
+
+      // all but Antarctica -> unlock the finale
+      if (allButLastDone() && !placed["aq"] && !eggs.finaleTold) {
+        eggs.finaleTold = true;
+        save();
+        await card("🇦🇶", "One piece left…",
+          "<p>Every country is home — except the one you're standing on.</p>" +
+          "<p>Somewhere out on the ice is the last meteorite of all. Antarctica's constellation is made of its <b>research stations</b>.</p>",
+          [{ label: "Go and find it", value: true }]);
+      }
+
+      if (doneCount() >= totalCountries()) {
+        finale();
+      } else {
+        updateMapBanner();
+      }
+    }
+
+    async function finale() {
+      sBig();
+      confetti(40, ["🐧", "⭐", "🎉", "🌍", "✨", "🔭"]);
+      await card("🐧", "THE PENGUIN CELEBRATION DANCE",
+        "<p>Every constellation is back in the sky. The star-map of the Earth is whole again.</p>" +
+        "<p>Out on the ice, every penguin in Antarctica is doing a little dance for you.</p>" +
+        '<p class="fact">🏆 You restored all ' + totalCountries() + " constellations — made from " +
+        COUNTRIES.reduce((n, c) => n + c.cities.length, 0) + " real cities and research stations. " +
+        "You are officially the Chief Astronomer of the South Pole.</p>",
+        [{ label: "🐧🐧🐧", value: true }]);
+      eggs.finished = true;
+      save();
+
+      await card("✍️", "One patch of sky is still empty",
+        "<p>There is a corner of the southern sky that nobody has ever named. " +
+        "Astronomers who fill in a blank patch get to name it whatever they like — that is a real rule.</p>" +
+        "<p>It's yours. Tap the sky to place your own stars, join them up, and give the constellation a name. " +
+        "It stays on your Star-Map forever.</p>",
+        [{ label: "🌟 Make my constellation", value: true }]);
+      setScreen("own");
+    }
+
+    /* ==========================================================
+       YOUR OWN CONSTELLATION
+       ========================================================== */
+
+    const OWN_MAX = 14;
+    let ownStars = [];          // {x,y} in cvOwn space, 0..760 / 0..420
+
+    function updateOwnBanner() {
+      const n = ownStars.length;
+      $("ownBanner").innerHTML = myStar
+        ? "🌟 <b>" + esc(myStar.name) + "</b> — your own constellation. Tap to redraw it."
+        : n === 0
+          ? "✨ Tap the empty sky to place your first star."
+          : n < 3
+            ? "✨ " + n + " star" + (n === 1 ? "" : "s") + " — at least 3 makes a constellation."
+            : "✨ " + n + " stars of " + OWN_MAX + " — tap <b>✍️ Name it</b> when it looks right.";
+    }
+
+    function ownAt(e) {
+      const cv = $("cvOwn"), r = cv.getBoundingClientRect();
+      return { x: (e.clientX - r.left) * (cv.width / r.width), y: (e.clientY - r.top) * (cv.height / r.height) };
+    }
+
+    function drawOwn(now) {
+      const cv = $("cvOwn"), g = cv.getContext("2d"), W = cv.width, H = cv.height;
+      const sky = g.createLinearGradient(0, 0, 0, H);
+      sky.addColorStop(0, "#050a1c");
+      sky.addColorStop(1, "#0d1730");
+      g.fillStyle = sky;
+      g.fillRect(0, 0, W, H);
+
+      // faint background stars, fixed so they don't crawl
+      for (let i = 0; i < 130; i++) {
+        const x = (i * 271.7) % W, y = (i * 149.3) % H;
+        const tw = 0.25 + 0.25 * Math.sin(now / 700 + i);
+        g.fillStyle = "rgba(255,255,255," + tw.toFixed(2) + ")";
+        g.fillRect(x, y, 1.6, 1.6);
+      }
+
+      // lines between the stars, in tap order
+      if (ownStars.length > 1) {
+        g.strokeStyle = "rgba(140,220,255,0.75)";
+        g.lineWidth = 2;
+        g.beginPath();
+        ownStars.forEach((s, i) => (i ? g.lineTo(s.x, s.y) : g.moveTo(s.x, s.y)));
+        g.stroke();
+      }
+
+      // the stars themselves
+      ownStars.forEach((s, i) => {
+        const pulse = 1 + 0.18 * Math.sin(now / 420 + i);
+        const grd = g.createRadialGradient(s.x, s.y, 0, s.x, s.y, 16 * pulse);
+        grd.addColorStop(0, "rgba(255,255,255,0.95)");
+        grd.addColorStop(0.35, "rgba(170,225,255,0.5)");
+        grd.addColorStop(1, "rgba(120,190,255,0)");
+        g.fillStyle = grd;
+        g.beginPath();
+        g.arc(s.x, s.y, 16 * pulse, 0, Math.PI * 2);
+        g.fill();
+        g.fillStyle = "#fff";
+        g.beginPath();
+        g.arc(s.x, s.y, 3.2, 0, Math.PI * 2);
+        g.fill();
+      });
+
+      if (myStar) {
+        g.fillStyle = "rgba(255,255,255,0.92)";
+        g.font = "bold 22px system-ui, sans-serif";
+        g.textAlign = "center";
+        g.fillText(myStar.name, W / 2, H - 26);
+        g.textAlign = "left";
+      }
+    }
+
+    async function nameOwn() {
+      if (ownStars.length < 3) { toast("✨ Place at least 3 stars first!"); return; }
+      const ok = await card("✍️", "Name your constellation",
+        '<p>Every astronomer gets one. What is yours called?</p>' +
+        '<input id="ownName" maxlength="24" placeholder="The Great Penguin..." ' +
+        'style="width:88%; padding:12px; font-size:17px; border-radius:12px; border:2px solid #3a5a86; ' +
+        'background:#0e1830; color:#eaf2ff; text-align:center; margin-top:6px;">',
+        [{ label: "⭐ Name it", value: true }, { label: "Keep drawing", value: false }]);
+      if (!ok) return;
+      let nm = ($("ownName") && $("ownName").value || "").trim().slice(0, 24);
+      if (!nm) nm = "Ezra's Constellation";
+      myStar = { name: nm, stars: ownStars.map((s) => ({ x: Math.round(s.x), y: Math.round(s.y) })) };
+      frags += 25;
+      updateHud(); save();
+      sBig();
+      confetti(30, ["⭐", "✨", "🌟", "🐧"]);
+      await card("🌟", esc(nm) + " is in the sky!",
+        "<p>Your constellation now hangs over the South Pole with all the others, and it will be there every time you open the Star-Map.</p>" +
+        "<p class=\"fact\">🔭 " + esc(nm) + " · " + myStar.stars.length + " stars · discovered by you, " + new Date().getFullYear() + ".</p>" +
+        "<p>✨ +25 fragments</p>",
+        [{ label: "🐧🐧🐧", value: true }]);
+      updateOwnBanner();
+    }
+
+    /* ==========================================================
+       LOG
+       ========================================================== */
+
+    function renderLog() {
+      const body = $("logBody");
+      let h = "";
+      const conts = [...new Set(COUNTRIES.map((c) => c.cont))];
+      h += '<div class="log-sec">🌍 Constellations — ' + doneCount() + " / " + totalCountries() + "</div>";
+      conts.forEach((k) => {
+        const list = COUNTRIES.filter((c) => c.cont === k);
+        h += '<div style="font-size:0.76rem;font-weight:bold;opacity:0.7;margin:7px 0 3px">' + k +
+          " (" + list.filter((c) => placed[c.id]).length + "/" + list.length + ")</div>";
+        h += '<div class="log-grid">' + list.map((c) => {
+          const got = placed[c.id];
+          return '<div class="log-card' + (got ? " done" : "") + '" data-log="' + c.id + '">' +
+            '<span class="f">' + (got ? c.flag : "❔") + "</span>" +
+            (got ? c.name : "???") +
+            '<span class="sub">' + (got ? c.cities.length + " cities" : "not found") + "</span></div>";
+        }).join("") + "</div>";
+      });
+      h += '<div class="log-sec">📮 Postcard stamps — ' + Object.keys(stamps).length + " / " + totalCountries() + "</div>";
+      h += '<div class="stamps">' + COUNTRIES.map((c) =>
+        '<span class="stamp' + (stamps[c.id] ? " got" : "") + '">' + (stamps[c.id] ? c.flag : "·") + "</span>").join("") + "</div>";
+      const eggList = [
+        ["sock", "🧦 The Lost Sock"], ["sandwich", "🥪 The Frozen Sandwich"], ["ufo", "🛸 UFO Spotted"],
+        ["pole", "🎯 Stood on the South Pole"], ["tenStamps", "✉️ Postcard from the penguins"],
+        ["snowman", "⛄ Built a snowman"], ["ezra", "⭐ The Ezra Constellation"], ["finished", "🏆 Restored the whole world"],
+      ];
+      const gotEggs = eggList.filter((e) => eggs[e[0]]).length;
+      h += '<div class="log-sec">🥚 Secrets — ' + gotEggs + " / " + eggList.length + "</div>";
+      h += '<div class="log-grid">' + eggList.map((e) =>
+        '<div class="log-card' + (eggs[e[0]] ? " done" : "") + '">' + (eggs[e[0]] ? e[1] : "🔒 ???") + "</div>").join("") + "</div>";
+      h += '<div class="log-sec">🐧 Penguins met</div><div class="log-grid">' +
+        PENGUIN_NAMES.map((n) => '<div class="log-card' + (eggs["peng_" + n] ? " done" : "") + '">🐧 ' +
+          (eggs["peng_" + n] ? n : "???") + "</div>").join("") + "</div>";
+      if (myStar) {
+        h += '<div class="log-sec">🌟 Your own constellation</div><div class="log-grid">' +
+          '<div class="log-card done"><span class="f">🌟</span>' + esc(myStar.name) +
+          '<span class="sub">' + myStar.stars.length + " stars · named by you</span></div></div>";
+      }
+      body.innerHTML = h;
+    }
+
+    document.addEventListener("click", (ev) => {
+      const b = ev.target.closest && ev.target.closest("[data-log]");
+      if (!b) return;
+      const c = byId(b.dataset.log);
+      if (!c || !placed[c.id]) return;
+      sClick();
+      card(c.flag, c.name,
+        "<p><b>Capital:</b> " + c.cities[0][0] + "</p><p><b>Its stars:</b> " + c.cities.map((x) => x[0]).join(", ") + "</p>" +
+        '<p class="fact">💡 ' + c.fact + "</p>",
+        [{ label: "Close", value: true }]);
+    });
+
+    /* ==========================================================
+       SCREENS
+       ========================================================== */
+
+    function setScreen(s) {
+      screen = s;
+      ["Title", "Ice", "Space", "Id", "Map", "Own", "Log"].forEach((k) => {
+        $("sc" + k).hidden = ("sc" + k) !== ("sc" + s.charAt(0).toUpperCase() + s.slice(1));
+      });
+      $("hud").style.display = s === "title" ? "none" : "";
+      if (s === "map") { updateMapBanner(); $("bOwnOpen").hidden = !eggs.finished; }
+      if (s === "own") updateOwnBanner();
+      if (s === "log") renderLog();
+      if (s === "ice") {
+        const left = COUNTRIES.filter((c) => !found[c.id]).length;
+        if (left === 0) toast("Everything's been found! Finish placing them on the Star-Map. 🌍");
+      }
+    }
+
+    function updateHud() {
+      $("pFrag").textContent = "✨ " + frags;
+      $("pDone").textContent = "🌍 " + doneCount() + "/" + totalCountries();
+      $("pStamp").textContent = "📮 " + Object.keys(stamps).length;
+      $("bSound").textContent = soundOn ? "🔊" : "🔇";
+    }
+
+    /* ==========================================================
+       TITLE ART
+       ========================================================== */
+
+    function drawTitle(now) {
+      const g = $("cvTitle").getContext("2d");
+      const W = 760, H = 380;
+      const grd = g.createLinearGradient(0, 0, 0, H);
+      grd.addColorStop(0, "#040a22");
+      grd.addColorStop(0.62, "#0d2a52");
+      grd.addColorStop(0.63, "#dceefc");
+      grd.addColorStop(1, "#b7dcf2");
+      g.fillStyle = grd;
+      g.fillRect(0, 0, W, H);
+      for (let i = 0; i < 120; i++) {
+        const x = (i * 137.5) % W, y = (i * 53.3) % (H * 0.6);
+        g.globalAlpha = 0.3 + 0.6 * Math.abs(Math.sin(now / 900 + i));
+        g.fillStyle = "#fff";
+        g.fillRect(x, y, 1.7, 1.7);
+      }
+      g.globalAlpha = 1;
+      // aurora
+      for (let k = 0; k < 3; k++) {
+        const ag = g.createLinearGradient(0, 30, 0, 200);
+        ag.addColorStop(0, ["rgba(124,255,178,0.5)", "rgba(143,208,255,0.45)", "rgba(201,168,255,0.4)"][k]);
+        ag.addColorStop(1, "rgba(255,255,255,0)");
+        g.fillStyle = ag;
+        g.beginPath();
+        g.moveTo(0, 30);
+        for (let x = 0; x <= W; x += 18) g.lineTo(x, 70 + Math.sin((x + now / 18 + k * 120) / 95) * 30 + k * 22);
+        g.lineTo(W, 30); g.closePath(); g.fill();
+      }
+      // the southern cross, drawn properly-ish
+      const cross = [[610, 120], [640, 175], [585, 165], [630, 215], [612, 152]];
+      g.strokeStyle = "rgba(200,235,255,0.55)";
+      g.lineWidth = 1.5;
+      g.beginPath(); g.moveTo(610, 120); g.lineTo(630, 215); g.moveTo(585, 165); g.lineTo(640, 175); g.stroke();
+      cross.forEach((p, i) => {
+        g.fillStyle = "#fff";
+        g.beginPath(); g.arc(p[0], p[1], i === 4 ? 2.2 : 3.6, 0, Math.PI * 2); g.fill();
+      });
+      g.font = "11px 'Trebuchet MS', sans-serif";
+      g.fillStyle = "rgba(200,235,255,0.75)";
+      g.textAlign = "center";
+      g.fillText("the Southern Cross", 612, 240);
+
+      // ice + station
+      g.fillStyle = "#f2fbff";
+      g.beginPath();
+      g.moveTo(0, H);
+      for (let x = 0; x <= W; x += 12) g.lineTo(x, 250 + Math.sin(x / 90) * 10 + Math.sin(x / 33) * 4);
+      g.lineTo(W, H); g.closePath(); g.fill();
+      g.font = "40px serif";
+      g.textAlign = "center";
+      g.fillText("🏠", 200, 262);
+      g.font = "26px serif";
+      g.fillText("🔭", 250, 258);
+      ["🐧", "🐧", "🐧"].forEach((e, i) => {
+        g.font = "22px serif";
+        g.fillText(e, 320 + i * 34 + Math.sin(now / 700 + i) * 5, 285 + (i % 2) * 8);
+      });
+      g.font = "bold 21px 'Trebuchet MS', sans-serif";
+      g.fillStyle = "#0b3a5c";
+      g.fillText("Antarctic Star-Map", W / 2, 330);
+      g.font = "13px 'Trebuchet MS', sans-serif";
+      g.fillStyle = "#2d6d92";
+      g.fillText("Put the world back in the sky, one country at a time", W / 2, 352);
+    }
+
+    /* ==========================================================
+       INPUT
+       ========================================================== */
+
+    function canvasPos(cv, ev, w, h) {
+      const r = cv.getBoundingClientRect();
+      return { x: (ev.clientX - r.left) / r.width * w, y: (ev.clientY - r.top) / r.height * h };
+    }
+
+    // ICE
+    $("cvIce").addEventListener("pointerdown", (ev) => {
+      ev.preventDefault();
+      audio();
+      const p = canvasPos($("cvIce"), ev, 760, 430);
+      const camX = clamp(ice.x - 380, 0, ICE_W - 760);
+      const camY = clamp(ice.y - 215, 0, ICE_H - 430);
+      iceTap(p.x + camX, p.y + camY);
+    });
+    $("digBtn").addEventListener("click", (ev) => { ev.stopPropagation(); digHere(); });
+    $("bScan").addEventListener("click", () => {
+      sClick();
+      const nr = nearestReal();
+      if (!nr.rock) { toast("📡 Nothing left to find out here — head to the Star-Map!"); return; }
+      const d = Math.round(nr.dist);
+      const dx = nr.rock.x - ice.x, dy = nr.rock.y - ice.y;
+      const dir = Math.abs(dy) > Math.abs(dx) ? (dy < 0 ? "north ⬆️" : "south ⬇️") : (dx < 0 ? "west ⬅️" : "east ➡️");
+      toast("📡 Nearest meteorite: about <b>" + d + " m</b> to the " + dir);
+    });
+
+    // SPACE
+    $("cvSpace").addEventListener("pointerdown", (ev) => {
+      ev.preventDefault(); audio();
+      const p = canvasPos($("cvSpace"), ev, 760, 430);
+      if (sp) { sp.tx = p.x; sp.ty = p.y; spDown = true; }
+    });
+    $("cvSpace").addEventListener("pointermove", (ev) => {
+      if (!spDown || !sp) return;
+      const p = canvasPos($("cvSpace"), ev, 760, 430);
+      sp.tx = p.x; sp.ty = p.y;
+    });
+    window.addEventListener("pointerup", () => { spDown = false; dragging = false; });
+    let spDown = false;
+    $("bSkipSpace").addEventListener("click", () => { sClick(); if (sp) { sp.stars.forEach((s) => { s.got = true; }); sp.got = sp.stars.length; finishSpace(); } });
+
+    // MAP drag
+    $("cvMap").addEventListener("pointerdown", (ev) => {
+      ev.preventDefault(); audio();
+      if (!piece) return;
+      const p = canvasPos($("cvMap"), ev, MAP_W, MAP_H);
+      if (Math.hypot(p.x - piece.x, p.y - piece.y) < piece.size * 0.75) {
+        dragging = true;
+        piece.x = p.x; piece.y = p.y;
+        mapMsg = "";
+      }
+      checkCornerEgg(p);
+    });
+    $("cvMap").addEventListener("pointermove", (ev) => {
+      if (!dragging || !piece) return;
+      const p = canvasPos($("cvMap"), ev, MAP_W, MAP_H);
+      piece.x = clamp(p.x, 20, MAP_W - 20);
+      piece.y = clamp(p.y, 20, MAP_H - 20);
+    });
+    $("cvMap").addEventListener("pointerup", () => {
+      if (!dragging) return;
+      dragging = false;
+      tryDrop();
+    });
+
+    let corners = {};
+    function checkCornerEgg(p) {
+      const m = 60;
+      const k = (p.x < m ? "l" : p.x > MAP_W - m ? "r" : "") + (p.y < m ? "t" : p.y > MAP_H - m ? "b" : "");
+      if (k.length === 2) corners[k] = true;
+      if (Object.keys(corners).length >= 4 && !eggs.ezra) {
+        eggs.ezra = true;
+        frags += 20;
+        confetti(24, ["⭐", "✨", "🌟"]);
+        card("⭐", "You found the Ezra Constellation!",
+          "<p>Tapping all four corners of the sky revealed a constellation nobody has ever charted before.</p>" +
+          '<p class="fact">It is now officially called <b>Ezra</b>, and it will hang in the southern sky forever. ✨ +20 fragments.</p>',
+          [{ label: "⭐ Wow", value: true }]);
+        updateHud(); save();
+      }
+    }
+
+    $("bRotL").addEventListener("click", () => { if (piece) { piece.rot = (piece.rot + 330) % 360; sClick(); mapMsg = ""; updateMapBanner(); } });
+    $("bRotR").addEventListener("click", () => { if (piece) { piece.rot = (piece.rot + 30) % 360; sClick(); mapMsg = ""; updateMapBanner(); } });
+    $("bHint").addEventListener("click", () => {
+      if (!piece) { toast("Nothing to place right now."); return; }
+      sClick();
+      hintUntil = performance.now() + 3200;
+      toast("🔭 The telescope is pointing at the right region…");
+    });
+    $("bBackIce").addEventListener("click", () => { sClick(); setScreen("ice"); });
+    $("bMapFromIce").addEventListener("click", () => { sClick(); setScreen("map"); });
+    $("bClue").addEventListener("click", () => {
+      sClick();
+      if (cluesShown < clueList(quest.country).length) { cluesShown++; renderIdentify(); }
+    });
+    $("cvOwn").addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      if (ownStars.length >= OWN_MAX) { toast("✨ That's the most stars one constellation can hold!"); return; }
+      const p = ownAt(e);
+      // tapping an existing star removes it, so a mistake is never permanent
+      const hit = ownStars.findIndex((s) => Math.hypot(s.x - p.x, s.y - p.y) < 18);
+      if (hit >= 0) ownStars.splice(hit, 1);
+      else { ownStars.push(p); tone(880 + ownStars.length * 60, 0.09, "sine", 0.06); }
+      if (myStar) myStar = null;   // redrawing replaces the old one
+      updateOwnBanner();
+    });
+    $("bOwnUndo").addEventListener("click", () => { sClick(); ownStars.pop(); myStar = null; updateOwnBanner(); });
+    $("bOwnClear").addEventListener("click", () => { sClick(); ownStars = []; myStar = null; updateOwnBanner(); });
+    $("bOwnDone").addEventListener("click", () => { sClick(); nameOwn(); });
+    $("bOwnLeave").addEventListener("click", () => { sClick(); setScreen("map"); });
+    $("bOwnOpen").addEventListener("click", () => { sClick(); setScreen("own"); });
+
+    $("bLeaveId").addEventListener("click", () => {
+      sClick();
+      quest = null;
+      setScreen("ice");
+      toast("🧊 Left for later — that meteorite will turn up again out on the ice.");
+    });
+
+    $("bStart").addEventListener("click", async () => {
+      sClick(); audio();
+      setScreen("ice");
+      toast("📡 Follow the arrow and listen for the beeps. Tap the ice to walk!", 5000);
+    });
+    $("bLog").addEventListener("click", () => { sClick(); lastScreen = screen === "log" ? lastScreen : screen; setScreen("log"); });
+    $("bCloseLog").addEventListener("click", () => { sClick(); setScreen(lastScreen || "ice"); });
+    let lastScreen = "ice";
+    $("bSound").addEventListener("click", () => { soundOn = !soundOn; if (soundOn) sClick(); updateHud(); save(); });
+    $("bReset").addEventListener("click", async () => {
+      sClick();
+      const ok = await card("🧹", "Start the whole expedition again?",
+        "<p>Every constellation, stamp, upgrade and secret will be wiped.</p>",
+        [{ label: "Yes, start over", value: true }, { label: "Cancel", value: false }]);
+      if (!ok) return;
+      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+      frags = 0; placed = {}; found = {}; stamps = {}; ups = {}; eggs = {}; visitedStations = {};
+      quest = null; piece = null; myStar = null; ownStars = [];
+      ice = { x: 300, y: 400, tx: 300, ty: 400 };
+      seedRocks(); makePenguins();
+      updateHud(); save();
+      setScreen("title");
+    });
+
+    /* ==========================================================
+       LOOP
+       ========================================================== */
+
+    function makePenguins() {
+      penguins = PENGUIN_NAMES.map((n, i) => ({
+        name: n,
+        x: 150 + (i * 197) % (ICE_W - 300),
+        y: 120 + (i * 311) % (ICE_H - 240),
+        vx: 0, vy: 0, t: Math.random() * 3, flip: 0, taps: 0,
+      }));
+    }
+
+    let lastT = 0;
+    function frame(now) {
+      const t = now / 1000;
+      if (!lastT) lastT = t;
+      const dt = Math.min(t - lastT, 0.06);
+      lastT = t;
+
+      if (screen === "title") drawTitle(now);
+      else if (screen === "ice") { updateIce(dt, now); drawIce(now); }
+      else if (screen === "space") { updateSpace(dt); drawSpace(now); }
+      else if (screen === "id") drawConstellationPreview();
+      else if (screen === "map") drawMap(now);
+      else if (screen === "own") drawOwn(now);
+
+      requestAnimationFrame(frame);
+    }
+
+    /* ==========================================================
+       START
+       ========================================================== */
+
+    const had = load();
+    if (!rocks.length) seedRocks();
+    makePenguins();
+    updateHud();
+    setScreen(had && (doneCount() > 0 || frags > 0) ? "ice" : "title");
+    if (had && doneCount() > 0) toast("🔭 Welcome back, astronomer! " + doneCount() + " constellations restored so far.");
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
