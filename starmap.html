@@ -778,19 +778,33 @@
       for (let i = 0; i < wantDecoy; i++) addRock(false);
     }
 
-    function addRock(real) {
+    function addRock(real, insist) {
+      // a meteorite needs somewhere to go before we bother finding it a spot
+      const t = real ? meteoriteTarget() : null;
+      if (real && !t) return false;
+
+      // insist = the ice must not be left with nothing to find, so keep
+      // relaxing how far apart things have to be rather than giving up
+      const tries = insist ? 400 : 40;
       let x = 0, y = 0, ok = false;
-      for (let i = 0; i < 40 && !ok; i++) {
+      for (let i = 0; i < tries && !ok; i++) {
+        const ease = insist ? Math.min(i / tries, 0.8) : 0;
         x = 70 + Math.random() * (ICE_W - 140);
         y = 70 + Math.random() * (ICE_H - 140);
-        ok = rocks.every((r) => Math.hypot(r.x - x, r.y - y) > 130) &&
-             STATIONS.every((s) => Math.hypot(s.x - x, s.y - y) > 110) &&
-             Math.hypot(ice.x - x, ice.y - y) > 200;
+        ok = rocks.every((r) => r.dug || Math.hypot(r.x - x, r.y - y) > 130 * (1 - ease)) &&
+             STATIONS.every((s) => Math.hypot(s.x - x, s.y - y) > 110 * (1 - ease)) &&
+             Math.hypot(ice.x - x, ice.y - y) > 200 * (1 - ease);
       }
-      if (!ok) return;
-      const t = real ? meteoriteTarget() : null;
-      if (real && !t) return;
+      if (!ok) return false;
       rocks.push({ x, y, real, id: t ? t.id : null, dug: false, kind: real ? null : Math.floor(Math.random() * DECOY_KINDS.length) });
+      return true;
+    }
+
+    // there must always be a meteorite out there to find, or the expedition
+    // quietly dead-ends — this also repairs a game that already stalled
+    function ensureRealRock() {
+      if (rocks.some((r) => r.real && !r.dug)) return false;
+      return addRock(true, true);
     }
 
     function nearestRock() {
@@ -823,7 +837,7 @@
         frags += 1;
         if (k.egg && !eggs[k.egg]) { eggs[k.egg] = true; confetti(10); toast("🥚 Easter egg found: " + k.e + " " + k.label); }
         else toast(k.e + " " + k.label + " — but you kept a ✨ fragment.");
-        setTimeout(() => addRock(false), 2500);
+        setTimeout(() => { addRock(false); save(); }, 2500);
         updateHud(); save();
         return;
       }
@@ -838,7 +852,7 @@
       const c = byId(rock.id);
       frags += 3;
       updateHud();
-      setTimeout(() => addRock(true), 4000);
+      setTimeout(() => { addRock(true); save(); }, 4000);
       startQuest(c);
       save();
     }
@@ -1635,6 +1649,7 @@
 
     async function afterPlace(c) {
       const done = doneCount();
+      ensureRealRock();   // hands are empty again, so the next one can land
       let body = '<p>Its stars are the cities of <b>' + c.name + "</b>: " +
         c.cities.map((x) => x[0]).join(", ") + ".</p>" +
         '<p class="fact">💡 ' + c.fact + "</p>" +
@@ -1861,8 +1876,15 @@
       if (s === "own") updateOwnBanner();
       if (s === "log") renderLog();
       if (s === "ice") {
+        // walking back onto the ice always gives you something to hunt
+        if (ensureRealRock()) {
+          save();
+          if (allButLastDone() && !placed["aq"]) {
+            toast("📡 A signal! The last meteorite of all is out there somewhere. 🇦🇶", 5000);
+          }
+        }
         const left = COUNTRIES.filter((c) => !found[c.id]).length;
-        if (left === 0) toast("Everything's been found! Finish placing them on the Star-Map. 🌍");
+        if (left === 0 && piece) toast("Everything's been found! Finish placing them on the Star-Map. 🌍");
       }
     }
 
@@ -2125,6 +2147,7 @@
 
     const had = load();
     if (!rocks.length) seedRocks();
+    ensureRealRock();
     makePenguins();
     updateHud();
     setScreen(had && (doneCount() > 0 || frags > 0) ? "ice" : "title");
