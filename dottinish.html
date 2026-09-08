@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Dottinish — the language of Dot</title>
+<style>
+  :root {
+    --ink: #16213f;
+    --ink2: #24365f;
+    --parch: #f6efdf;
+    --parch2: #efe4cd;
+    --gold: #d9a441;
+    --gold2: #b9862c;
+    --green: #3f9a5c;
+    --amber: #d98026;
+    --line: #cdbb96;
+    --white: #fffdf7;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--ink);
+    color: var(--ink);
+    font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+    overscroll-behavior: none;
+  }
+  body {
+    background-image:
+      radial-gradient(circle at 18% 12%, rgba(217,164,65,0.10), transparent 42%),
+      radial-gradient(circle at 84% 78%, rgba(90,140,220,0.12), transparent 46%);
+    min-height: 100vh;
+  }
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 10px 12px 40px;
+  }
+  .sheet {
+    background: var(--parch);
+    border-radius: 20px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.45);
+    padding: 14px 14px 20px;
+  }
+  a.back {
+    display: inline-block;
+    color: #a9c6f0;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 0.85rem;
+    padding: 6px 2px 8px;
+  }
+  h1 {
+    margin: 2px 0 2px;
+    text-align: center;
+    font-size: 1.6rem;
+    letter-spacing: 0.5px;
+    color: var(--ink);
+  }
+  .tag {
+    text-align: center;
+    font-size: 0.8rem;
+    opacity: 0.68;
+    margin: 0 0 10px;
+  }
+
+  /* ---- top bar ---- */
+  #bar {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    justify-content: center; align-items: center;
+    margin-bottom: 10px;
+  }
+  .pill {
+    background: var(--white);
+    border: 2px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-weight: bold;
+    font-size: 0.8rem;
+    min-height: 38px;
+    display: inline-flex; align-items: center; gap: 5px;
+    white-space: nowrap;
+  }
+  .pill.gold { background: #fdf3dc; border-color: var(--gold); }
+  button.pill { cursor: pointer; }
+  button.pill:active { transform: scale(0.95); }
+
+  /* ---- buttons ---- */
+  .btn {
+    display: inline-block;
+    background: var(--white);
+    border: 2px solid var(--line);
+    border-bottom-width: 4px;
+    border-radius: 14px;
+    padding: 12px 18px;
+    font-family: inherit;
+    font-weight: bold;
+    font-size: 0.95rem;
+    color: var(--ink);
+    cursor: pointer;
+    min-height: 48px;
+  }
+  .btn:active { transform: translateY(2px); border-bottom-width: 2px; }
+  .btn.primary { background: var(--gold); border-color: var(--gold2); color: #2b1d05; }
+  .btn.go { background: var(--green); border-color: #2e7345; color: #fff; }
+  .btn[disabled] { opacity: 0.45; cursor: default; transform: none; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+
+  /* ---- the map of Dot ---- */
+  .unit {
+    margin: 14px 0 6px;
+    border-top: 2px dashed var(--line);
+    padding-top: 12px;
+  }
+  .unit:first-child { border-top: none; }
+  .unit h2 {
+    margin: 0 0 2px; font-size: 1.05rem; text-align: center;
+  }
+  .unit .sub { text-align: center; font-size: 0.76rem; opacity: 0.6; margin-bottom: 10px; }
+  .nodes { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .node {
+    width: 62px; height: 62px;
+    border-radius: 50%;
+    border: 3px solid var(--line);
+    border-bottom-width: 6px;
+    background: var(--white);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-weight: bold; font-size: 0.72rem;
+    cursor: pointer; color: var(--ink);
+    font-family: inherit;
+    line-height: 1.1;
+  }
+  .node:active { transform: translateY(2px); border-bottom-width: 3px; }
+  .node.done { background: var(--green); border-color: #2e7345; color: #fff; }
+  .node.crown { background: #fdf3dc; border-color: var(--gold); }
+  .node.crown.done { background: var(--gold); border-color: var(--gold2); color: #2b1d05; }
+  .node.locked { opacity: 0.4; cursor: default; }
+  .node .big { font-size: 1.2rem; }
+
+  /* ---- lesson ---- */
+  #prog {
+    height: 14px; background: var(--parch2);
+    border: 2px solid var(--line); border-radius: 999px;
+    overflow: hidden; margin: 4px 0 12px;
+  }
+  #progFill { height: 100%; width: 0%; background: var(--green); transition: width 0.25s; }
+  .prompt { text-align: center; font-weight: bold; font-size: 1rem; margin: 4px 0 12px; }
+  .prompt .sound { color: var(--gold2); font-size: 1.35rem; }
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .opt {
+    background: var(--white);
+    border: 2px solid var(--line);
+    border-bottom-width: 5px;
+    border-radius: 14px;
+    padding: 10px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px;
+    cursor: pointer; font-family: inherit; font-weight: bold; color: var(--ink);
+    min-height: 92px;
+  }
+  .opt:active { transform: translateY(2px); border-bottom-width: 3px; }
+  .opt.sel { background: #e3f0ff; border-color: #5b8fd6; }
+  .opt.good { background: #dff2e3; border-color: var(--green); }
+  .opt.bad { background: #fbe6d8; border-color: var(--amber); }
+  .opt .lbl { font-size: 1.5rem; }
+  .opt .sub { font-size: 0.75rem; opacity: 0.6; font-weight: normal; }
+
+  .matchGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .mtile {
+    background: var(--white); border: 2px solid var(--line); border-bottom-width: 5px;
+    border-radius: 12px; min-height: 62px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-family: inherit; font-weight: bold; font-size: 1.3rem; color: var(--ink);
+  }
+  .mtile.sel { background: #e3f0ff; border-color: #5b8fd6; }
+  .mtile.gone { opacity: 0.25; pointer-events: none; background: #dff2e3; border-color: var(--green); }
+
+  .answerRow, .bank {
+    display: flex; flex-wrap: wrap; gap: 7px; justify-content: center;
+    min-height: 62px; padding: 8px;
+    border-radius: 12px;
+  }
+  .answerRow { background: var(--parch2); border: 2px dashed var(--line); margin-bottom: 12px; }
+  .tile {
+    background: var(--white); border: 2px solid var(--line); border-bottom-width: 4px;
+    border-radius: 10px; padding: 4px 6px; cursor: pointer;
+    font-family: inherit; font-weight: bold; font-size: 1.2rem; color: var(--ink);
+    min-width: 52px; min-height: 52px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tile:active { transform: translateY(2px); }
+  .tile.used { opacity: 0.25; pointer-events: none; }
+
+  .wordShow {
+    display: flex; flex-wrap: wrap; gap: 4px; justify-content: center;
+    margin: 6px 0 14px;
+  }
+
+  #feedback {
+    margin-top: 14px; border-radius: 14px; padding: 12px;
+    font-weight: bold; text-align: center; display: none;
+  }
+  #feedback.good { display: block; background: #dff2e3; border: 2px solid var(--green); color: #1f5c33; }
+  #feedback.bad  { display: block; background: #fbe6d8; border: 2px solid var(--amber); color: #7d4310; }
+  #feedback .fsub { font-weight: normal; font-size: 0.85rem; opacity: 0.85; display: block; margin-top: 3px; }
+
+  /* ---- studio / canvas ---- */
+  canvas { display: block; max-width: 100%; touch-action: none; }
+  .pad {
+    background: var(--white); border: 2px solid var(--line);
+    border-radius: 16px; margin: 0 auto 10px; overflow: hidden;
+    width: fit-content;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 10px; }
+  .chip {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: var(--white); border: 2px solid var(--line);
+    font-family: inherit; font-weight: bold; cursor: pointer; color: var(--ink);
+  }
+  .chip.on { background: var(--gold); border-color: var(--gold2); }
+  .chip.custom { border-color: var(--green); border-width: 3px; }
+
+  /* ---- scroll / chart ---- */
+  .chart { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+  .cell {
+    background: var(--white); border: 2px solid var(--line); border-radius: 12px;
+    padding: 6px 4px; text-align: center;
+  }
+  .cell .en { font-weight: bold; font-size: 1rem; }
+  .cell .sd { font-size: 0.75rem; color: var(--gold2); font-weight: bold; }
+  .cell .stars { font-size: 0.62rem; letter-spacing: 1px; color: var(--gold2); }
+
+  /* ---- translator ---- */
+  textarea, input[type=text] {
+    width: 100%; border: 2px solid var(--line); border-radius: 12px;
+    padding: 10px; font-family: inherit; font-size: 1rem;
+    background: var(--white); color: var(--ink); resize: vertical;
+  }
+  #outPad { background: var(--white); border: 2px solid var(--line); border-radius: 14px; padding: 8px; margin: 10px 0; overflow-x: auto; }
+
+  #toast {
+    position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+    background: rgba(12,22,48,0.96); color: #fff; border: 2px solid var(--gold);
+    border-radius: 12px; padding: 9px 15px; font-weight: bold; font-size: 0.85rem;
+    max-width: 92vw; text-align: center; z-index: 300; display: none;
+  }
+  #toast.show { display: block; }
+
+  .overlay {
+    position: fixed; inset: 0; background: rgba(8,14,32,0.72);
+    display: none; align-items: center; justify-content: center; z-index: 400; padding: 16px;
+  }
+  .overlay.show { display: flex; }
+  .ovcard {
+    background: var(--parch); border-radius: 20px; padding: 20px;
+    max-width: 420px; width: 100%; text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    max-height: 86vh; overflow-y: auto;
+  }
+  .ovcard h3 { margin: 6px 0 8px; }
+  .ovcard p { font-size: 0.9rem; line-height: 1.45; }
+
+  .fact { background: #fdf3dc; border-left: 4px solid var(--gold); padding: 8px 10px; border-radius: 8px; text-align: left; font-size: 0.85rem; }
+
+  /* a lesson gets the whole screen — the nav gets out of the way */
+  body.inLesson .tag, body.inLesson #bScroll, body.inLesson #bStudio,
+  body.inLesson #bTrans, body.inLesson #bReset { display: none; }
+  body.inLesson h1 { font-size: 1.1rem; margin-bottom: 6px; }
+
+  @media (max-width: 430px) {
+    h1 { font-size: 1.35rem; }
+    .opts { gap: 8px; }
+    .node { width: 56px; height: 56px; font-size: 0.66rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← Back to Game Hub</a>
+  <div class="sheet">
+    <h1>ᛞ Dottinish</h1>
+    <p class="tag">The written language of the Land of Dot</p>
+
+    <div id="bar">
+      <span class="pill gold" id="pXp">✨ 0</span>
+      <span class="pill" id="pStreak">🔥 0</span>
+      <span class="pill" id="pLearn">📜 0/26</span>
+      <button class="pill" id="bScroll">📜 Scroll</button>
+      <button class="pill" id="bStudio">✍️ Studio</button>
+      <button class="pill" id="bTrans">🔤 Translate</button>
+      <button class="pill" id="bReset">🧹</button>
+    </div>
+
+    <!-- ============ MAP ============ -->
+    <section id="scMap"></section>
+
+    <!-- ============ LESSON ============ -->
+    <section id="scLesson" hidden>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="pill" id="bQuit">✕</button>
+        <div id="prog" style="flex:1;"><div id="progFill"></div></div>
+      </div>
+      <div id="exBody"></div>
+      <div id="feedback"></div>
+      <div class="row" style="margin-top:14px;">
+        <button class="btn go" id="bCheck">Check</button>
+      </div>
+    </section>
+
+    <!-- ============ STUDIO ============ -->
+    <section id="scStudio" hidden>
+      <p class="tag" style="margin-bottom:8px;">Pick a letter, then draw its Dottinish glyph. Yours replaces mine — everywhere in the app.</p>
+      <div class="chips" id="studioChips"></div>
+      <div class="pad"><canvas id="cvStudio" width="320" height="320"></canvas></div>
+      <div class="row">
+        <button class="btn" id="bStUndo">↩ Undo stroke</button>
+        <button class="btn" id="bStClear">🧹 Clear</button>
+        <button class="btn" id="bStShow">👁 Show mine</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button class="btn go" id="bStSave">✅ Save this glyph</button>
+        <button class="btn" id="bStRevert">↺ Back to mine</button>
+        <button class="btn primary" id="bStDone">Done</button>
+      </div>
+    </section>
+
+    <!-- ============ TRANSLATE ============ -->
+    <section id="scTrans" hidden>
+      <p class="tag" style="margin-bottom:8px;">Type in English — see it in Dottinish. Send secret messages.</p>
+      <textarea id="transIn" rows="2" placeholder="Type something…" maxlength="140"></textarea>
+      <div id="outPad"><canvas id="cvTrans" width="660" height="150"></canvas></div>
+      <div class="row">
+        <button class="btn" id="bTransSave">💾 Save as picture</button>
+        <button class="btn" id="bTransSecret">🕵️ Secret message</button>
+        <button class="btn primary" id="bTransDone">Done</button>
+      </div>
+      <div id="secretBox" hidden style="margin-top:14px;">
+        <p class="tag" style="margin:0 0 6px;">Decode it! What does this say?</p>
+        <div id="outPad2" style="background:var(--white);border:2px solid var(--line);border-radius:14px;padding:8px;overflow-x:auto;">
+          <canvas id="cvSecret" width="660" height="120"></canvas>
+        </div>
+        <input type="text" id="secretIn" placeholder="Type your answer…" autocomplete="off" style="margin-top:8px;">
+        <div class="row" style="margin-top:8px;">
+          <button class="btn go" id="bSecretCheck">Check</button>
+          <button class="btn" id="bSecretNew">Another one</button>
+        </div>
+        <div id="secretMsg" style="text-align:center;font-weight:bold;margin-top:10px;"></div>
+      </div>
+    </section>
+
+    <!-- ============ SCROLL ============ -->
+    <section id="scScroll" hidden>
+      <p class="tag" style="margin-bottom:10px;">The full alphabet of Dot. Stars show how well he knows each one.</p>
+      <div class="chart" id="chart"></div>
+      <div class="row" style="margin-top:14px;">
+        <button class="btn" id="bPrint">🖨 Print the scroll</button>
+        <button class="btn primary" id="bScrollDone">Done</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div class="overlay" id="ovr"><div class="ovcard">
+  <div id="ovE" style="font-size:2.6rem;">📜</div>
+  <h3 id="ovT">Title</h3>
+  <div id="ovB"></div>
+  <div class="row" id="ovBtns" style="margin-top:14px;"></div>
+</div></div>
+
+<script>
+/* ==================================================================
+   DOTTINISH — Ezra's made-up language of the Land of Dot
+   Sounds are his. Glyphs are my reading of his notebook; the Studio
+   lets him overwrite any of them with his own drawing.
+   ================================================================== */
+
+const $ = (id) => document.getElementById(id);
+const SAVE_KEY = "dottinish-v1";
+
+/* ---------- the alphabet ---------- */
+const LETTERS = [
+  { c: "A", s: "Ben" }, { c: "B", s: "La" },  { c: "C", s: "X" },   { c: "D", s: "Wa" },
+  { c: "E", s: "Er" },  { c: "F", s: "Fa" },  { c: "G", s: "Exi" }, { c: "H", s: "Ma" },
+  { c: "I", s: "Tr" },  { c: "J", s: "Om" },  { c: "K", s: "Kz" },  { c: "L", s: "Um" },
+  { c: "M", s: "En" },  { c: "N", s: "Pe" },  { c: "O", s: "Ooh" }, { c: "P", s: "Pss" },
+  { c: "Q", s: "Uf" },  { c: "R", s: "Ra" },  { c: "S", s: "Ta" },  { c: "T", s: "Xa" },
+  { c: "U", s: "Ul" },  { c: "V", s: "Va" },  { c: "W", s: "Wuf" }, { c: "X", s: "Ly" },
+  { c: "Y", s: "Ll" },  { c: "Z", s: "Ef" },
+];
+const soundOf = (c) => (LETTERS.find((l) => l.c === c) || { s: "?" }).s;
+
+/* ---------- the glyphs, as SVG path data in a 0-100 box ---------- */
+const GLYPH_PATHS = {
+  A: ["M58,18 C28,18 28,82 58,82", "M78,14 L78,86", "M58,50 L78,50"],
+  B: ["M30,18 L30,72 L66,72", "M78,72 L94,72"],
+  C: ["M26,26 L76,26 L76,44", "M26,26 L26,74 L60,74"],
+  D: ["M22,22 L22,78", "M22,22 L48,22", "M22,50 L44,50", "M22,78 L48,78", "M64,22 L64,78 L92,78"],
+  E: ["M38,14 L38,86", "M74,22 L38,52 L76,84"],
+  F: ["M82,24 L46,24 C24,24 24,58 48,58 L74,58", "M62,46 L48,58 L62,70"],
+  G: ["M30,16 L30,84", "M30,50 L68,50", "M68,16 L68,58 C68,76 82,80 90,70"],
+  H: ["M28,18 L28,68 L48,68", "M58,48 C58,72 84,72 84,48 L84,68"],
+  I: ["M30,82 L52,24 L74,82", "M39,60 L65,60", "M74,82 C88,74 88,56 74,50"],
+  J: ["M22,82 L22,46 L50,46 L50,26 L84,26 L84,62"],
+  K: ["M24,26 L24,74 L46,74", "M46,62 L60,44 L72,60 L88,38"],
+  L: ["M20,54 C20,36 40,36 40,54 C40,70 58,70 68,56 C78,42 90,44 96,54"],
+  M: ["M16,46 C24,22 40,22 48,44 C56,64 68,64 76,44", "M76,44 L84,88"],
+  N: ["M20,24 L20,82", "M32,54 C44,32 68,32 68,50 C68,64 48,64 48,50 C48,34 70,34 82,52 C88,62 93,60 96,50"],
+  O: ["M8,54 C16,42 26,42 32,52", "M60,28 C42,28 32,42 32,56 C32,72 44,84 60,84 C76,84 88,72 88,56 C88,42 78,28 60,28", "M88,52 L98,42"],
+  P: ["M22,66 C28,48 46,40 62,44 C76,48 86,58 96,52", "M22,66 L34,60"],
+  Q: ["M34,20 C20,50 28,80 52,80 C68,80 74,66 70,50"],
+  R: ["M20,40 C34,70 62,72 82,46"],
+  S: ["M18,40 L40,72 C56,60 74,40 88,18"],
+  T: ["M22,42 L44,64", "M44,42 L22,64", "M52,58 C62,46 70,60 78,48 L86,58 L96,44"],
+  U: ["M30,42 C24,70 50,84 68,68", "M60,24 L60,58", "M46,36 L74,36"],
+  V: ["M28,40 C22,68 48,84 68,68 C78,60 78,46 68,40", "M22,36 L82,36"],
+  W: ["M26,70 C20,56 36,50 42,60 C46,68 40,78 32,74", "M42,60 C60,44 78,38 96,36"],
+  X: ["M20,76 C14,62 30,54 38,64 C42,70 36,78 28,74", "M38,64 L52,68 L64,22 L76,68 L96,60"],
+  Y: ["M10,64 L34,64 C40,40 56,40 62,64 L94,64"],
+  Z: ["M16,74 L34,74", "M34,74 C50,56 66,50 84,54", "M72,40 L92,54 L74,68"],
+};
+
+/* ---------- units: the journey across Dot ---------- */
+const UNITS = [
+  { n: "The Gate of Dot",       e: "🚪", letters: "ABCDE" },
+  { n: "The Ink Woods",         e: "🌲", letters: "FGHIJ" },
+  { n: "The Whispering Hills",  e: "⛰️", letters: "KLMNO" },
+  { n: "The Salt Road",         e: "🧂", letters: "PQRST" },
+  { n: "The Far Shore",         e: "🌊", letters: "UVWXYZ" },
+  { n: "The Library of Dot",    e: "📚", letters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", words: true },
+];
+const LESSONS_PER_UNIT = 4;   // plus a crown lesson
+
+const WORDS = [
+  "DOT", "ICE", "MAP", "CAT", "DOG", "SUN", "BEE", "OWL", "FOX", "KEY",
+  "STAR", "WOLF", "SNOW", "MOON", "TREE", "KING", "GOLD", "FIRE", "CAVE", "BOAT",
+  "BIRD", "FISH", "BEAR", "LION", "GATE", "ROAD", "BOOK", "LAMP", "RING", "DOOR",
+  "EZRA", "RIVER", "SPACE", "STONE", "WATER", "NIGHT", "LIGHT", "MAGIC", "SWORD", "CROWN",
+  "GHOST", "TOWER", "STORM", "CLOUD", "GRASS", "BEACH",
+  "SECRET", "SHADOW", "ISLAND", "GARDEN", "WINTER", "DRAGON", "CASTLE", "SILVER", "FOREST", "PLANET",
+];
+
+/* ==================================================================
+   GLYPH ENGINE
+   Everything becomes a list of strokes, each a list of {x,y} points in
+   a 0-100 box. Default glyphs are sampled from their SVG paths so that
+   they animate, score and compare exactly like Ezra's own drawings.
+   ================================================================== */
+
+const svgNS = "http://www.w3.org/2000/svg";
+const hiddenSvg = document.createElementNS(svgNS, "svg");
+hiddenSvg.setAttribute("width", "0");
+hiddenSvg.setAttribute("height", "0");
+hiddenSvg.style.position = "absolute";
+hiddenSvg.style.opacity = "0";
+const probe = document.createElementNS(svgNS, "path");
+hiddenSvg.appendChild(probe);
+document.body.appendChild(hiddenSvg);
+
+function samplePath(d, step) {
+  probe.setAttribute("d", d);
+  let total = 0;
+  try { total = probe.getTotalLength(); } catch (e) { total = 0; }
+  const pts = [];
+  if (!total) return pts;
+  const st = step || 2.2;
+  for (let i = 0; i < total; i += st) {
+    const p = probe.getPointAtLength(i);
+    pts.push({ x: p.x, y: p.y });
+  }
+  const last = probe.getPointAtLength(total);
+  pts.push({ x: last.x, y: last.y });
+  return pts;
+}
+
+const DEFAULT_STROKES = {};
+LETTERS.forEach((l) => {
+  DEFAULT_STROKES[l.c] = (GLYPH_PATHS[l.c] || []).map((d) => samplePath(d));
+});
+
+// centre + scale a glyph into the 0-100 box, keeping its shape
+function fitStrokes(strokes) {
+  let minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9;
+  strokes.forEach((s) => s.forEach((p) => {
+    if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+    if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
+  }));
+  if (minX > maxX) return strokes;
+  const w = Math.max(maxX - minX, 1), h = Math.max(maxY - minY, 1);
+  const pad = 10, span = 100 - pad * 2;
+  const k = Math.min(span / w, span / h);
+  const ox = pad + (span - w * k) / 2, oy = pad + (span - h * k) / 2;
+  return strokes.map((s) => s.map((p) => ({ x: ox + (p.x - minX) * k, y: oy + (p.y - minY) * k })));
+}
+
+const fitCache = {};
+function glyphStrokes(letter) {
+  const src = (custom[letter] && custom[letter].length) ? custom[letter] : DEFAULT_STROKES[letter];
+  const key = letter + (custom[letter] ? "*" + custom[letter].length : "");
+  if (!fitCache[key]) fitCache[key] = fitStrokes(src || []);
+  return fitCache[key];
+}
+const clearFitCache = (letter) => {
+  Object.keys(fitCache).forEach((k) => { if (!letter || k[0] === letter) delete fitCache[k]; });
+};
+
+function drawStrokes(ctx, strokes, x, y, size, opts) {
+  const o = opts || {};
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size / 100, size / 100);
+  ctx.strokeStyle = o.color || "#16213f";
+  ctx.lineWidth = (o.width || 7) * (100 / 100);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  if (o.alpha !== undefined) ctx.globalAlpha = o.alpha;
+  const upTo = o.upTo === undefined ? 1 : o.upTo;
+  const total = strokes.reduce((n, s) => n + s.length, 0);
+  let allowed = Math.ceil(total * upTo);
+  strokes.forEach((s) => {
+    if (allowed <= 0 || s.length < 2) return;
+    const n = Math.min(s.length, allowed);
+    allowed -= n;
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) (i ? ctx.lineTo(s[i].x, s[i].y) : ctx.moveTo(s[i].x, s[i].y));
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+// a glyph as a standalone canvas element, for buttons and charts
+function glyphCanvas(letter, size, opts) {
+  const o = opts || {};
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const cv = document.createElement("canvas");
+  cv.width = size * dpr; cv.height = size * dpr;
+  cv.style.width = size + "px"; cv.style.height = size + "px";
+  const ctx = cv.getContext("2d");
+  ctx.scale(dpr, dpr);
+  drawStrokes(ctx, glyphStrokes(letter), 0, 0, size, { width: o.width || 7, color: o.color });
+  return cv;
+}
+
+/* ==================================================================
+   SAVE
+   ================================================================== */
+let xp = 0;
+let streak = { n: 0, last: "" };
+let mastery = {};        // letter -> 0..5
+let done = {};           // "unit-lesson" -> true
+let custom = {};         // letter -> strokes
+let seenIntro = false;
+
+const today = () => new Date().toISOString().slice(0, 10);
+
+function save() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ xp, streak, mastery, done, custom, seenIntro }));
+  } catch (e) { /* private mode */ }
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    xp = Math.max(0, Math.floor(Number(s.xp) || 0));
+    streak = (s.streak && typeof s.streak === "object")
+      ? { n: Math.max(0, Math.floor(Number(s.streak.n) || 0)), last: String(s.streak.last || "") }
+      : { n: 0, last: "" };
+    mastery = {};
+    Object.keys(s.mastery || {}).forEach((k) => {
+      if (LETTERS.some((l) => l.c === k)) mastery[k] = Math.max(0, Math.min(5, Math.floor(Number(s.mastery[k]) || 0)));
+    });
+    done = {};
+    Object.keys(s.done || {}).forEach((k) => { if (/^\d+-\d+$/.test(k)) done[k] = true; });
+    custom = {};
+    Object.keys(s.custom || {}).forEach((k) => {
+      if (!LETTERS.some((l) => l.c === k)) return;
+      const st = s.custom[k];
+      if (!Array.isArray(st)) return;
+      const clean = st.map((stroke) => (Array.isArray(stroke) ? stroke
+        .filter((p) => p && isFinite(p.x) && isFinite(p.y))
+        .map((p) => ({ x: Number(p.x), y: Number(p.y) })) : []))
+        .filter((stroke) => stroke.length > 1);
+      if (clean.length) custom[k] = clean;
+    });
+    seenIntro = !!s.seenIntro;
+    return true;
+  } catch (e) { return false; }
+}
+
+function bumpStreak() {
+  const t = today();
+  if (streak.last === t) return;
+  const y = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  streak.n = streak.last === y ? streak.n + 1 : 1;
+  streak.last = t;
+}
+
+const learnedCount = () => LETTERS.filter((l) => (mastery[l.c] || 0) >= 5).length;
+
+function updateBar() {
+  $("pXp").textContent = "✨ " + xp;
+  $("pStreak").textContent = "🔥 " + streak.n;
+  $("pLearn").textContent = "📜 " + learnedCount() + "/26";
+}
+
+/* ==================================================================
+   LITTLE HELPERS
+   ================================================================== */
+const rnd = (a) => a[Math.floor(Math.random() * a.length)];
+function shuffle(a) {
+  const b = a.slice();
+  for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; }
+  return b;
+}
+let toastT = null;
+function toast(msg, ms) {
+  const el = $("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.classList.remove("show"), ms || 2400);
+}
+function card(emoji, title, html, buttons) {
+  return new Promise((resolve) => {
+    $("ovE").textContent = emoji;
+    $("ovT").textContent = title;
+    $("ovB").innerHTML = html || "";
+    const box = $("ovBtns");
+    box.innerHTML = "";
+    (buttons || [{ label: "OK", value: true }]).forEach((b) => {
+      const el = document.createElement("button");
+      el.className = "btn " + (b.plain ? "" : "primary");
+      el.textContent = b.label;
+      el.addEventListener("click", () => { $("ovr").classList.remove("show"); resolve(b.value); });
+      box.appendChild(el);
+    });
+    $("ovr").classList.add("show");
+  });
+}
+
+/* ==================================================================
+   SCREENS
+   ================================================================== */
+const SCREENS = ["Map", "Lesson", "Studio", "Trans", "Scroll"];
+let screen = "map";
+function setScreen(s) {
+  screen = s;
+  SCREENS.forEach((k) => { $("sc" + k).hidden = k.toLowerCase() !== s.toLowerCase(); });
+  document.body.classList.toggle("inLesson", s === "lesson");
+  if (s === "map") renderMap();
+  if (s === "scroll") renderChart();
+  if (s === "studio") renderStudio();
+  if (s === "trans") { drawTrans(); }
+  updateBar();
+}
+
+/* ---------- the map of Dot ---------- */
+function unitUnlocked(ui) {
+  if (ui === 0) return true;
+  for (let i = 0; i < LESSONS_PER_UNIT + 1; i++) if (!done[(ui - 1) + "-" + i]) return false;
+  return true;
+}
+function lessonUnlocked(ui, li) {
+  if (!unitUnlocked(ui)) return false;
+  if (li === 0) return true;
+  return !!done[ui + "-" + (li - 1)];
+}
+
+function renderMap() {
+  const box = $("scMap");
+  let h = "";
+  UNITS.forEach((u, ui) => {
+    const open = unitUnlocked(ui);
+    h += '<div class="unit"><h2>' + u.e + " " + u.n + "</h2>";
+    h += '<div class="sub">' + (u.words ? "Whole words, all 26 letters" : u.letters.split("").join(" · ")) + "</div>";
+    h += '<div class="nodes">';
+    for (let li = 0; li <= LESSONS_PER_UNIT; li++) {
+      const isCrown = li === LESSONS_PER_UNIT;
+      const d = !!done[ui + "-" + li];
+      const ok = open && lessonUnlocked(ui, li);
+      const cls = "node" + (isCrown ? " crown" : "") + (d ? " done" : "") + (ok ? "" : " locked");
+      const face = isCrown ? '<span class="big">👑</span>' : (d ? '<span class="big">★</span>' : '<span class="big">' + (li + 1) + "</span>");
+      h += '<button class="' + cls + '" data-go="' + ui + "-" + li + '"' + (ok ? "" : " disabled") + ">" +
+           face + (isCrown ? "<span>crown</span>" : "") + "</button>";
+    }
+    h += "</div></div>";
+  });
+  const allDone = UNITS.every((u, ui) => {
+    for (let i = 0; i <= LESSONS_PER_UNIT; i++) if (!done[ui + "-" + i]) return false;
+    return true;
+  });
+  if (allDone) {
+    h += '<div class="unit" style="text-align:center"><h2>🏆 Speaker of Dottinish</h2>' +
+         '<div class="sub">Every letter learned. The Library of Dot is yours.</div>' +
+         '<div class="row"><button class="btn primary" data-go="5-0">Practise again</button></div></div>';
+  }
+  box.innerHTML = h;
+}
+
+document.addEventListener("click", (e) => {
+  const go = e.target.closest("[data-go]");
+  if (go) { const [u, l] = go.dataset.go.split("-").map(Number); startLesson(u, l); }
+});
+
+/* ==================================================================
+   LESSONS
+   ================================================================== */
+let lesson = null;   // { unit, idx, ex:[], at, right, state }
+
+function poolFor(ui, li) {
+  const u = UNITS[ui];
+  let pool = u.letters.split("");
+  if (u.words) return LETTERS.map((l) => l.c);
+  // later lessons in a unit fold in a little revision
+  if (li >= 2 && ui > 0) {
+    const earlier = UNITS.slice(0, ui).map((x) => x.letters).join("").split("");
+    pool = pool.concat(shuffle(earlier).slice(0, 3));
+  }
+  return pool;
+}
+
+// weak letters come round more often
+function weightedPick(pool, n) {
+  const out = [];
+  const bag = [];
+  pool.forEach((c) => {
+    const w = 6 - (mastery[c] || 0);
+    for (let i = 0; i < w; i++) bag.push(c);
+  });
+  let guard = 0;
+  while (out.length < n && guard++ < 500) {
+    const c = rnd(bag);
+    if (out.length && out[out.length - 1] === c && pool.length > 1) continue;
+    out.push(c);
+  }
+  return out;
+}
+
+function distractors(target, pool, n) {
+  const wide = pool.length >= n + 1 ? pool : LETTERS.map((l) => l.c);
+  return shuffle(wide.filter((c) => c !== target)).slice(0, n);
+}
+
+function wordsFor(pool, maxLen) {
+  const set = new Set(pool);
+  return WORDS.filter((w) => w.length <= (maxLen || 9) && w.split("").every((ch) => set.has(ch)));
+}
+
+function buildLesson(ui, li) {
+  const u = UNITS[ui];
+  const pool = poolFor(ui, li);
+  const ex = [];
+  const isCrown = li === LESSONS_PER_UNIT;
+
+  if (u.words) {
+    // the Library: reading and writing whole words
+    const ws = wordsFor(pool, isCrown ? 9 : 6);
+    const picks = shuffle(ws).slice(0, 6);
+    picks.forEach((w, i) => ex.push({ type: i % 2 ? "spell" : "read", word: w }));
+    weightedPick(pool, 3).forEach((c) => ex.push({ type: "pickSound", target: c, options: shuffle([c].concat(distractors(c, pool, 3))) }));
+    if (isCrown) ex.push({ type: "trace", target: rnd(pool) });
+    return shuffle(ex);
+  }
+
+  const targets = weightedPick(pool, isCrown ? 10 : 8);
+  targets.forEach((c, i) => {
+    let type;
+    if (li === 0) type = i % 2 ? "pickLetter" : "pickGlyph";
+    else if (li === 1) type = ["pickLetter", "pickGlyph", "pickSound"][i % 3];
+    else type = ["pickLetter", "pickGlyph", "pickSound", "pickLetter"][i % 4];
+    ex.push({ type, target: c, options: shuffle([c].concat(distractors(c, pool, 3))) });
+  });
+
+  if (li >= 1) ex.splice(Math.floor(ex.length / 2), 0, { type: "match", pairs: shuffle(pool).slice(0, Math.min(5, pool.length)) });
+  if (li >= 2) ex.push({ type: "trace", target: rnd(pool) });
+  if (li >= 3 || isCrown) {
+    const ws = wordsFor(UNITS.slice(0, ui + 1).map((x) => x.letters).join("").split(""), 6);
+    if (ws.length) ex.push({ type: "read", word: rnd(ws) });
+    if (ws.length) ex.push({ type: "spell", word: rnd(ws) });
+  }
+  return ex;
+}
+
+function startLesson(ui, li) {
+  lesson = { unit: ui, idx: li, ex: buildLesson(ui, li), at: 0, right: 0, state: null };
+  setScreen("lesson");
+  showExercise();
+}
+
+function showExercise() {
+  const ex = lesson.ex[lesson.at];
+  $("feedback").className = "";
+  $("feedback").innerHTML = "";
+  $("progFill").style.width = Math.round((lesson.at / lesson.ex.length) * 100) + "%";
+  const btn = $("bCheck");
+  btn.textContent = "Check";
+  btn.disabled = true;
+  btn.className = "btn go";
+  lesson.state = { answered: false };
+  const body = $("exBody");
+  body.innerHTML = "";
+  ({
+    pickLetter: exPickLetter, pickGlyph: exPickGlyph, pickSound: exPickSound,
+    match: exMatch, spell: exSpell, read: exRead, trace: exTrace,
+  })[ex.type](ex, body);
+}
+
+/* ---------- exercise: glyph shown, choose the letter ---------- */
+function exPickLetter(ex, body) {
+  const p = document.createElement("div");
+  p.className = "prompt";
+  p.textContent = "Which letter is this?";
+  body.appendChild(p);
+
+  const show = document.createElement("div");
+  show.style.textAlign = "center";
+  show.style.margin = "6px 0 14px";
+  show.appendChild(glyphCanvas(ex.target, 130, { width: 6 }));
+  body.appendChild(show);
+
+  const opts = document.createElement("div");
+  opts.className = "opts";
+  ex.options.forEach((c) => {
+    const b = document.createElement("button");
+    b.className = "opt";
+    b.dataset.pick = c;
+    b.innerHTML = '<span class="lbl">' + c + '</span><span class="sub">' + soundOf(c) + "</span>";
+    b.addEventListener("click", () => selectOption(b, c, ex.target));
+    opts.appendChild(b);
+  });
+  body.appendChild(opts);
+}
+
+/* ---------- exercise: letter shown, choose the glyph ---------- */
+function exPickGlyph(ex, body) {
+  const p = document.createElement("div");
+  p.className = "prompt";
+  p.innerHTML = 'How do you write <span class="sound">' + ex.target + "</span> in Dottinish?";
+  body.appendChild(p);
+  glyphOptions(ex, body);
+}
+
+/* ---------- exercise: sound shown, choose the glyph ---------- */
+function exPickSound(ex, body) {
+  const p = document.createElement("div");
+  p.className = "prompt";
+  p.innerHTML = 'Which glyph says <span class="sound">“' + soundOf(ex.target) + '”</span>?';
+  body.appendChild(p);
+  glyphOptions(ex, body);
+}
+
+function glyphOptions(ex, body) {
+  const opts = document.createElement("div");
+  opts.className = "opts";
+  ex.options.forEach((c) => {
+    const b = document.createElement("button");
+    b.className = "opt";
+    b.dataset.pick = c;
+    b.appendChild(glyphCanvas(c, 78, { width: 8 }));
+    b.addEventListener("click", () => selectOption(b, c, ex.target));
+    opts.appendChild(b);
+  });
+  body.appendChild(opts);
+}
+
+function selectOption(btn, pick, target) {
+  if (lesson.state.answered) return;
+  document.querySelectorAll(".opt").forEach((o) => o.classList.remove("sel"));
+  btn.classList.add("sel");
+  lesson.state.pick = pick;
+  lesson.state.target = target;
+  lesson.state.check = () => {
+    const ok = pick === target;
+    document.querySelectorAll(".opt").forEach((o) => {
+      if (o.dataset.pick === target) o.classList.add("good");
+      else if (o.dataset.pick === pick && !ok) o.classList.add("bad");
+    });
+    return ok;
+  };
+  $("bCheck").disabled = false;
+}
+
+/* ---------- exercise: match the pairs ---------- */
+function exMatch(ex, body) {
+  const p = document.createElement("div");
+  p.className = "prompt";
+  p.textContent = "Tap the pairs — letter and glyph";
+  body.appendChild(p);
+
+  const grid = document.createElement("div");
+  grid.className = "matchGrid";
+  const left = shuffle(ex.pairs), right = shuffle(ex.pairs);
+  let sel = null, leftCount = ex.pairs.length;
+
+  for (let i = 0; i < ex.pairs.length; i++) {
+    const a = document.createElement("button");
+    a.className = "mtile";
+    a.dataset.c = left[i]; a.dataset.side = "L";
+    a.textContent = left[i];
+    const b = document.createElement("button");
+    b.className = "mtile";
+    b.dataset.c = right[i]; b.dataset.side = "R";
+    b.appendChild(glyphCanvas(right[i], 48, { width: 9 }));
+    grid.appendChild(a); grid.appendChild(b);
+  }
+  body.appendChild(grid);
+
+  grid.addEventListener("click", (e) => {
+    const t = e.target.closest(".mtile");
+    if (!t || t.classList.contains("gone")) return;
+    if (!sel) { sel = t; t.classList.add("sel"); return; }
+    if (sel === t) { sel.classList.remove("sel"); sel = null; return; }
+    if (sel.dataset.side === t.dataset.side) { sel.classList.remove("sel"); sel = t; t.classList.add("sel"); return; }
+    if (sel.dataset.c === t.dataset.c) {
+      sel.classList.remove("sel"); sel.classList.add("gone"); t.classList.add("gone");
+      sel = null; leftCount--;
+      if (leftCount === 0) { $("bCheck").disabled = false; $("bCheck").click(); }
+    } else {
+      const bad = sel;
+      bad.classList.remove("sel");
+      bad.classList.add("bad"); t.classList.add("bad");
+      setTimeout(() => { bad.classList.remove("bad"); t.classList.remove("bad"); }, 420);
+      sel = null;
+      lesson.state.slipped = true;
+    }
+  });
+
+  lesson.state.check = () => !lesson.state.slipped;
+  lesson.state.target = ex.pairs[0];
+  $("bCheck").disabled = true;
+}
+
+/* ---------- exercise: write an English word in Dottinish ---------- */
+function exSpell(ex, body) {
+  const p = document.createElement("div");
+  p.className = "prompt";
+  p.innerHTML = 'Write <span class="sound">' + ex.word + "</span> in Dottinish";
+  body.appendChild(p);
+
+  const answer = document.createElement("div");
+  answer.className = "answerRow";
+  body.appendChild(answer);
+
+  const bank = document.createElement("div");
+  bank.className = "bank";
+  body.appendChild(bank);
+
+  const need = ex.word.split("");
+  const extra = distractors(need[0], LETTERS.map((l) => l.c), 3).filter((c) => !need.includes(c)).slice(0, 3);
+  const tiles = shuffle(need.concat(extra));
+  const chosen = [];
+
+  tiles.forEach((c, i) => {
+    const t = document.createElement("button");
+    t.className = "tile";
+    t.dataset.c = c; t.dataset.i = i;
+    t.appendChild(glyphCanvas(c, 40, { width: 10 }));
+    t.addEventListener("click", () => {
+      if (lesson.state.answered || t.classList.contains("used")) return;
+      t.classList.add("used");
+      chosen.push({ c, el: t });
+      redraw();
+    });
+    bank.appendChild(t);
+  });
+
+  function redraw() {
+    answer.innerHTML = "";
+    chosen.forEach((ch, idx) => {
+      const t = document.createElement("button");
+      t.className = "tile";
+      t.appendChild(glyphCanvas(ch.c, 40, { width: 10 }));
+      t.addEventListener("click", () => {
+        if (lesson.state.answered) return;
+        ch.el.classList.remove("used");
+        chosen.splice(idx, 1);
+        redraw();
+      });
+      answer.appendChild(t);
+    });
+    $("bCheck").disabled = chosen.length === 0;
+  }
+  redraw();
+
+  lesson.state.target = ex.word;
+  lesson.state.check = () => chosen.map((c) => c.c).join("") === ex.word;
+  lesson.state.showAnswer = () => {
+    answer.innerHTML = "";
+    need.forEach((c) => {
+      const t = document.createElement("div");
+      t.className = "tile";
+      t.appendChild(glyphCanvas(c, 40, { width: 10 }));
+      answer.appendChild(t);
+    });
+  };
+}
+
+/* ---------- exercise: read a Dottinish word ---------- */
+function exRead(ex, body) {
+  const p = document.createElement("div");
+  p.className = "prompt";
+  p.textContent = "What does this say?";
+  body.appendChild(p);
+
+  const show = document.createElement("div");
+  show.className = "wordShow";
+  ex.word.split("").forEach((c) => show.appendChild(glyphCanvas(c, 56, { width: 9 })));
+  body.appendChild(show);
+
+  const answer = document.createElement("div");
+  answer.className = "answerRow";
+  body.appendChild(answer);
+  const bank = document.createElement("div");
+  bank.className = "bank";
+  body.appendChild(bank);
+
+  const need = ex.word.split("");
+  const extra = shuffle(LETTERS.map((l) => l.c).filter((c) => !need.includes(c))).slice(0, 4);
+  const tiles = shuffle(need.concat(extra));
+  const chosen = [];
+
+  tiles.forEach((c, i) => {
+    const t = document.createElement("button");
+    t.className = "tile";
+    t.dataset.c = c; t.dataset.i = i;
+    t.textContent = c;
+    t.addEventListener("click", () => {
+      if (lesson.state.answered || t.classList.contains("used")) return;
+      t.classList.add("used");
+      chosen.push({ c, el: t });
+      redraw();
+    });
+    bank.appendChild(t);
+  });
+
+  function redraw() {
+    answer.innerHTML = "";
+    chosen.forEach((ch, idx) => {
+      const t = document.createElement("button");
+      t.className = "tile";
+      t.textContent = ch.c;
+      t.addEventListener("click", () => {
+        if (lesson.state.answered) return;
+        ch.el.classList.remove("used");
+        chosen.splice(idx, 1);
+        redraw();
+      });
+      answer.appendChild(t);
+    });
+    $("bCheck").disabled = chosen.length === 0;
+  }
+  redraw();
+
+  lesson.state.target = ex.word;
+  lesson.state.check = () => chosen.map((c) => c.c).join("") === ex.word;
+  lesson.state.showAnswer = () => {
+    answer.innerHTML = "";
+    need.forEach((c) => {
+      const t = document.createElement("div");
+      t.className = "tile";
+      t.textContent = c;
+      answer.appendChild(t);
+    });
+  };
+}
+
+/* ---------- exercise: trace the glyph ---------- */
+function exTrace(ex, body) {
+  const p = document.createElement("div");
+  p.className = "prompt";
+  p.innerHTML = 'Trace <span class="sound">' + ex.target + "</span> <span style=\"font-size:0.85rem;opacity:0.7\">(“" + soundOf(ex.target) + "”)</span>";
+  body.appendChild(p);
+
+  const pad = document.createElement("div");
+  pad.className = "pad";
+  const size = Math.min(300, Math.max(220, window.innerWidth - 90));
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const cv = document.createElement("canvas");
+  cv.width = size * dpr; cv.height = size * dpr;
+  cv.style.width = size + "px"; cv.style.height = size + "px";
+  pad.appendChild(cv);
+  body.appendChild(pad);
+
+  const row = document.createElement("div");
+  row.className = "row";
+  const bAgain = document.createElement("button");
+  bAgain.className = "btn"; bAgain.textContent = "↺ Try again";
+  const bWatch = document.createElement("button");
+  bWatch.className = "btn"; bWatch.textContent = "👁 Watch it";
+  row.appendChild(bWatch); row.appendChild(bAgain);
+  body.appendChild(row);
+
+  const ctx = cv.getContext("2d");
+  ctx.scale(dpr, dpr);
+  const target = glyphStrokes(ex.target);
+  let user = [];       // strokes in 0-100 space
+  let drawing = false;
+  let anim = 0, animT = null;
+
+  function paint() {
+    ctx.clearRect(0, 0, size, size);
+    ctx.fillStyle = "#fffdf7";
+    ctx.fillRect(0, 0, size, size);
+    // guide grid
+    ctx.strokeStyle = "rgba(205,187,150,0.5)";
+    ctx.lineWidth = 1;
+    [0.25, 0.5, 0.75].forEach((f) => {
+      ctx.beginPath(); ctx.moveTo(size * f, 8); ctx.lineTo(size * f, size - 8); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(8, size * f); ctx.lineTo(size - 8, size * f); ctx.stroke();
+    });
+    drawStrokes(ctx, target, 0, 0, size, { width: 9, color: "#cbb894", upTo: anim });
+    drawStrokes(ctx, user, 0, 0, size, { width: 7, color: "#16213f" });
+  }
+  function watch() {
+    clearInterval(animT);
+    anim = 0;
+    animT = setInterval(() => {
+      anim = Math.min(1, anim + 0.03);
+      paint();
+      if (anim >= 1) clearInterval(animT);
+    }, 16);
+  }
+  anim = 1; paint();
+  bWatch.addEventListener("click", watch);
+  bAgain.addEventListener("click", () => { user = []; paint(); $("bCheck").disabled = true; });
+
+  const at = (e) => {
+    const r = cv.getBoundingClientRect();
+    return { x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 };
+  };
+  cv.addEventListener("pointerdown", (e) => {
+    if (lesson.state.answered) return;
+    e.preventDefault();
+    cv.setPointerCapture(e.pointerId);
+    drawing = true;
+    user.push([at(e)]);
+    paint();
+  });
+  cv.addEventListener("pointermove", (e) => {
+    if (!drawing) return;
+    e.preventDefault();
+    const p = at(e);
+    const s = user[user.length - 1];
+    const last = s[s.length - 1];
+    if (Math.hypot(p.x - last.x, p.y - last.y) < 1.2) return;
+    s.push(p);
+    paint();
+    $("bCheck").disabled = false;
+  });
+  const stop = () => { drawing = false; };
+  cv.addEventListener("pointerup", stop);
+  cv.addEventListener("pointercancel", stop);
+  cv.addEventListener("pointerleave", stop);
+
+  lesson.state.target = ex.target;
+  lesson.state.trace = true;
+  lesson.state.check = () => {
+    const sc = traceScore(user, target);
+    lesson.state.score = sc;
+    paint();
+    return sc >= 0.5;
+  };
+  lesson.state.showAnswer = () => { anim = 1; paint(); watch(); };
+}
+
+// how much of his ink sits on the glyph, and how much of the glyph he covered
+function traceScore(user, target) {
+  const pts = (strokes, step) => {
+    const out = [];
+    strokes.forEach((s) => { for (let i = 0; i < s.length; i += step) out.push(s[i]); });
+    return out;
+  };
+  const u = pts(user, 2), t = pts(target, 2);
+  if (u.length < 4 || !t.length) return 0;
+  const R = 13;
+  const near = (p, arr) => arr.some((q) => Math.hypot(q.x - p.x, q.y - p.y) < R);
+  const onGlyph = u.filter((p) => near(p, t)).length / u.length;
+  const covered = t.filter((p) => near(p, u)).length / t.length;
+  return Math.min(onGlyph, covered);
+}
+
+/* ---------- checking + moving on ---------- */
+$("bCheck").addEventListener("click", () => {
+  const st = lesson.state;
+  if (st.answered) { nextExercise(); return; }
+  st.answered = true;
+  const ex = lesson.ex[lesson.at];
+  const ok = st.check ? st.check() : false;
+  const fb = $("feedback");
+  const letter = st.target;
+
+  if (ok) {
+    lesson.right++;
+    xp += 2;
+    if (ex.type !== "match") mastery[letter] = Math.min(5, (mastery[letter] || 0) + 1);
+    else ex.pairs.forEach((c) => { mastery[c] = Math.min(5, (mastery[c] || 0) + 1); });
+    fb.className = "good";
+    const praise = st.trace
+      ? (st.score > 0.78 ? "Beautiful writing!" : "That's it!")
+      : rnd(["Correct!", "Yes!", "Nice one!", "Spot on!", "Perfect!"]);
+    fb.innerHTML = "✅ " + praise +
+      (ex.type === "spell" || ex.type === "read" ? '<span class="fsub">' + ex.word + "</span>" : "") +
+      (ex.type === "match" ? "" : (ex.type === "spell" || ex.type === "read" ? "" :
+        '<span class="fsub">' + letter + " · “" + soundOf(letter) + "”</span>"));
+  } else {
+    if (ex.type !== "match" && letter && mastery[letter]) mastery[letter] = Math.max(0, mastery[letter] - 1);
+    fb.className = "bad";
+    if (st.showAnswer) st.showAnswer();
+    if (ex.type === "spell" || ex.type === "read") {
+      fb.innerHTML = "💡 Nearly — it spells <b>" + ex.word + "</b><span class=\"fsub\">Here it is written out.</span>";
+    } else if (ex.type === "match") {
+      fb.className = "good";
+      fb.innerHTML = "✅ All matched!<span class=\"fsub\">A couple of guesses along the way — that's how you learn.</span>";
+      lesson.right++;
+      xp += 2;
+      ex.pairs.forEach((c) => { mastery[c] = Math.min(5, (mastery[c] || 0) + 1); });
+    } else if (st.trace) {
+      fb.className = "good";
+      fb.innerHTML = "✅ Good try!<span class=\"fsub\">Watch it once more and feel the shape.</span>";
+      lesson.right++;
+      xp += 2;
+    } else {
+      fb.innerHTML = "💡 That one is <b>" + letter + "</b> — “" + soundOf(letter) + "”" +
+        '<span class="fsub">You picked ' + (st.pick || "?") + ". Have another look at the shape.</span>";
+    }
+  }
+  updateBar();
+  save();
+  const btn = $("bCheck");
+  btn.textContent = "Continue";
+  btn.disabled = false;
+  btn.className = "btn " + (fb.className === "good" ? "go" : "primary");
+});
+
+$("bQuit").addEventListener("click", async () => {
+  const ok = await card("🚪", "Leave the lesson?",
+    "<p>Your XP so far is kept, but this lesson won't be finished.</p>",
+    [{ label: "Keep going", value: false }, { label: "Leave", value: true, plain: true }]);
+  if (ok) setScreen("map");
+});
+
+function nextExercise() {
+  lesson.at++;
+  if (lesson.at < lesson.ex.length) { showExercise(); return; }
+  finishLesson();
+}
+
+async function finishLesson() {
+  $("progFill").style.width = "100%";
+  const key = lesson.unit + "-" + lesson.idx;
+  const first = !done[key];
+  done[key] = true;
+  xp += first ? 15 : 5;
+  bumpStreak();
+  updateBar();
+  save();
+
+  const u = UNITS[lesson.unit];
+  const isCrown = lesson.idx === LESSONS_PER_UNIT;
+  const newly = u.letters.split("").filter((c) => (mastery[c] || 0) >= 5);
+
+  await card(isCrown ? "👑" : "⭐",
+    isCrown ? "Crown earned — " + u.n + "!" : "Lesson complete!",
+    "<p>" + lesson.right + " of " + lesson.ex.length + " right.</p>" +
+    "<p>✨ +" + (first ? 15 : 5) + " XP · 🔥 streak " + streak.n + "</p>" +
+    (newly.length ? '<p class="fact">📜 Mastered so far in ' + u.n + ": <b>" + newly.join(" ") + "</b></p>" : ""),
+    [{ label: "Onwards", value: true }]);
+
+  if (learnedCount() === 26 && !done.champion) {
+    done.champion = true;
+    save();
+    await card("🏆", "Speaker of Dottinish",
+      "<p>All 26 letters of Dot, known by heart.</p>" +
+      '<p class="fact">Ezra invented a language and then learned it. Not many people can say that.</p>',
+      [{ label: "🎉", value: true }]);
+  }
+  setScreen("map");
+}
+
+/* ==================================================================
+   GLYPH STUDIO
+   ================================================================== */
+let studioLetter = "A";
+let studioStrokes = [];
+let studioShowMine = false;
+
+function renderStudio() {
+  const chips = $("studioChips");
+  chips.innerHTML = "";
+  LETTERS.forEach((l) => {
+    const b = document.createElement("button");
+    b.className = "chip" + (l.c === studioLetter ? " on" : "") + (custom[l.c] ? " custom" : "");
+    b.textContent = l.c;
+    b.addEventListener("click", () => {
+      studioLetter = l.c;
+      studioStrokes = custom[l.c] ? custom[l.c].map((s) => s.map((p) => ({ ...p }))) : [];
+      renderStudio();
+    });
+    chips.appendChild(b);
+  });
+  paintStudio();
+}
+
+const stCv = $("cvStudio");
+const stCtx = stCv.getContext("2d");
+(function sizeStudio() {
+  const size = Math.min(330, Math.max(240, window.innerWidth - 80));
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  stCv.width = size * dpr; stCv.height = size * dpr;
+  stCv.style.width = size + "px"; stCv.style.height = size + "px";
+  stCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  stCv._size = size;
+})();
+
+function paintStudio() {
+  const size = stCv._size;
+  stCtx.clearRect(0, 0, size, size);
+  stCtx.fillStyle = "#fffdf7";
+  stCtx.fillRect(0, 0, size, size);
+  stCtx.strokeStyle = "rgba(205,187,150,0.55)";
+  stCtx.lineWidth = 1;
+  [0.25, 0.5, 0.75].forEach((f) => {
+    stCtx.beginPath(); stCtx.moveTo(size * f, 8); stCtx.lineTo(size * f, size - 8); stCtx.stroke();
+    stCtx.beginPath(); stCtx.moveTo(8, size * f); stCtx.lineTo(size - 8, size * f); stCtx.stroke();
+  });
+  if (studioShowMine) drawStrokes(stCtx, fitStrokes(DEFAULT_STROKES[studioLetter] || []), 0, 0, size, { width: 9, color: "#d8c9a6" });
+  drawStrokes(stCtx, studioStrokes, 0, 0, size, { width: 8, color: "#16213f" });
+
+  stCtx.fillStyle = "rgba(22,33,63,0.35)";
+  stCtx.font = "bold 16px 'Trebuchet MS', sans-serif";
+  stCtx.fillText(studioLetter + "  “" + soundOf(studioLetter) + "”", 12, size - 12);
+}
+
+let stDrawing = false;
+const stAt = (e) => {
+  const r = stCv.getBoundingClientRect();
+  return { x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 };
+};
+stCv.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  stCv.setPointerCapture(e.pointerId);
+  stDrawing = true;
+  studioStrokes.push([stAt(e)]);
+  paintStudio();
+});
+stCv.addEventListener("pointermove", (e) => {
+  if (!stDrawing) return;
+  e.preventDefault();
+  const p = stAt(e);
+  const s = studioStrokes[studioStrokes.length - 1];
+  const last = s[s.length - 1];
+  if (Math.hypot(p.x - last.x, p.y - last.y) < 1.1) return;
+  s.push(p);
+  paintStudio();
+});
+["pointerup", "pointercancel", "pointerleave"].forEach((k) => stCv.addEventListener(k, () => { stDrawing = false; }));
+
+$("bStUndo").addEventListener("click", () => { studioStrokes.pop(); paintStudio(); });
+$("bStClear").addEventListener("click", () => { studioStrokes = []; paintStudio(); });
+$("bStShow").addEventListener("click", () => { studioShowMine = !studioShowMine; paintStudio(); });
+$("bStSave").addEventListener("click", () => {
+  const clean = studioStrokes.filter((s) => s.length > 1);
+  if (!clean.length) { toast("✍️ Draw the glyph first!"); return; }
+  custom[studioLetter] = clean.map((s) => s.map((p) => ({ x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10 })));
+  clearFitCache(studioLetter);
+  save();
+  toast("✅ " + studioLetter + " is now Ezra's own glyph.");
+  renderStudio();
+});
+$("bStRevert").addEventListener("click", () => {
+  delete custom[studioLetter];
+  clearFitCache(studioLetter);
+  studioStrokes = [];
+  save();
+  toast("↺ Back to the original " + studioLetter + ".");
+  renderStudio();
+});
+$("bStDone").addEventListener("click", () => setScreen("map"));
+
+/* ==================================================================
+   TRANSLATOR + SECRET MESSAGES
+   ================================================================== */
+function renderWordTo(ctx, text, w, h, glyphSize) {
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "#fffdf7";
+  ctx.fillRect(0, 0, w, h);
+  const gs = glyphSize;
+  const gap = gs * 0.12, spaceW = gs * 0.55;
+  let x = gs * 0.2, y = gs * 0.2;
+  const chars = text.toUpperCase().split("");
+  chars.forEach((ch) => {
+    if (ch === " ") { x += spaceW; return; }
+    if (!LETTERS.some((l) => l.c === ch)) {
+      if (/[.,!?'-]/.test(ch)) {
+        ctx.fillStyle = "#16213f";
+        ctx.font = "bold " + Math.round(gs * 0.5) + "px 'Trebuchet MS', sans-serif";
+        ctx.fillText(ch, x + gs * 0.15, y + gs * 0.72);
+        x += gs * 0.45;
+      }
+      return;
+    }
+    if (x + gs > w - gs * 0.2) { x = gs * 0.2; y += gs * 1.15; }
+    drawStrokes(ctx, glyphStrokes(ch), x, y, gs, { width: 8, color: "#16213f" });
+    x += gs + gap;
+  });
+  return y + gs * 1.2;
+}
+
+function drawTrans() {
+  const cv = $("cvTrans");
+  const text = $("transIn").value || "";
+  const wrapW = Math.max(280, Math.min(660, ($("outPad").clientWidth || 300) - 20));
+  const gs = 46;
+  const perRow = Math.max(1, Math.floor(wrapW / (gs * 1.12)));
+  const letters = text.toUpperCase().split("").filter((c) => c === " " || LETTERS.some((l) => l.c === c)).length;
+  const rows = Math.max(1, Math.ceil(letters / perRow));
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const h = Math.min(420, rows * gs * 1.18 + gs * 0.4);
+  cv.width = wrapW * dpr; cv.height = h * dpr;
+  cv.style.width = wrapW + "px"; cv.style.height = h + "px";
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  renderWordTo(ctx, text, wrapW, h, gs);
+}
+$("transIn").addEventListener("input", drawTrans);
+$("bTransDone").addEventListener("click", () => setScreen("map"));
+$("bTransSave").addEventListener("click", () => {
+  const cv = $("cvTrans");
+  try {
+    const a = document.createElement("a");
+    a.download = "dottinish.png";
+    a.href = cv.toDataURL("image/png");
+    a.click();
+    toast("💾 Saved as a picture!");
+  } catch (e) { toast("Couldn't save that one, sorry!"); }
+});
+
+let secretWord = "";
+function newSecret() {
+  const known = LETTERS.map((l) => l.c).filter((c) => (mastery[c] || 0) >= 2);
+  const pool = known.length >= 8 ? wordsFor(known, 8) : [];
+  secretWord = (pool.length ? rnd(pool) : rnd(WORDS.filter((w) => w.length <= 5)));
+  const cv = $("cvSecret");
+  const wrapW = Math.max(280, Math.min(660, ($("outPad2").clientWidth || 300) - 20));
+  const gs = 52;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const rows = Math.ceil(secretWord.length / Math.max(1, Math.floor(wrapW / (gs * 1.12))));
+  const h = rows * gs * 1.2 + 10;
+  cv.width = wrapW * dpr; cv.height = h * dpr;
+  cv.style.width = wrapW + "px"; cv.style.height = h + "px";
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  renderWordTo(ctx, secretWord, wrapW, h, gs);
+  $("secretIn").value = "";
+  $("secretMsg").textContent = "";
+}
+$("bTransSecret").addEventListener("click", () => {
+  const box = $("secretBox");
+  box.hidden = !box.hidden;
+  if (!box.hidden) newSecret();
+});
+$("bSecretNew").addEventListener("click", newSecret);
+$("bSecretCheck").addEventListener("click", () => {
+  const guess = ($("secretIn").value || "").trim().toUpperCase();
+  if (!guess) return;
+  if (guess === secretWord) {
+    xp += 6;
+    updateBar(); save();
+    $("secretMsg").innerHTML = '<span style="color:#3f9a5c">✅ Decoded! ' + secretWord + " · ✨+6</span>";
+    setTimeout(newSecret, 1400);
+  } else {
+    $("secretMsg").innerHTML = '<span style="color:#d98026">Not quite — look again, letter by letter.</span>';
+  }
+});
+
+/* ==================================================================
+   THE SCROLL
+   ================================================================== */
+function renderChart() {
+  const box = $("chart");
+  box.innerHTML = "";
+  LETTERS.forEach((l) => {
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    cell.appendChild(glyphCanvas(l.c, 56, { width: 9 }));
+    const en = document.createElement("div");
+    en.className = "en";
+    en.textContent = l.c + (custom[l.c] ? " ✍️" : "");
+    const sd = document.createElement("div");
+    sd.className = "sd";
+    sd.textContent = "“" + l.s + "”";
+    const st = document.createElement("div");
+    st.className = "stars";
+    const m = mastery[l.c] || 0;
+    st.textContent = "★".repeat(m) + "☆".repeat(5 - m);
+    cell.appendChild(en); cell.appendChild(sd); cell.appendChild(st);
+    box.appendChild(cell);
+  });
+}
+$("bScrollDone").addEventListener("click", () => setScreen("map"));
+$("bPrint").addEventListener("click", () => window.print());
+
+/* ==================================================================
+   NAV + BOOT
+   ================================================================== */
+$("bScroll").addEventListener("click", () => setScreen("scroll"));
+$("bStudio").addEventListener("click", () => {
+  studioStrokes = custom[studioLetter] ? custom[studioLetter].map((s) => s.map((p) => ({ ...p }))) : [];
+  setScreen("studio");
+});
+$("bTrans").addEventListener("click", () => setScreen("trans"));
+$("bReset").addEventListener("click", async () => {
+  const ok = await card("🧹", "Start Dottinish again?",
+    "<p>All XP, stars and crowns are wiped.</p><p><b>Glyphs Ezra drew himself are kept</b> — his alphabet is his.</p>",
+    [{ label: "Cancel", value: false }, { label: "Wipe my progress", value: true, plain: true }]);
+  if (!ok) return;
+  xp = 0; streak = { n: 0, last: "" }; mastery = {}; done = {};
+  save(); updateBar(); setScreen("map");
+});
+
+window.addEventListener("resize", () => {
+  if (screen === "trans") drawTrans();
+});
+
+async function boot() {
+  load();
+  updateBar();
+  setScreen("map");
+  if (!seenIntro) {
+    seenIntro = true;
+    save();
+    await card("ᛞ", "Welcome to the Land of Dot",
+      "<p>Dottinish is Ezra's language. Every English letter has a Dottinish glyph and a Dottinish sound.</p>" +
+      '<p class="fact">📜 <b>A</b> says “Ben”. <b>P</b> says “Pss”. <b>W</b> says “Wuf”.</p>' +
+      "<p>Learn them five at a time, then read and write whole words in secret.</p>" +
+      "<p><b>The glyphs are only my best reading of his notebook</b> — tap <b>✍️ Studio</b> any time and draw them properly. Whatever he draws replaces mine everywhere.</p>",
+      [{ label: "Let's go", value: true }]);
+  }
+}
+boot();
+</script>
+</body>
+</html>
