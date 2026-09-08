@@ -265,7 +265,7 @@
 
   /* a lesson gets the whole screen — the nav gets out of the way */
   body.inLesson .tag, body.inLesson #bScroll, body.inLesson #bStudio,
-  body.inLesson #bTrans, body.inLesson #bReset { display: none; }
+  body.inLesson #bTrans, body.inLesson #bWords, body.inLesson #bReset { display: none; }
   body.inLesson h1 { font-size: 1.1rem; margin-bottom: 6px; }
 
   @media (max-width: 430px) {
@@ -286,6 +286,7 @@
       <span class="pill gold" id="pXp">✨ 0</span>
       <span class="pill" id="pStreak">🔥 0</span>
       <span class="pill" id="pLearn">📜 0/26</span>
+      <button class="pill" id="bWords">📖 Words</button>
       <button class="pill" id="bScroll">📜 Scroll</button>
       <button class="pill" id="bStudio">✍️ Studio</button>
       <button class="pill" id="bTrans">🔤 Translate</button>
@@ -346,6 +347,18 @@
           <button class="btn" id="bSecretNew">Another one</button>
         </div>
         <div id="secretMsg" style="text-align:center;font-weight:bold;margin-top:10px;"></div>
+      </div>
+    </section>
+
+    <!-- ============ DICTIONARY ============ -->
+    <section id="scWords" hidden>
+      <div class="fact" style="margin-bottom:12px;">
+        <b>🗺️ The Land of Dot</b>
+        <ul id="dotFacts" style="margin:6px 0 0; padding-left:18px; line-height:1.5;"></ul>
+      </div>
+      <div id="lex"></div>
+      <div class="row" style="margin-top:14px;">
+        <button class="btn primary" id="bWordsDone">Done</button>
       </div>
     </section>
 
@@ -423,13 +436,73 @@ const GLYPH_PATHS = {
 
 /* ---------- units: the journey across Dot ---------- */
 const UNITS = [
-  { n: "The Gate of Dot",       e: "🚪", letters: "ABCDE" },
-  { n: "The Ink Woods",         e: "🌲", letters: "FGHIJ" },
-  { n: "The Whispering Hills",  e: "⛰️", letters: "KLMNO" },
-  { n: "The Salt Road",         e: "🧂", letters: "PQRST" },
-  { n: "The Far Shore",         e: "🌊", letters: "UVWXYZ" },
+  { n: "The Grass Plains",      e: "🌾", letters: "ABCDE" },
+  { n: "The Two-Percent Forest", e: "🌲", letters: "FGHIJ" },
+  { n: "The Lava Rock",         e: "🌋", letters: "KLMNO" },
+  { n: "The Mighty Tower",      e: "🗼", letters: "PQRST" },
+  { n: "The 52nd State",        e: "🇺🇸", letters: "UVWXYZ" },
   { n: "The Library of Dot",    e: "📚", letters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", words: true },
+  { n: "Words of Dot",          e: "🗣️", letters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", lexicon: true },
 ];
+
+/* ---------- the facts of Dot, from Ezra ---------- */
+const DOT_FACTS = [
+  "Dot is the <b>52nd state of the United States</b>.",
+  "It is not shaped like a dot. It is called Dot because it is <b>small</b>.",
+  "It was made by <b>lava that turned into rock</b>.",
+  "It is nearly all <b>grass</b> — only <b>2% is forest</b>.",
+  "It has the <b>tallest tower in the world</b>: the Mighty Tower.",
+];
+
+/* ---------- the dictionary of Dottinish ----------
+   A word is a run of glyphs. You say it by saying each letter's sound
+   in order, so MITUR is "En-Tr-Xa-Ul-Ra". Compounds are built out of
+   the smaller words, which is half the fun of it.                    */
+const WORDBOOK = [
+  // talking
+  { w: "HA",   m: "hello",         cat: "Talking" },
+  { w: "HAJ",  m: "goodbye",       cat: "Talking" },
+  { w: "OM",   m: "yes",           cat: "Talking" },
+  { w: "KA",   m: "no",            cat: "Talking" },
+  { w: "TAJ",  m: "thank you",     cat: "Talking" },
+  { w: "PA",   m: "please",        cat: "Talking" },
+  // people
+  { w: "MAB",  m: "friend",        cat: "People" },
+  { w: "RAK",  m: "king",          cat: "People" },
+  { w: "VEL",  m: "child",         cat: "People" },
+  { w: "NIX",  m: "wolf",          cat: "People" },
+  { w: "EZ",   m: "the maker",     cat: "People", note: "The one who made the language." },
+  // the land of Dot
+  { w: "LAN",  m: "land",          cat: "The Land" },
+  { w: "DOT",  m: "small",         cat: "The Land", note: "Which is why the land is called Dot." },
+  { w: "MIT",  m: "mighty",        cat: "The Land" },
+  { w: "TUR",  m: "tower",         cat: "The Land" },
+  { w: "GRA",  m: "grass",         cat: "The Land" },
+  { w: "FOR",  m: "forest",        cat: "The Land" },
+  { w: "LAV",  m: "lava",          cat: "The Land" },
+  { w: "ROK",  m: "rock",          cat: "The Land" },
+  // the world
+  { w: "WOD",  m: "water",         cat: "The World" },
+  { w: "FIR",  m: "fire",          cat: "The World" },
+  { w: "VIT",  m: "tree",          cat: "The World" },
+  { w: "SKA",  m: "sky",           cat: "The World" },
+  { w: "SOL",  m: "sun",           cat: "The World" },
+  { w: "ZEL",  m: "star",          cat: "The World" },
+  { w: "NOK",  m: "night",         cat: "The World" },
+  { w: "GOD",  m: "good",          cat: "The World" },
+  { w: "BAD",  m: "bad",           cat: "The World" },
+  // words made of other words
+  { w: "DOTLAN", m: "the Land of Dot", cat: "Made of two", from: ["DOT", "LAN"] },
+  { w: "MITTUR", m: "the Mighty Tower", cat: "Made of two", from: ["MIT", "TUR"],
+    note: "The tallest tower in the world. Both T's are said — Xa-Xa." },
+  { w: "LAVROK", m: "lava rock",        cat: "Made of two", from: ["LAV", "ROK"], note: "What the whole of Dot is made of." },
+  { w: "GRALAN", m: "grassland",        cat: "Made of two", from: ["GRA", "LAN"] },
+  { w: "FORLAN", m: "forest land",      cat: "Made of two", from: ["FOR", "LAN"] },
+  { w: "NOKZEL", m: "night star",       cat: "Made of two", from: ["NOK", "ZEL"] },
+];
+const WORD_CATS = ["Talking", "People", "The Land", "The World", "Made of two"];
+const say = (w) => w.split("").map((c) => soundOf(c)).join("-");
+const wordsIn = (cat) => WORDBOOK.filter((x) => x.cat === cat);
 const LESSONS_PER_UNIT = 4;   // plus a crown lesson
 
 const WORDS = [
@@ -644,7 +717,7 @@ function card(emoji, title, html, buttons) {
 /* ==================================================================
    SCREENS
    ================================================================== */
-const SCREENS = ["Map", "Lesson", "Studio", "Trans", "Scroll"];
+const SCREENS = ["Map", "Lesson", "Studio", "Trans", "Words", "Scroll"];
 let screen = "map";
 function setScreen(s) {
   screen = s;
@@ -652,6 +725,7 @@ function setScreen(s) {
   document.body.classList.toggle("inLesson", s === "lesson");
   if (s === "map") renderMap();
   if (s === "scroll") renderChart();
+  if (s === "words") renderLex();
   if (s === "studio") renderStudio();
   if (s === "trans") { drawTrans(); }
   updateBar();
@@ -713,7 +787,7 @@ let lesson = null;   // { unit, idx, ex:[], at, right, state }
 function poolFor(ui, li) {
   const u = UNITS[ui];
   let pool = u.letters.split("");
-  if (u.words) return LETTERS.map((l) => l.c);
+  if (u.words || u.lexicon) return LETTERS.map((l) => l.c);
   // later lessons in a unit fold in a little revision
   if (li >= 2 && ui > 0) {
     const earlier = UNITS.slice(0, ui).map((x) => x.letters).join("").split("");
@@ -754,6 +828,28 @@ function buildLesson(ui, li) {
   const pool = poolFor(ui, li);
   const ex = [];
   const isCrown = li === LESSONS_PER_UNIT;
+
+  if (u.lexicon) {
+    // Words of Dot: real Dottinish vocabulary, a category at a time
+    const cats = isCrown ? WORD_CATS : [WORD_CATS[Math.min(li, WORD_CATS.length - 1)]];
+    let bank = [];
+    cats.forEach((c) => { bank = bank.concat(wordsIn(c)); });
+    if (isCrown) bank = shuffle(bank).slice(0, 9);
+    const others = (w) => shuffle(WORDBOOK.filter((x) => x.w !== w.w)).slice(0, 3);
+    shuffle(bank).forEach((entry, i) => {
+      const wrong = others(entry);
+      if (i % 3 === 0) {
+        ex.push({ type: "wordMean", entry: entry, options: shuffle([entry].concat(wrong)) });
+      } else if (i % 3 === 1) {
+        ex.push({ type: "wordWrite", entry: entry, options: shuffle([entry].concat(wrong)) });
+      } else {
+        ex.push({ type: "wordSay", entry: entry, options: shuffle([entry].concat(wrong)) });
+      }
+    });
+    const spellMe = rnd(bank);
+    if (spellMe) ex.push({ type: "spell", word: spellMe.w, mean: spellMe.m });
+    return shuffle(ex);
+  }
 
   if (u.words) {
     // the Library: reading and writing whole words
@@ -805,6 +901,7 @@ function showExercise() {
   ({
     pickLetter: exPickLetter, pickGlyph: exPickGlyph, pickSound: exPickSound,
     match: exMatch, spell: exSpell, read: exRead, trace: exTrace,
+    wordMean: exWordMean, wordWrite: exWordWrite, wordSay: exWordSay,
   })[ex.type](ex, body);
 }
 
@@ -937,8 +1034,16 @@ function exMatch(ex, body) {
 function exSpell(ex, body) {
   const p = document.createElement("div");
   p.className = "prompt";
-  p.innerHTML = 'Write <span class="sound">' + ex.word + "</span> in Dottinish";
+  p.innerHTML = ex.mean
+    ? 'Write the Dottinish for <span class="sound">' + ex.mean + "</span>"
+    : 'Write <span class="sound">' + ex.word + "</span> in Dottinish";
   body.appendChild(p);
+  if (ex.mean) {
+    const hint = document.createElement("div");
+    hint.style.cssText = "text-align:center;font-size:0.82rem;opacity:0.65;margin:-6px 0 10px";
+    hint.textContent = "say it: " + say(ex.word);
+    body.appendChild(hint);
+  }
 
   const answer = document.createElement("div");
   answer.className = "answerRow";
@@ -1067,6 +1172,99 @@ function exRead(ex, body) {
   };
 }
 
+/* ---------- word exercises: real Dottinish vocabulary ---------- */
+function wordCanvasRow(word, size) {
+  const row = document.createElement("div");
+  row.className = "wordShow";
+  word.split("").forEach((c) => row.appendChild(glyphCanvas(c, size, { width: 9 })));
+  return row;
+}
+
+function selectWord(btn, pick, target) {
+  if (lesson.state.answered) return;
+  document.querySelectorAll(".opt").forEach((o) => o.classList.remove("sel"));
+  btn.classList.add("sel");
+  lesson.state.pick = pick;
+  lesson.state.check = () => {
+    const ok = pick === target;
+    document.querySelectorAll(".opt").forEach((o) => {
+      if (o.dataset.pick === target) o.classList.add("good");
+      else if (o.dataset.pick === pick && !ok) o.classList.add("bad");
+    });
+    return ok;
+  };
+  $("bCheck").disabled = false;
+}
+
+// glyph word shown -> what does it mean?
+function exWordMean(ex, body) {
+  const p = document.createElement("div");
+  p.className = "prompt";
+  p.textContent = "What does this Dottinish word mean?";
+  body.appendChild(p);
+  body.appendChild(wordCanvasRow(ex.entry.w, 52));
+  const s = document.createElement("div");
+  s.style.cssText = "text-align:center;font-size:0.9rem;color:#b9862c;font-weight:bold;margin:-6px 0 12px";
+  s.textContent = "“" + say(ex.entry.w) + "”";
+  body.appendChild(s);
+
+  const opts = document.createElement("div");
+  opts.className = "opts";
+  ex.options.forEach((o) => {
+    const b = document.createElement("button");
+    b.className = "opt";
+    b.dataset.pick = o.w;
+    b.innerHTML = '<span style="font-size:1.05rem">' + o.m + "</span>";
+    b.addEventListener("click", () => selectWord(b, o.w, ex.entry.w));
+    opts.appendChild(b);
+  });
+  body.appendChild(opts);
+  lesson.state.word = ex.entry;
+}
+
+// meaning shown -> which word is it?
+function exWordWrite(ex, body) {
+  const p = document.createElement("div");
+  p.className = "prompt";
+  p.innerHTML = 'Which one says <span class="sound">' + ex.entry.m + "</span>?";
+  body.appendChild(p);
+
+  const opts = document.createElement("div");
+  opts.className = "opts";
+  ex.options.forEach((o) => {
+    const b = document.createElement("button");
+    b.className = "opt";
+    b.dataset.pick = o.w;
+    b.appendChild(wordCanvasRow(o.w, 34));
+    b.addEventListener("click", () => selectWord(b, o.w, ex.entry.w));
+    opts.appendChild(b);
+  });
+  body.appendChild(opts);
+  lesson.state.word = ex.entry;
+}
+
+// glyph word shown -> how do you say it?
+function exWordSay(ex, body) {
+  const p = document.createElement("div");
+  p.className = "prompt";
+  p.textContent = "How do you say this out loud?";
+  body.appendChild(p);
+  body.appendChild(wordCanvasRow(ex.entry.w, 52));
+
+  const opts = document.createElement("div");
+  opts.className = "opts";
+  ex.options.forEach((o) => {
+    const b = document.createElement("button");
+    b.className = "opt";
+    b.dataset.pick = o.w;
+    b.innerHTML = '<span style="font-size:0.98rem;color:#b9862c">“' + say(o.w) + '”</span>';
+    b.addEventListener("click", () => selectWord(b, o.w, ex.entry.w));
+    opts.appendChild(b);
+  });
+  body.appendChild(opts);
+  lesson.state.word = ex.entry;
+}
+
 /* ---------- exercise: trace the glyph ---------- */
 function exTrace(ex, body) {
   const p = document.createElement("div");
@@ -1192,19 +1390,33 @@ $("bCheck").addEventListener("click", () => {
   const fb = $("feedback");
   const letter = st.target;
 
+  const wordEx = st.word;   // a Dottinish vocabulary exercise
+
   if (ok) {
     lesson.right++;
     xp += 2;
-    if (ex.type !== "match") mastery[letter] = Math.min(5, (mastery[letter] || 0) + 1);
+    if (wordEx) wordEx.w.split("").forEach((c) => { mastery[c] = Math.min(5, (mastery[c] || 0) + 1); });
+    else if (ex.type !== "match") mastery[letter] = Math.min(5, (mastery[letter] || 0) + 1);
     else ex.pairs.forEach((c) => { mastery[c] = Math.min(5, (mastery[c] || 0) + 1); });
     fb.className = "good";
     const praise = st.trace
       ? (st.score > 0.78 ? "Beautiful writing!" : "That's it!")
       : rnd(["Correct!", "Yes!", "Nice one!", "Spot on!", "Perfect!"]);
-    fb.innerHTML = "✅ " + praise +
-      (ex.type === "spell" || ex.type === "read" ? '<span class="fsub">' + ex.word + "</span>" : "") +
-      (ex.type === "match" ? "" : (ex.type === "spell" || ex.type === "read" ? "" :
-        '<span class="fsub">' + letter + " · “" + soundOf(letter) + "”</span>"));
+    if (wordEx) {
+      fb.innerHTML = "✅ " + praise + '<span class="fsub"><b>' + wordEx.w + "</b> · “" + say(wordEx.w) + "” · " + wordEx.m +
+        (wordEx.from ? " — " + wordEx.from.join(" + ") : "") + "</span>" +
+        (wordEx.note ? '<span class="fsub">' + wordEx.note + "</span>" : "");
+    } else {
+      fb.innerHTML = "✅ " + praise +
+        (ex.type === "spell" || ex.type === "read" ? '<span class="fsub">' + ex.word + (ex.mean ? " · " + ex.mean : "") + "</span>" : "") +
+        (ex.type === "match" ? "" : (ex.type === "spell" || ex.type === "read" ? "" :
+          '<span class="fsub">' + letter + " · “" + soundOf(letter) + "”</span>"));
+    }
+  } else if (wordEx) {
+    fb.className = "bad";
+    fb.innerHTML = "💡 That one is <b>" + wordEx.w + "</b> — “" + say(wordEx.w) + "” — <b>" + wordEx.m + "</b>" +
+      (wordEx.from ? '<span class="fsub">Made of ' + wordEx.from.join(" + ") + ".</span>" : "") +
+      (wordEx.note ? '<span class="fsub">' + wordEx.note + "</span>" : "");
   } else {
     if (ex.type !== "match" && letter && mastery[letter]) mastery[letter] = Math.max(0, mastery[letter] - 1);
     fb.className = "bad";
@@ -1500,6 +1712,38 @@ function renderChart() {
     box.appendChild(cell);
   });
 }
+/* ==================================================================
+   THE DICTIONARY OF DOT
+   ================================================================== */
+function renderLex() {
+  $("dotFacts").innerHTML = DOT_FACTS.map((f) => "<li>" + f + "</li>").join("");
+  const box = $("lex");
+  box.innerHTML = "";
+  WORD_CATS.forEach((cat) => {
+    const h = document.createElement("h2");
+    h.style.cssText = "font-size:0.95rem;margin:16px 0 8px;border-top:2px dashed var(--line);padding-top:10px;";
+    h.textContent = cat === "Made of two" ? "🧩 Words made of other words" : cat;
+    box.appendChild(h);
+    wordsIn(cat).forEach((entry) => {
+      const row = document.createElement("div");
+      row.style.cssText = "background:var(--white);border:2px solid var(--line);border-radius:12px;padding:8px 10px;margin-bottom:7px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;";
+      const glyphs = document.createElement("div");
+      glyphs.style.cssText = "display:flex;gap:3px;flex:0 0 auto;";
+      entry.w.split("").forEach((c) => glyphs.appendChild(glyphCanvas(c, 34, { width: 10 })));
+      const txt = document.createElement("div");
+      txt.style.cssText = "flex:1 1 140px;min-width:140px;";
+      txt.innerHTML = '<div style="font-weight:bold;font-size:1rem;">' + entry.m + "</div>" +
+        '<div style="font-size:0.78rem;color:var(--gold2);font-weight:bold;">' + entry.w + " · “" + say(entry.w) + "”</div>" +
+        (entry.from ? '<div style="font-size:0.74rem;opacity:0.7;">' + entry.from.map((f) => f + " (" + (WORDBOOK.find((x) => x.w === f) || {}).m + ")").join(" + ") + "</div>" : "") +
+        (entry.note ? '<div style="font-size:0.74rem;opacity:0.7;font-style:italic;">' + entry.note + "</div>" : "");
+      row.appendChild(glyphs); row.appendChild(txt);
+      box.appendChild(row);
+    });
+  });
+}
+$("bWords").addEventListener("click", () => setScreen("words"));
+$("bWordsDone").addEventListener("click", () => setScreen("map"));
+
 $("bScrollDone").addEventListener("click", () => setScreen("map"));
 $("bPrint").addEventListener("click", () => window.print());
 
@@ -1533,10 +1777,13 @@ async function boot() {
     seenIntro = true;
     save();
     await card("ᛞ", "Welcome to the Land of Dot",
-      "<p>Dottinish is Ezra's language. Every English letter has a Dottinish glyph and a Dottinish sound.</p>" +
-      '<p class="fact">📜 <b>A</b> says “Ben”. <b>P</b> says “Pss”. <b>W</b> says “Wuf”.</p>' +
-      "<p>Learn them five at a time, then read and write whole words in secret.</p>" +
-      "<p><b>The glyphs are only my best reading of his notebook</b> — tap <b>✍️ Studio</b> any time and draw them properly. Whatever he draws replaces mine everywhere.</p>",
+      '<p class="fact"><b>Dot</b> is the 52nd state of the United States. It is not shaped like a dot — it is called Dot ' +
+      "because it is <b>small</b>. Lava turned into rock and made it. It is nearly all grass, only 2% forest, " +
+      "and it has the tallest tower in the world: the <b>Mighty Tower</b>.</p>" +
+      "<p>Dottinish is the language they write there. Every letter has a glyph and a sound.</p>" +
+      "<p><b>A</b> says “Ben”. <b>P</b> says “Pss”. <b>W</b> says “Wuf”.</p>" +
+      "<p>Learn them five at a time, then read whole words — and finally real Dottinish, where <b>MITTUR</b> means the Mighty Tower and <b>LAVROK</b> is the stone the whole state is made of.</p>" +
+      "<p><b>The glyphs are only my best reading of the notebook</b> — tap <b>✍️ Studio</b> any time and draw them properly. Whatever you draw replaces mine everywhere.</p>",
       [{ label: "Let's go", value: true }]);
   }
 }
