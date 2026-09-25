@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Game Maker — the game where you make the game</title>
+<style>
+  :root {
+    --bg: #14122b;
+    --bg2: #1e1b3d;
+    --panel: #f4f1ff;
+    --panel2: #e6e1fb;
+    --ink: #221f45;
+    --line: #c8c0e8;
+    --pop: #7b5cff;
+    --pop2: #5a3fd6;
+    --go: #34a853;
+    --go2: #268040;
+    --gold: #f2b736;
+    --gold2: #c9901f;
+    --pink: #ff6bb5;
+    --white: #fffdfa;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; background: var(--bg); color: var(--ink);
+    font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+    overscroll-behavior: none;
+  }
+  body {
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(123,92,255,0.20), transparent 45%),
+      radial-gradient(circle at 85% 80%, rgba(255,107,181,0.16), transparent 48%);
+    min-height: 100vh;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 8px 10px 40px; }
+  a.back { display: inline-block; color: #b9a9ff; text-decoration: none; font-weight: bold; font-size: 0.85rem; padding: 6px 2px; }
+  .sheet { background: var(--panel); border-radius: 20px; box-shadow: 0 14px 40px rgba(0,0,0,0.5); padding: 12px 12px 18px; }
+  h1 { margin: 2px 0; text-align: center; font-size: 1.45rem; }
+  .sub { text-align: center; font-size: 0.78rem; opacity: 0.65; margin: 0 0 10px; }
+
+  #bar { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 10px; }
+  .pill {
+    background: var(--white); border: 2px solid var(--line); border-radius: 999px;
+    padding: 6px 12px; font-weight: bold; font-size: 0.8rem; min-height: 38px;
+    display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; color: var(--ink);
+  }
+  .pill.gold { background: #fff6e0; border-color: var(--gold); }
+  .pill.pop { background: #efeaff; border-color: var(--pop); }
+  button.pill { cursor: pointer; font-family: inherit; }
+  button.pill:active { transform: scale(0.95); }
+
+  .btn {
+    background: var(--white); border: 2px solid var(--line); border-bottom-width: 4px;
+    border-radius: 14px; padding: 11px 16px; font-family: inherit; font-weight: bold;
+    font-size: 0.92rem; color: var(--ink); cursor: pointer; min-height: 46px;
+  }
+  .btn:active { transform: translateY(2px); border-bottom-width: 2px; }
+  .btn.primary { background: var(--pop); border-color: var(--pop2); color: #fff; }
+  .btn.go { background: var(--go); border-color: var(--go2); color: #fff; }
+  .btn.gold { background: var(--gold); border-color: var(--gold2); color: #3a2a06; }
+  .btn[disabled] { opacity: 0.4; cursor: default; transform: none; }
+  .btn.wide { width: 100%; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+
+  canvas { display: block; image-rendering: pixelated; touch-action: none; }
+  .stage {
+    background: #0e1030; border: 3px solid var(--line); border-radius: 14px;
+    overflow: hidden; margin: 0 auto; width: fit-content; max-width: 100%;
+  }
+  .stage canvas { max-width: 100%; height: auto; }
+
+  /* palette */
+  .palette { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin: 8px 0; }
+  .tbtn {
+    width: 52px; height: 52px; border-radius: 11px; background: var(--white);
+    border: 2px solid var(--line); border-bottom-width: 4px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 1.25rem; font-family: inherit; color: var(--ink); padding: 0; position: relative;
+  }
+  .tbtn .nm { font-size: 0.52rem; font-weight: bold; opacity: 0.6; margin-top: 1px; }
+  .tbtn.on { background: var(--pop); border-color: var(--pop2); color: #fff; }
+  .tbtn.on .nm { opacity: 0.9; }
+  .tbtn.locked { opacity: 0.35; }
+  .tbtn.locked::after { content: "🔒"; position: absolute; top: -4px; right: -2px; font-size: 0.7rem; }
+
+  /* touch pad */
+  .pad { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 8px; }
+  .dpad { display: flex; gap: 8px; }
+  .kbtn {
+    width: 62px; height: 62px; border-radius: 50%; border: 3px solid var(--line);
+    border-bottom-width: 5px; background: var(--white); font-size: 1.4rem;
+    font-family: inherit; color: var(--ink); cursor: pointer; touch-action: none;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .kbtn:active, .kbtn.down { background: var(--pop); color: #fff; transform: translateY(2px); }
+  .kbtn.jump { background: #ffe9f5; border-color: var(--pink); }
+  .kbtn.jump:active, .kbtn.jump.down { background: var(--pink); color: #fff; }
+
+  /* cards & lists */
+  .card {
+    background: var(--white); border: 2px solid var(--line); border-radius: 14px;
+    padding: 10px 12px; margin-bottom: 9px;
+  }
+  .card h3 { margin: 0 0 4px; font-size: 1rem; }
+  .card .meta { font-size: 0.76rem; opacity: 0.68; }
+  .gameRow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .boxart {
+    width: 54px; height: 54px; border-radius: 12px; background: var(--panel2);
+    border: 2px solid var(--line); display: flex; align-items: center; justify-content: center;
+    font-size: 1.7rem; flex: 0 0 auto;
+  }
+  .grow { flex: 1 1 130px; min-width: 130px; }
+
+  .note { background: #efeaff; border-left: 4px solid var(--pop); padding: 9px 11px; border-radius: 9px; font-size: 0.86rem; line-height: 1.45; }
+  .note.good { background: #e6f7ea; border-left-color: var(--go); }
+  .note.gold { background: #fff6e0; border-left-color: var(--gold); }
+
+  input[type=text] {
+    width: 100%; border: 2px solid var(--line); border-radius: 12px; padding: 11px;
+    font-family: inherit; font-size: 1rem; background: var(--white); color: var(--ink);
+  }
+  textarea { width: 100%; border: 2px solid var(--line); border-radius: 12px; padding: 10px;
+    font-family: monospace; font-size: 0.8rem; background: var(--white); color: var(--ink); resize: vertical; }
+
+  #toast {
+    position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+    background: rgba(14,12,40,0.96); color: #fff; border: 2px solid var(--pop);
+    border-radius: 12px; padding: 9px 15px; font-weight: bold; font-size: 0.85rem;
+    max-width: 92vw; text-align: center; z-index: 300; display: none;
+  }
+  #toast.show { display: block; }
+
+  .overlay { position: fixed; inset: 0; background: rgba(10,8,28,0.75); display: none;
+    align-items: center; justify-content: center; z-index: 400; padding: 14px; }
+  .overlay.show { display: flex; }
+  .ovcard { background: var(--panel); border-radius: 20px; padding: 18px; max-width: 440px;
+    width: 100%; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.55);
+    max-height: 88vh; overflow-y: auto; }
+  .ovcard h3 { margin: 6px 0 8px; }
+  .ovcard p { font-size: 0.9rem; line-height: 1.45; margin: 7px 0; }
+
+  .hint { text-align: center; font-size: 0.78rem; opacity: 0.66; margin: 6px 0; }
+  .banner {
+    text-align: center; font-weight: bold; font-size: 0.85rem; padding: 7px 10px;
+    background: #0e1030; color: #d9d2ff; border-radius: 10px; margin-bottom: 8px;
+  }
+  @media (max-width: 430px) {
+    h1 { font-size: 1.2rem; }
+    .tbtn { width: 46px; height: 46px; font-size: 1.1rem; }
+    .kbtn { width: 56px; height: 56px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← Back to Game Hub</a>
+  <div class="sheet">
+    <h1 id="title">🕹️ Game Maker</h1>
+    <p class="sub" id="subtitle">The game where you make the game</p>
+
+    <div id="bar">
+      <span class="pill pop" id="pFans">💜 0 fans</span>
+      <span class="pill gold" id="pCoins">🪙 0</span>
+      <span class="pill" id="pGames">🎮 0</span>
+      <button class="pill" id="bShop">🛒 Shop</button>
+      <button class="pill" id="bGames">📚 My Games</button>
+      <button class="pill" id="bCodes">📮 Codes</button>
+      <button class="pill" id="bReset">🧹</button>
+    </div>
+
+    <!-- ============ HOME ============ -->
+    <section id="scHome"></section>
+
+    <!-- ============ EDITOR ============ -->
+    <section id="scEdit" hidden>
+      <div class="banner" id="editBanner">Paint your level</div>
+      <div class="stage"><canvas id="cvEdit"></canvas></div>
+      <div class="palette" id="palette"></div>
+      <div class="row">
+        <button class="btn" id="bEditUndo">↩ Undo</button>
+        <button class="btn" id="bEditClear">🧹 Clear</button>
+        <button class="btn" id="bEditGenre">🎲 Genre</button>
+        <button class="btn go" id="bEditTest">▶ Test it</button>
+        <button class="btn" id="bEditHome">← Studio</button>
+      </div>
+      <p class="hint" id="editHint"></p>
+    </section>
+
+    <!-- ============ PLAY ============ -->
+    <section id="scPlay" hidden>
+      <div class="banner" id="playBanner"></div>
+      <div class="stage"><canvas id="cvPlay"></canvas></div>
+      <div class="pad">
+        <div class="dpad">
+          <button class="kbtn" data-k="left">◀</button>
+          <button class="kbtn" data-k="right">▶</button>
+        </div>
+        <div class="dpad">
+          <button class="kbtn" data-k="up" id="kUp">▲</button>
+          <button class="kbtn" data-k="down" id="kDown">▼</button>
+          <button class="kbtn jump" data-k="jump" id="kJump">⤴</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button class="btn" id="bPlayEdit">✏️ Edit it</button>
+        <button class="btn" id="bPlayEasier" hidden>🙂 Make this bit easier</button>
+        <button class="btn" id="bPlayQuit">← Back</button>
+      </div>
+    </section>
+
+    <!-- ============ GENERIC PANEL ============ -->
+    <section id="scPanel" hidden>
+      <div id="panelBody"></div>
+      <div class="row" style="margin-top:12px;"><button class="btn primary" id="bPanelBack">← Studio</button></div>
+    </section>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div class="overlay" id="ovr"><div class="ovcard">
+  <div id="ovE" style="font-size:2.6rem;">🕹️</div>
+  <h3 id="ovT"></h3>
+  <div id="ovB"></div>
+  <div class="row" id="ovBtns" style="margin-top:14px;"></div>
+</div></div>
+
+<script>
+/* ==================================================================
+   GAME MAKER — a game about making games.
+   You run a bedroom studio. Kids send you briefs, you build the game
+   in a tile editor, you must beat it yourself before you can ship it,
+   and then your fans play it.
+   Design rule that shapes everything below: criticism happens BEFORE
+   shipping, in private, from your own robot, and is always refusable.
+   After shipping, only good things happen. Nothing you make can flop.
+   ================================================================== */
+
+const $ = (id) => document.getElementById(id);
+const SAVE_KEY = "gamemaker-v1";
+const TS = 34;                       // tile size in physics pixels
+
+/* ---------------- tiles ---------------- */
+const T = {
+  EMPTY: 0, GROUND: 1, WALL: 2, SPIKE: 3, WATER: 4, ICE: 5, BOUNCE: 6,
+  LADDER: 7, COIN: 8, KEY: 9, DOOR: 10, ENEMY: 11, GOAL: 12, START: 13, ARCADE: 14,
+};
+const TILES = [
+  { id: T.GROUND, nm: "grass",  e: "🟩", solid: 1 },
+  { id: T.WALL,   nm: "stone",  e: "⬛", solid: 1 },
+  { id: T.SPIKE,  nm: "spikes", e: "🔺", hazard: 1 },
+  { id: T.COIN,   nm: "coin",   e: "🪙" },
+  { id: T.GOAL,   nm: "flag",   e: "🚩" },
+  { id: T.START,  nm: "start",  e: "🧍" },
+  { id: T.WATER,  nm: "water",  e: "🌊", hazard: 1, unlock: "water" },
+  { id: T.ICE,    nm: "ice",    e: "🧊", solid: 1, unlock: "ice" },
+  { id: T.BOUNCE, nm: "bounce", e: "🟪", solid: 1, unlock: "bounce" },
+  { id: T.LADDER, nm: "ladder", e: "🪜", unlock: "ladder" },
+  { id: T.KEY,    nm: "key",    e: "🔑", unlock: "key" },
+  { id: T.DOOR,   nm: "door",   e: "🚪", solid: 1, unlock: "key" },
+  { id: T.ENEMY,  nm: "baddie", e: "👾", unlock: "enemy" },
+  { id: T.ARCADE, nm: "arcade", e: "🕹️", unlock: "arcade" },
+];
+const tileOf = (id) => TILES.find((t) => t.id === id);
+const SOLID = {}; const HAZARD = {};
+TILES.forEach((t) => { if (t.solid) SOLID[t.id] = 1; if (t.hazard) HAZARD[t.id] = 1; });
+
+/* ---------------- genres ---------------- */
+const GENRES = {
+  platform: { nm: "Jumping game", e: "🏃", gravity: true,  win: "flag",
+    how: "Run and jump to the flag." },
+  maze:     { nm: "Maze game",    e: "🧭", gravity: false, win: "flag", unlock: "maze",
+    how: "Move any direction. Find the way to the flag." },
+  survive:  { nm: "Dodging game", e: "☄️", gravity: true,  win: "timer", unlock: "survive",
+    how: "Stay alive while things fall from the sky!" },
+};
+const SIZES = {
+  small:  { nm: "Small",  w: 14, h: 9 },
+  medium: { nm: "Medium", w: 20, h: 12, unlock: "medium" },
+  large:  { nm: "Large",  w: 26, h: 15, unlock: "large" },
+};
+
+/* ---------------- the shop ---------------- */
+const SHOP = [
+  { id: "ice",     nm: "Ice blocks",     e: "🧊", cost: 20,  d: "Slippery. Very hard to stop on." },
+  { id: "bounce",  nm: "Bounce pads",    e: "🟪", cost: 25,  d: "Boing! Launches you up high." },
+  { id: "water",   nm: "Water",          e: "🌊", cost: 20,  d: "Don't fall in." },
+  { id: "maze",    nm: "Maze games",     e: "🧭", cost: 40,  d: "A whole new genre — no gravity, move any way." },
+  { id: "medium",  nm: "Medium levels",  e: "📐", cost: 35,  d: "A bigger canvas to build on." },
+  { id: "ladder",  nm: "Ladders",        e: "🪜", cost: 30,  d: "Climb up and down." },
+  { id: "key",     nm: "Keys & doors",   e: "🔑", cost: 45,  d: "Locked doors that need a key first." },
+  { id: "enemy",   nm: "Baddies",        e: "👾", cost: 55,  d: "They walk back and forth. Don't touch." },
+  { id: "survive", nm: "Dodging games",  e: "☄️", cost: 70,  d: "Another genre — survive the falling rocks." },
+  { id: "large",   nm: "Large levels",   e: "🗺️", cost: 80,  d: "The biggest canvas there is." },
+  { id: "tester2", nm: "A second tester", e: "🧑‍🔬", cost: 60, d: "More fans try your game and tell you about it." },
+  { id: "arcade",  nm: "Arcade machine", e: "🕹️", cost: 120, d: "Put one of YOUR OTHER GAMES inside a game.", secret: true },
+];
+
+/* ---------------- your fans ---------------- */
+const FANS = [
+  { nm: "Mika",  e: "🧒", likes: T.COIN,   want: "coins to collect" },
+  { nm: "Bo",    e: "👦", likes: T.SPIKE,  want: "something scary" },
+  { nm: "Yuna",  e: "👧", likes: T.ICE,    want: "slippery ice" },
+  { nm: "Rex",   e: "🧑", likes: T.ENEMY,  want: "baddies to dodge" },
+  { nm: "Pip",   e: "👶", likes: T.BOUNCE, want: "big bouncy jumps" },
+  { nm: "Nucky", e: "🐧", likes: T.WATER,  want: "water" },
+  { nm: "Sal",   e: "🧓", likes: T.LADDER, want: "ladders to climb" },
+  { nm: "Juno",  e: "🧑‍🎤", likes: T.KEY,  want: "a key to find" },
+];
+
+/* ---------------- briefs ---------------- */
+const BRIEFS = [
+  { id: "b1", who: "Mika", ask: "a jumping game with at least 6 coins", need: { genre: "platform", min: { [T.COIN]: 6 } }, pay: 14 },
+  { id: "b2", who: "Bo",   ask: "something SCARY — at least 8 spikes", need: { min: { [T.SPIKE]: 8 } }, pay: 16 },
+  { id: "b3", who: "Yuna", ask: "a level with ice in it", need: { min: { [T.ICE]: 4 } }, needs: "ice", pay: 18 },
+  { id: "b4", who: "Pip",  ask: "a game with bounce pads AND coins", need: { min: { [T.BOUNCE]: 2, [T.COIN]: 4 } }, needs: "bounce", pay: 20 },
+  { id: "b5", who: "Sal",  ask: "a maze game", need: { genre: "maze" }, needs: "maze", pay: 22 },
+  { id: "b6", who: "Juno", ask: "a game where you find a key to open a door", need: { min: { [T.KEY]: 1, [T.DOOR]: 1 } }, needs: "key", pay: 24 },
+  { id: "b7", who: "Rex",  ask: "a game with 3 baddies in it", need: { min: { [T.ENEMY]: 3 } }, needs: "enemy", pay: 26 },
+  { id: "b8", who: "Nucky", ask: "a dodging game — I want to survive something", need: { genre: "survive" }, needs: "survive", pay: 28 },
+  { id: "b9", who: "Mika", ask: "a BIG level, at least 60 blocks painted", need: { minPainted: 60 }, needs: "medium", pay: 26 },
+  { id: "inception", who: "Ezra", ask: "a game about making games 🪆",
+    need: { minPainted: 40, min: { [T.COIN]: 3 } }, pay: 60, secret: true,
+    note: "This one is from you. To yourself." },
+];
+
+/* ==================================================================
+   SAVE
+   ================================================================== */
+let fans = 0, coins = 0, owned = {}, games = [], briefsDone = {}, seenIntro = false, draft = null;
+
+function save() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      fans, coins, owned, briefsDone, seenIntro, draft,
+      games: games.map((g) => ({ n: g.n, a: g.a, gen: g.gen, w: g.w, h: g.h,
+        t: rle(g.t), fans: g.fans, facts: g.facts, wish: g.wish, plays: g.plays })),
+    }));
+  } catch (e) { /* private mode */ }
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    fans = Math.max(0, Math.floor(Number(s.fans) || 0));
+    coins = Math.max(0, Math.floor(Number(s.coins) || 0));
+    owned = {};
+    Object.keys(s.owned || {}).forEach((k) => { if (SHOP.some((x) => x.id === k)) owned[k] = true; });
+    briefsDone = {};
+    Object.keys(s.briefsDone || {}).forEach((k) => { if (BRIEFS.some((b) => b.id === k)) briefsDone[k] = true; });
+    seenIntro = !!s.seenIntro;
+    games = (Array.isArray(s.games) ? s.games : []).map(readGame).filter(Boolean).slice(0, 40);
+    draft = s.draft ? readGame(s.draft) : null;
+    return true;
+  } catch (e) { return false; }
+}
+function readGame(g) {
+  try {
+    if (!g || typeof g !== "object") return null;
+    const w = Math.max(4, Math.min(40, Math.floor(Number(g.w) || 14)));
+    const h = Math.max(4, Math.min(24, Math.floor(Number(g.h) || 9)));
+    let t = typeof g.t === "string" ? unrle(g.t) : (Array.isArray(g.t) ? g.t.slice() : []);
+    t = t.slice(0, w * h).map((v) => (TILES.some((x) => x.id === v) ? v : T.EMPTY));
+    // a real level always has something in it; anything else is junk in the save
+    if (!t.some((v) => v !== T.EMPTY)) return null;
+    while (t.length < w * h) t.push(T.EMPTY);
+    return {
+      n: String(g.n || "Untitled").slice(0, 26), a: String(g.a || "🎮").slice(0, 4),
+      gen: GENRES[g.gen] ? g.gen : "platform", w, h, t,
+      fans: Math.max(0, Math.floor(Number(g.fans) || 0)),
+      plays: Math.max(0, Math.floor(Number(g.plays) || 0)),
+      facts: Array.isArray(g.facts) ? g.facts.slice(0, 6).map(String) : [],
+      wish: g.wish ? String(g.wish).slice(0, 160) : "",
+    };
+  } catch (e) { return null; }
+}
+
+/* run-length encode the tile grid, so saves and share codes stay small */
+const A64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-";
+function rle(t) {
+  let out = "", i = 0;
+  while (i < t.length) {
+    const v = t[i]; let n = 1;
+    while (i + n < t.length && t[i + n] === v && n < 62) n++;
+    out += A64[v] + A64[n];
+    i += n;
+  }
+  return out;
+}
+function unrle(s) {
+  const out = [];
+  for (let i = 0; i + 1 < s.length; i += 2) {
+    const v = A64.indexOf(s[i]), n = A64.indexOf(s[i + 1]);
+    if (v < 0 || n < 0) continue;
+    for (let k = 0; k < n; k++) out.push(v);
+  }
+  return out;
+}
+
+const has = (id) => !!owned[id];
+const tileUnlocked = (t) => !t.unlock || has(t.unlock);
+const genreUnlocked = (k) => !GENRES[k].unlock || has(GENRES[k].unlock);
+const sizeUnlocked = (k) => !SIZES[k].unlock || has(SIZES[k].unlock);
+
+function updateBar() {
+  $("pFans").textContent = "💜 " + fans + " fan" + (fans === 1 ? "" : "s");
+  $("pCoins").textContent = "🪙 " + coins;
+  $("pGames").textContent = "🎮 " + games.length;
+}
+
+/* ==================================================================
+   LITTLE HELPERS
+   ================================================================== */
+const rnd = (a) => a[Math.floor(Math.random() * a.length)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function shuffle(a) { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; }
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+let toastT = null;
+function toast(msg, ms) {
+  const el = $("toast");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.classList.remove("show"), ms || 2400);
+}
+function card(emoji, title, html, buttons) {
+  return new Promise((resolve) => {
+    $("ovE").textContent = emoji; $("ovT").textContent = title;
+    $("ovB").innerHTML = html || "";
+    const box = $("ovBtns"); box.innerHTML = "";
+    (buttons || [{ label: "OK", value: true }]).forEach((b) => {
+      const el = document.createElement("button");
+      el.className = "btn " + (b.cls || "primary");
+      el.textContent = b.label;
+      el.addEventListener("click", () => { $("ovr").classList.remove("show"); resolve(b.value); });
+      box.appendChild(el);
+    });
+    $("ovr").classList.add("show");
+  });
+}
+
+/* ==================================================================
+   LEVEL MODEL
+   ================================================================== */
+function blankLevel(sizeKey, gen) {
+  const S = SIZES[sizeKey] || SIZES.small;
+  const lv = { n: "", a: "🎮", gen: gen || "platform", w: S.w, h: S.h, t: new Array(S.w * S.h).fill(T.EMPTY),
+               fans: 0, plays: 0, facts: [], wish: "" };
+  // a floor and somewhere to stand, so it is never a blank intimidating page
+  for (let x = 0; x < lv.w; x++) lv.t[(lv.h - 1) * lv.w + x] = T.GROUND;
+  lv.t[(lv.h - 2) * lv.w + 1] = T.START;
+  lv.t[(lv.h - 2) * lv.w + (lv.w - 2)] = T.GOAL;
+  return lv;
+}
+/* Off the left and right edges is solid, so you can't walk out of the
+   world. Above and below is open air, so falling off the bottom is a
+   real way to die and jumping off the top is allowed. */
+const at = (lv, x, y) => {
+  if (x < 0 || x >= lv.w) return T.WALL;
+  if (y < 0 || y >= lv.h) return T.EMPTY;
+  return lv.t[y * lv.w + x];
+};
+const setAt = (lv, x, y, v) => { if (x >= 0 && y >= 0 && x < lv.w && y < lv.h) lv.t[y * lv.w + x] = v; };
+const countOf = (lv, id) => lv.t.reduce((n, v) => n + (v === id ? 1 : 0), 0);
+const painted = (lv) => lv.t.reduce((n, v) => n + (v !== T.EMPTY ? 1 : 0), 0);
+function findTile(lv, id) {
+  for (let y = 0; y < lv.h; y++) for (let x = 0; x < lv.w; x++) if (at(lv, x, y) === id) return { x, y };
+  return null;
+}
+
+/* share codes: name ~ art ~ genre ~ w ~ h ~ tiles */
+function toCode(lv) {
+  const raw = [lv.n || "Untitled", lv.a, lv.gen, lv.w, lv.h, rle(lv.t)].join("~");
+  try { return "DOT" + btoa(unescape(encodeURIComponent(raw))).replace(/=+$/, ""); }
+  catch (e) { return ""; }
+}
+function fromCode(code) {
+  try {
+    let c = String(code).trim().replace(/\s+/g, "");
+    if (c.slice(0, 3).toUpperCase() === "DOT") c = c.slice(3);
+    const raw = decodeURIComponent(escape(atob(c)));
+    const p = raw.split("~");
+    if (p.length < 6) return null;
+    return readGame({ n: p[0], a: p[1], gen: p[2], w: +p[3], h: +p[4], t: p[5] });
+  } catch (e) { return null; }
+}
+
+/* ==================================================================
+   THE ENGINE — one engine, three genres
+   ================================================================== */
+const PHYS = {
+  grav: 0.62, jump: -9.6, move: 0.95, maxvx: 4.3, fric: 0.76, icefric: 0.95,
+  maxvy: 13, bounce: -13.5, climb: 2.6, topSpeed: 3.5,
+};
+const PW = 22, PH = 26;             // player box
+
+function newState(lv) {
+  const st = findTile(lv, T.START) || { x: 1, y: lv.h - 2 };
+  const s = {
+    x: st.x * TS + (TS - PW) / 2, y: st.y * TS + (TS - PH),
+    vx: 0, vy: 0, onGround: false, onLadder: false,
+    coins: 0, totalCoins: countOf(lv, T.COIN), keys: 0,
+    got: {}, dead: false, won: false, t: 0, deaths: 0,
+    enemies: [], fallers: [], spawnT: 0, timeLeft: 30 * 60, maxX: 0, coyote: 0, jumpHeld: false,
+  };
+  for (let y = 0; y < lv.h; y++) for (let x = 0; x < lv.w; x++) {
+    if (at(lv, x, y) === T.ENEMY) s.enemies.push({ x: x * TS + 4, y: y * TS + 6, w: TS - 8, h: TS - 8, dir: (x % 2) ? 1 : -1, home: y });
+  }
+  return s;
+}
+const collected = (s, x, y) => !!s.got[y * 1000 + x];
+const collect = (s, x, y) => { s.got[y * 1000 + x] = 1; };
+
+function solidAt(lv, s, px, py) {
+  const tx = Math.floor(px / TS), ty = Math.floor(py / TS);
+  const v = at(lv, tx, ty);
+  if (v === T.DOOR) return s.keys > 0 ? false : true;
+  return !!SOLID[v];
+}
+function boxSolid(lv, s, x, y, w, h) {
+  const x0 = Math.floor(x / TS), x1 = Math.floor((x + w - 1) / TS);
+  const y0 = Math.floor(y / TS), y1 = Math.floor((y + h - 1) / TS);
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+    const v = at(lv, tx, ty);
+    if (v === T.DOOR && s.keys > 0) continue;
+    if (SOLID[v]) return { tx, ty, v };
+  }
+  return null;
+}
+function tilesUnder(lv, x, y, w, h) {
+  const out = [];
+  const x0 = Math.floor(x / TS), x1 = Math.floor((x + w - 1) / TS);
+  const y0 = Math.floor(y / TS), y1 = Math.floor((y + h - 1) / TS);
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) out.push({ tx, ty, v: at(lv, tx, ty) });
+  return out;
+}
+
+function step(lv, s, inp) {
+  if (s.dead || s.won) return;
+  s.t++;
+  const G = GENRES[lv.gen];
+
+  if (G.gravity) {
+    /* ---- side-on movement ---- */
+    const feet = tilesUnder(lv, s.x, s.y + PH + 1, PW, 2);
+    const onIce = feet.some((f) => f.v === T.ICE) && s.onGround;
+    const inLadder = tilesUnder(lv, s.x, s.y, PW, PH).some((f) => f.v === T.LADDER);
+    s.onLadder = inLadder;
+
+    const ax = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
+    if (ax) s.vx += ax * PHYS.move; else s.vx *= onIce ? PHYS.icefric : PHYS.fric;
+    s.vx = clamp(s.vx, -PHYS.maxvx, PHYS.maxvx);
+
+    if (inLadder) {
+      s.vy = 0;
+      if (inp.up) s.vy = -PHYS.climb;
+      else if (inp.down) s.vy = PHYS.climb;
+      if (inp.jump && !s.jumpHeld) { s.vy = PHYS.jump * 0.8; s.rising = "jump"; s.onLadder = false; }
+    } else {
+      s.vy += PHYS.grav;
+      if (s.onGround) s.coyote = 6; else if (s.coyote > 0) s.coyote--;
+      if (inp.jump && !s.jumpHeld && s.coyote > 0) { s.vy = PHYS.jump; s.coyote = 0; s.rising = "jump"; }
+      // letting go early gives a shorter hop — but a bounce pad always
+      // sends you the full height, it isn't yours to cut short
+      if (!inp.jump && s.vy < -3 && s.rising === "jump") s.vy *= 0.86;
+    }
+    s.jumpHeld = !!inp.jump;
+    s.vy = clamp(s.vy, PHYS.jump * 1.6, PHYS.maxvy);
+
+    // move x then y, pushing out of solids
+    s.x += s.vx;
+    let hit = boxSolid(lv, s, s.x, s.y, PW, PH);
+    if (hit) { s.x = s.vx > 0 ? hit.tx * TS - PW - 0.01 : (hit.tx + 1) * TS + 0.01; s.vx = 0; }
+
+    s.y += s.vy;
+    s.onGround = false;
+    hit = boxSolid(lv, s, s.x, s.y, PW, PH);
+    if (hit) {
+      if (s.vy > 0) {
+        s.y = hit.ty * TS - PH - 0.01;
+        if (hit.v === T.BOUNCE) { s.vy = PHYS.bounce; s.onGround = false; s.rising = "bounce"; }
+        else { s.vy = 0; s.onGround = true; }
+      } else { s.y = (hit.ty + 1) * TS + 0.01; s.vy = 0; }
+    }
+  } else {
+    /* ---- top-down movement ---- */
+    const ax = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
+    const ay = (inp.down ? 1 : 0) - (inp.up ? 1 : 0);
+    const sp = PHYS.topSpeed;
+    s.x += ax * sp;
+    let hit = boxSolid(lv, s, s.x, s.y, PW, PH);
+    if (hit) s.x = ax > 0 ? hit.tx * TS - PW - 0.01 : (hit.tx + 1) * TS + 0.01;
+    s.y += ay * sp;
+    hit = boxSolid(lv, s, s.x, s.y, PW, PH);
+    if (hit) s.y = ay > 0 ? hit.ty * TS - PH - 0.01 : (hit.ty + 1) * TS + 0.01;
+    s.onGround = true;
+  }
+
+  s.x = clamp(s.x, 0, lv.w * TS - PW);
+  s.maxX = Math.max(s.maxX, s.x);
+
+  /* ---- falling rocks, in a dodging game ---- */
+  if (G.win === "timer") {
+    s.timeLeft--;
+    if (s.timeLeft <= 0) { s.won = true; return; }
+    s.spawnT--;
+    if (s.spawnT <= 0) {
+      s.spawnT = 22 + Math.floor(Math.random() * 20);
+      s.fallers.push({ x: Math.random() * (lv.w * TS - 20), y: -20, vy: 2.4 + Math.random() * 2.4 });
+    }
+    s.fallers.forEach((f) => { f.y += f.vy; });
+    s.fallers = s.fallers.filter((f) => f.y < lv.h * TS + 30);
+    for (const f of s.fallers) {
+      if (f.x + 18 > s.x && f.x < s.x + PW && f.y + 18 > s.y && f.y < s.y + PH) { s.dead = true; return; }
+    }
+  }
+
+  /* ---- baddies ---- */
+  s.enemies.forEach((en) => {
+    en.x += en.dir * 1.15;
+    const ahead = en.dir > 0 ? en.x + en.w + 2 : en.x - 2;
+    const blocked = solidAt(lv, s, ahead, en.y + en.h / 2);
+    const ground = G.gravity ? solidAt(lv, s, ahead, en.y + en.h + 4) : true;
+    if (blocked || !ground || en.x < 0 || en.x + en.w > lv.w * TS) { en.dir *= -1; en.x += en.dir * 2; }
+    if (en.x + en.w > s.x && en.x < s.x + PW && en.y + en.h > s.y && en.y < s.y + PH) s.dead = true;
+  });
+  if (s.dead) return;
+
+  /* ---- what am I touching? ---- */
+  const over = tilesUnder(lv, s.x + 2, s.y + 2, PW - 4, PH - 4);
+  for (const o of over) {
+    if (HAZARD[o.v]) { s.dead = true; return; }
+    if (o.v === T.COIN && !collected(s, o.tx, o.ty)) { collect(s, o.tx, o.ty); s.coins++; }
+    if (o.v === T.KEY && !collected(s, o.tx, o.ty)) { collect(s, o.tx, o.ty); s.keys++; }
+    if (o.v === T.ARCADE && !collected(s, o.tx, o.ty)) { collect(s, o.tx, o.ty); s.arcade = { tx: o.tx, ty: o.ty }; }
+    if (o.v === T.GOAL && G.win === "flag") { s.won = true; return; }
+  }
+  if (s.y > lv.h * TS + 60) s.dead = true;     // fell out of the world
+}
+
+/* ==================================================================
+   THE ROBOT PLAYTESTER
+   It plays the level for real, using the engine above. Its opinion is
+   only ever advice — his own playthrough is what actually counts.
+   ================================================================== */
+function botPlay(lv, tries) {
+  const G = GENRES[lv.gen];
+  if (G.win === "timer") {
+    const floor = lv.t.filter((v) => SOLID[v]).length;
+    return { solvable: floor > 4, runs: 0, best: 1800, wins: 1, deaths: 0, coinsGot: 0,
+             stuckAt: null, close: 0 };
+  }
+  const goal = findTile(lv, T.GOAL);
+  const start = findTile(lv, T.START);
+  if (!goal || !start) return { solvable: false, noGoal: !goal, noStart: !start, wins: 0, best: 0, deaths: 0, coinsGot: 0, stuckAt: null, close: 0 };
+
+  let wins = 0, best = Infinity, deaths = 0, coinsGot = 0, close = 0;
+  let stuckAt = null, furthest = -1;
+  const N = tries || 26;
+
+  for (let r = 0; r < N; r++) {
+    const s = newState(lv);
+    let stuck = 0, lastX = s.x, jumpTick = 0;
+    const jitter = 0.10 + (r / N) * 0.35;
+    for (let f = 0; f < 1700; f++) {
+      const gx = goal.x * TS, gy = goal.y * TS;
+      const inp = { left: false, right: false, up: false, down: false, jump: false };
+      const dx = gx - s.x, dy = gy - s.y;
+
+      if (G.gravity) {
+        inp.right = dx > 4; inp.left = dx < -4;
+        if (Math.random() < jitter * 0.25) { inp.right = !inp.right; inp.left = !inp.left; }
+        const dir = inp.right ? 1 : (inp.left ? -1 : 0);
+        const aheadX = s.x + (dir > 0 ? PW + 6 : -6);
+        const wallAhead = dir && solidAt(lv, s, aheadX, s.y + PH - 6);
+        const headroom = dir && !solidAt(lv, s, aheadX, s.y + 4);
+        const gapAhead = dir && !solidAt(lv, s, aheadX, s.y + PH + 6);
+        const hazardAhead = tilesUnder(lv, aheadX - 4, s.y, 10, PH + 8).some((o) => HAZARD[o.v]);
+        const needUp = dy < -TS * 0.6;
+        jumpTick--;
+        if (s.onGround && jumpTick <= 0 &&
+            ((wallAhead && headroom) || gapAhead || hazardAhead || needUp || stuck > 26 || Math.random() < jitter * 0.09)) {
+          inp.jump = true; jumpTick = 8;
+        }
+        if (s.onLadder) { inp.up = dy < 0; inp.down = dy > 0; }
+      } else {
+        inp.right = dx > 3; inp.left = dx < -3; inp.down = dy > 3; inp.up = dy < -3;
+        if (stuck > 14) {
+          const roll = Math.floor(Math.random() * 4);
+          inp.left = roll === 0; inp.right = roll === 1; inp.up = roll === 2; inp.down = roll === 3;
+        }
+      }
+
+      // how close does it pass to something nasty?
+      if (f % 6 === 0 && tilesUnder(lv, s.x - 10, s.y - 10, PW + 20, PH + 20).some((o) => HAZARD[o.v])) close++;
+
+      step(lv, s, inp);
+      if (Math.abs(s.x - lastX) < 0.4) stuck++; else { stuck = 0; lastX = s.x; }
+      if (s.x > furthest) { furthest = s.x; stuckAt = { x: Math.floor(s.x / TS), y: Math.floor(s.y / TS) }; }
+
+      if (s.won) { wins++; best = Math.min(best, f); coinsGot = Math.max(coinsGot, s.coins); break; }
+      if (s.dead) { deaths++; break; }
+    }
+  }
+  return { solvable: wins > 0, wins, runs: N, best: best === Infinity ? 0 : best,
+           deaths, coinsGot, stuckAt, close };
+}
+
+/* which coins could the bot never get to? */
+function unreachableCoins(lv, report) {
+  const total = countOf(lv, T.COIN);
+  if (!report.solvable || !total) return 0;
+  return Math.max(0, total - report.coinsGot);
+}
+
+/* ==================================================================
+   DRAWING — the editor and the game share this
+   ================================================================== */
+function drawTile(g, v, px, py, t) {
+  switch (v) {
+    case T.GROUND:
+      g.fillStyle = "#5b3a1e"; g.fillRect(px, py, TS, TS);
+      g.fillStyle = "#4caf50"; g.fillRect(px, py, TS, 9);
+      g.fillStyle = "#3d8c40"; g.fillRect(px, py + 9, TS, 3); break;
+    case T.WALL:
+      g.fillStyle = "#4a4a63"; g.fillRect(px, py, TS, TS);
+      g.fillStyle = "#5e5e7c"; g.fillRect(px + 2, py + 2, TS - 4, TS - 4);
+      g.fillStyle = "#3c3c52"; g.fillRect(px, py + TS / 2 - 1, TS, 2); break;
+    case T.SPIKE:
+      g.fillStyle = "#b9c0d4";
+      for (let i = 0; i < 3; i++) {
+        g.beginPath();
+        g.moveTo(px + i * TS / 3, py + TS);
+        g.lineTo(px + i * TS / 3 + TS / 6, py + 5);
+        g.lineTo(px + (i + 1) * TS / 3, py + TS);
+        g.closePath(); g.fill();
+      } break;
+    case T.WATER: {
+      g.fillStyle = "#2f7de0"; g.fillRect(px, py, TS, TS);
+      g.fillStyle = "rgba(255,255,255,0.28)";
+      const wob = Math.sin((t || 0) / 22 + px * 0.06) * 3;
+      g.fillRect(px, py + 5 + wob, TS, 3); break; }
+    case T.ICE:
+      g.fillStyle = "#a9e4ff"; g.fillRect(px, py, TS, TS);
+      g.fillStyle = "#d8f4ff"; g.fillRect(px + 2, py + 2, TS - 4, 7);
+      g.strokeStyle = "rgba(255,255,255,0.8)"; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(px + 6, py + TS - 6); g.lineTo(px + TS - 8, py + 12); g.stroke(); break;
+    case T.BOUNCE:
+      g.fillStyle = "#7b3fd6"; g.fillRect(px, py + TS / 2, TS, TS / 2);
+      g.fillStyle = "#c08cff";
+      g.beginPath(); g.ellipse(px + TS / 2, py + TS / 2 + 2, TS / 2 - 2, TS / 3, 0, 0, Math.PI * 2); g.fill(); break;
+    case T.LADDER:
+      g.fillStyle = "#a9701f"; g.fillRect(px + 5, py, 4, TS); g.fillRect(px + TS - 9, py, 4, TS);
+      g.fillStyle = "#c9913d";
+      for (let i = 0; i < 3; i++) g.fillRect(px + 5, py + 4 + i * 11, TS - 10, 3); break;
+    case T.DOOR:
+      g.fillStyle = "#8a5a2b"; g.fillRect(px + 3, py + 2, TS - 6, TS - 2);
+      g.fillStyle = "#f0c419"; g.beginPath(); g.arc(px + TS - 10, py + TS / 2, 3, 0, Math.PI * 2); g.fill(); break;
+    default: break;
+  }
+}
+function drawEmojiTile(g, ch, px, py, size) {
+  g.font = (size || TS - 8) + "px system-ui, 'Segoe UI Emoji', sans-serif";
+  g.textAlign = "center"; g.textBaseline = "middle";
+  g.fillText(ch, px + TS / 2, py + TS / 2 + 1);
+}
+
+function drawLevel(g, lv, s, opts) {
+  const o = opts || {};
+  const W = lv.w * TS, H = lv.h * TS;
+  const sky = g.createLinearGradient(0, 0, 0, H);
+  if (lv.gen === "maze") { sky.addColorStop(0, "#1a1436"); sky.addColorStop(1, "#2a1f4d"); }
+  else if (lv.gen === "survive") { sky.addColorStop(0, "#3a1030"); sky.addColorStop(1, "#7a2a3a"); }
+  else { sky.addColorStop(0, "#5cc4f2"); sky.addColorStop(1, "#bfe9ff"); }
+  g.fillStyle = sky; g.fillRect(0, 0, W, H);
+
+  if (o.grid) {
+    g.strokeStyle = "rgba(255,255,255,0.13)"; g.lineWidth = 1;
+    for (let x = 1; x < lv.w; x++) { g.beginPath(); g.moveTo(x * TS, 0); g.lineTo(x * TS, H); g.stroke(); }
+    for (let y = 1; y < lv.h; y++) { g.beginPath(); g.moveTo(0, y * TS); g.lineTo(W, y * TS); g.stroke(); }
+  }
+
+  const t = o.t || 0;
+  for (let y = 0; y < lv.h; y++) for (let x = 0; x < lv.w; x++) {
+    const v = at(lv, x, y);
+    if (v === T.EMPTY) continue;
+    const px = x * TS, py = y * TS;
+    if (v === T.COIN || v === T.KEY) {
+      if (s && collected(s, x, y)) continue;
+      const bob = Math.sin(t / 12 + x) * 2;
+      drawEmojiTile(g, v === T.COIN ? "🪙" : "🔑", px, py + bob, TS - 12);
+    } else if (v === T.GOAL) {
+      drawEmojiTile(g, "🚩", px, py + Math.sin(t / 16) * 2, TS - 8);
+    } else if (v === T.START) {
+      if (o.grid) { g.globalAlpha = 0.45; drawEmojiTile(g, "🧍", px, py, TS - 10); g.globalAlpha = 1; }
+    } else if (v === T.ENEMY) {
+      if (o.grid) drawEmojiTile(g, "👾", px, py, TS - 10);
+    } else if (v === T.ARCADE) {
+      if (s && collected(s, x, y)) continue;
+      drawEmojiTile(g, "🕹️", px, py, TS - 8);
+    } else {
+      drawTile(g, v, px, py, t);
+    }
+  }
+
+  if (s) {
+    s.enemies.forEach((en) => drawEmojiTile(g, "👾", en.x - 4, en.y - 6, TS - 10));
+    s.fallers.forEach((f) => { g.font = "20px system-ui, 'Segoe UI Emoji', sans-serif"; g.textAlign = "left"; g.textBaseline = "top"; g.fillText("☄️", f.x, f.y); });
+    // the player
+    g.fillStyle = "#ffdca8";
+    g.fillRect(s.x, s.y, PW, PH);
+    g.fillStyle = "#2d6cdf";
+    g.fillRect(s.x, s.y + PH * 0.55, PW, PH * 0.45);
+    g.fillStyle = "#221f45";
+    const fx = s.vx >= 0 ? 4 : 0;
+    g.fillRect(s.x + 4 + fx, s.y + 6, 3, 4);
+    g.fillRect(s.x + 12 + fx, s.y + 6, 3, 4);
+  }
+
+  if (o.stuckAt) {
+    g.strokeStyle = "#ff4d6d"; g.lineWidth = 3;
+    g.setLineDash([6, 4]);
+    g.strokeRect(o.stuckAt.x * TS - 4, o.stuckAt.y * TS - 4, TS + 8, TS + 8);
+    g.setLineDash([]);
+    drawEmojiTile(g, "🤖", o.stuckAt.x * TS, o.stuckAt.y * TS - TS, TS - 10);
+  }
+}
+
+function fitCanvas(cv, lv) {
+  cv.width = lv.w * TS; cv.height = lv.h * TS;
+  const maxW = Math.min(712, (document.querySelector(".sheet").clientWidth || 700) - 8);
+  const scale = Math.min(1, maxW / cv.width);
+  cv.style.width = Math.floor(cv.width * scale) + "px";
+  cv.style.height = Math.floor(cv.height * scale) + "px";
+}
+
+/* ==================================================================
+   SCREENS
+   ================================================================== */
+const SCREENS = ["Home", "Edit", "Play", "Panel"];
+let screen = "home";
+function setScreen(s) {
+  screen = s;
+  SCREENS.forEach((k) => { $("sc" + k).hidden = k.toLowerCase() !== s; });
+  if (s === "home") renderHome();
+  updateBar();
+}
+$("bPanelBack").addEventListener("click", () => setScreen("home"));
+
+/* ---------------- HOME ---------------- */
+function currentBrief() {
+  const open = BRIEFS.filter((b) => !briefsDone[b.id] && (!b.needs || has(b.needs)) &&
+    (!b.secret || games.length >= 5));
+  return open[0] || null;
+}
+function renderHome() {
+  const box = $("scHome");
+  const brief = currentBrief();
+  let h = "";
+
+  if (brief) {
+    const fan = FANS.find((f) => f.nm === brief.who) || { e: "🧒" };
+    h += '<div class="note"><b>' + fan.e + " " + esc(brief.who) + ' says:</b><br>“Can you make me <b>' +
+      esc(brief.ask) + '</b>?”<br><span style="font-size:0.8rem;opacity:0.7">Finish it and they will send you 🪙 ' +
+      brief.pay + " extra.</span>" + (brief.note ? '<br><span style="font-size:0.8rem;opacity:0.7">' + esc(brief.note) + "</span>" : "") + "</div>";
+  } else {
+    h += '<div class="note good">✨ No briefs waiting. Build whatever you feel like!</div>';
+  }
+
+  if (draft) {
+    h += '<div class="card"><div class="gameRow"><div class="boxart">' + esc(draft.a) + '</div>' +
+      '<div class="grow"><h3>Unfinished game</h3><div class="meta">' + GENRES[draft.gen].e + " " +
+      GENRES[draft.gen].nm + " · " + painted(draft) + ' blocks painted</div></div>' +
+      '<button class="btn primary" data-act="resume">Keep building</button></div></div>';
+  }
+
+  h += '<div class="row" style="margin:12px 0 6px;"><button class="btn primary wide" data-act="new">✏️ Make a new game</button></div>';
+
+  const unlockables = SHOP.filter((s) => !has(s.id) && !s.secret && coins >= s.cost);
+  if (unlockables.length) {
+    h += '<div class="note gold" style="margin-top:10px;">🛒 You can afford <b>' + unlockables[0].e + " " +
+      esc(unlockables[0].nm) + "</b> in the shop!</div>";
+  }
+
+  if (games.length) {
+    h += '<h3 style="margin:16px 0 6px;font-size:0.95rem;">Latest from your studio</h3>';
+    games.slice(-2).reverse().forEach((g, i) => { h += gameCardHtml(g, games.length - 1 - i); });
+  } else {
+    h += '<p class="hint">You have not shipped anything yet. Every studio starts here.</p>';
+  }
+  box.innerHTML = h;
+}
+function gameCardHtml(g, idx) {
+  return '<div class="card"><div class="gameRow"><div class="boxart">' + esc(g.a) + "</div>" +
+    '<div class="grow"><h3>' + esc(g.n) + "</h3>" +
+    '<div class="meta">' + GENRES[g.gen].e + " " + GENRES[g.gen].nm + " · 💜 " + g.fans + " fans · ▶ " + g.plays + "</div></div>" +
+    '<button class="btn go" data-play="' + idx + '">▶ Play</button>' +
+    '<button class="btn" data-edit="' + idx + '">✏️</button>' +
+    '<button class="btn" data-share="' + idx + '">📮</button></div>' +
+    (g.wish ? '<div class="meta" style="margin-top:6px;">💭 ' + esc(g.wish) + "</div>" : "") + "</div>";
+}
+
+document.addEventListener("click", (e) => {
+  const a = e.target.closest("[data-act]");
+  if (a) {
+    if (a.dataset.act === "new") newGameFlow();
+    if (a.dataset.act === "resume") { level = draft; openEditor(); }
+    return;
+  }
+  const p = e.target.closest("[data-play]");
+  if (p) { const g = games[+p.dataset.play]; if (g) { g.plays++; save(); playGame(g, "shipped", +p.dataset.play); } return; }
+  const ed = e.target.closest("[data-edit]");
+  if (ed) { const g = games[+ed.dataset.edit]; if (g) { level = JSON.parse(JSON.stringify(g)); level.updating = +ed.dataset.edit; openEditor(); } return; }
+  const sh = e.target.closest("[data-share]");
+  if (sh) { const g = games[+sh.dataset.share]; if (g) shareCard(g); return; }
+  const buy = e.target.closest("[data-buy]");
+  if (buy) { buyItem(buy.dataset.buy); return; }
+});
+
+/* ---------------- NEW GAME ---------------- */
+async function newGameFlow() {
+  const genreOpts = Object.keys(GENRES).filter(genreUnlocked);
+  let gen = "platform";
+  if (genreOpts.length > 1) {
+    gen = await card("🎲", "What kind of game?",
+      genreOpts.map((k) => "<p><b>" + GENRES[k].e + " " + GENRES[k].nm + "</b> — " + GENRES[k].how + "</p>").join(""),
+      genreOpts.map((k) => ({ label: GENRES[k].e + " " + GENRES[k].nm, value: k, cls: "primary" })));
+    if (!gen) return;
+  }
+  const sizeOpts = Object.keys(SIZES).filter(sizeUnlocked);
+  let size = "small";
+  if (sizeOpts.length > 1) {
+    size = await card("📐", "How big?", "<p>Bigger levels take longer to build but earn more fans.</p>",
+      sizeOpts.map((k) => ({ label: SIZES[k].nm + " (" + SIZES[k].w + "×" + SIZES[k].h + ")", value: k, cls: "primary" })));
+    if (!size) return;
+  }
+  level = blankLevel(size, gen);
+  draft = level; save();
+  openEditor();
+}
+
+/* ==================================================================
+   EDITOR
+   ================================================================== */
+let level = null;
+let brush = T.GROUND;
+let undoStack = [];
+
+function openEditor() {
+  setScreen("edit");
+  renderPalette();
+  drawEditor();
+  $("editBanner").textContent = GENRES[level.gen].e + " " + GENRES[level.gen].nm + " — " + GENRES[level.gen].how;
+  $("editHint").textContent = "Tap to paint · drag to paint lots · the 🧍 and 🚩 can only be in one place each";
+}
+function renderPalette() {
+  const box = $("palette");
+  box.innerHTML = "";
+  TILES.forEach((t) => {
+    if (level.gen === "survive" && (t.id === T.GOAL)) return;   // dodging games have no flag
+    const b = document.createElement("button");
+    const open = tileUnlocked(t);
+    b.className = "tbtn" + (brush === t.id ? " on" : "") + (open ? "" : " locked");
+    b.innerHTML = t.e + '<span class="nm">' + t.nm + "</span>";
+    b.addEventListener("click", () => {
+      if (!open) { toast("🔒 " + t.nm + " — unlock it in the shop!"); return; }
+      brush = t.id; renderPalette();
+    });
+    box.appendChild(b);
+  });
+  const er = document.createElement("button");
+  er.className = "tbtn" + (brush === T.EMPTY ? " on" : "");
+  er.innerHTML = '🧽<span class="nm">rub out</span>';
+  er.addEventListener("click", () => { brush = T.EMPTY; renderPalette(); });
+  box.appendChild(er);
+}
+function drawEditor() {
+  const cv = $("cvEdit");
+  fitCanvas(cv, level);
+  const g = cv.getContext("2d");
+  drawLevel(g, level, null, { grid: true, t: Date.now() / 16, stuckAt: editorStuck });
+}
+let editorStuck = null;
+
+function paintAt(e) {
+  const cv = $("cvEdit"), r = cv.getBoundingClientRect();
+  const x = Math.floor(((e.clientX - r.left) / r.width) * level.w);
+  const y = Math.floor(((e.clientY - r.top) / r.height) * level.h);
+  if (x < 0 || y < 0 || x >= level.w || y >= level.h) return;
+  if (at(level, x, y) === brush) return;
+  // start and flag are unique
+  if (brush === T.START || brush === T.GOAL) {
+    const old = findTile(level, brush);
+    if (old) setAt(level, old.x, old.y, T.EMPTY);
+  }
+  setAt(level, x, y, brush);
+  editorStuck = null;
+  drawEditor();
+}
+let painting = false;
+(function wireEditor() {
+  const cv = $("cvEdit");
+  cv.addEventListener("pointerdown", (e) => {
+    e.preventDefault(); cv.setPointerCapture(e.pointerId);
+    undoStack.push(level.t.slice()); if (undoStack.length > 40) undoStack.shift();
+    painting = true; paintAt(e);
+  });
+  cv.addEventListener("pointermove", (e) => { if (painting) { e.preventDefault(); paintAt(e); } });
+  ["pointerup", "pointercancel", "pointerleave"].forEach((k) => cv.addEventListener(k, () => {
+    if (painting) { painting = false; draft = level; save(); }
+  }));
+})();
+$("bEditUndo").addEventListener("click", () => {
+  if (!undoStack.length) { toast("Nothing to undo!"); return; }
+  level.t = undoStack.pop(); editorStuck = null; drawEditor(); draft = level; save();
+});
+$("bEditClear").addEventListener("click", async () => {
+  const ok = await card("🧹", "Clear the whole level?", "<p>Everything you have painted will go.</p>",
+    [{ label: "Keep it", value: false, cls: "" }, { label: "Clear it", value: true }]);
+  if (!ok) return;
+  undoStack.push(level.t.slice());
+  const fresh = blankLevel(Object.keys(SIZES).find((k) => SIZES[k].w === level.w) || "small", level.gen);
+  level.t = fresh.t; editorStuck = null; drawEditor(); draft = level; save();
+});
+$("bEditGenre").addEventListener("click", async () => {
+  const opts = Object.keys(GENRES).filter(genreUnlocked);
+  if (opts.length < 2) { toast("🔒 Unlock more genres in the shop!"); return; }
+  const g = await card("🎲", "Change the kind of game?",
+    "<p>Your blocks stay exactly where they are.</p>" +
+    opts.map((k) => "<p><b>" + GENRES[k].e + " " + GENRES[k].nm + "</b> — " + GENRES[k].how + "</p>").join(""),
+    opts.map((k) => ({ label: GENRES[k].e + " " + GENRES[k].nm, value: k })));
+  if (!g) return;
+  level.gen = g; draft = level; save(); openEditor();
+});
+$("bEditHome").addEventListener("click", () => { draft = level; save(); setScreen("home"); });
+$("bEditTest").addEventListener("click", () => robotCheck());
+
+/* ==================================================================
+   THE ROBOT — private, pre-ship, always refusable
+   ================================================================== */
+async function robotCheck() {
+  const G = GENRES[level.gen];
+  // things that genuinely stop the level working at all
+  if (G.win === "flag" && !findTile(level, T.GOAL)) {
+    await card("🤖", "There's no flag yet",
+      "<p>I looked everywhere! A " + GENRES[level.gen].nm.toLowerCase() + " needs a 🚩 for the player to reach.</p>",
+      [{ label: "Add one", value: true }]);
+    brush = T.GOAL; renderPalette(); return;
+  }
+  if (!findTile(level, T.START)) {
+    await card("🤖", "Where do I start?",
+      "<p>Pop a 🧍 somewhere so I know where to begin.</p>", [{ label: "OK", value: true }]);
+    brush = T.START; renderPalette(); return;
+  }
+
+  const rep = botPlay(level);
+  const notes = [];
+  if (!rep.solvable) {
+    editorStuck = rep.stuckAt;
+    drawEditor();
+    const go = await card("🤖", "I got stuck!",
+      "<p>I had " + rep.runs + " goes and I couldn't reach the flag. I've marked where I kept getting to.</p>" +
+      "<p><b>You might still be able to do it — I'm not very good.</b> Want to try it yourself, or change something?</p>",
+      [{ label: "I'll try it myself", value: "play", cls: "go" },
+       { label: "Let me fix it", value: "edit", cls: "" }]);
+    if (go === "play") playGame(level, "test");
+    return;
+  }
+  editorStuck = null; drawEditor();
+
+  const secs = Math.round(rep.best / 60);
+  const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
+  const missed = unreachableCoins(level, rep);
+  if (secs <= 4) notes.push("I finished it in <b>" + plural(secs, "second") + "</b> — do you want it to last a bit longer?");
+  if (missed > 0) notes.push("I couldn't get to <b>" + plural(missed, "coin") + "</b>. On purpose?");
+  if (countOf(level, T.COIN) === 0 && G.win === "flag") notes.push("There's nothing to <b>collect</b> — want to sprinkle some 🪙 in?");
+  if (rep.close === 0 && countOf(level, T.SPIKE) === 0 && G.win === "flag") notes.push("I never felt in danger once. Want anything <b>scary</b> in it?");
+  if (painted(level) < 12) notes.push("It's quite <b>empty</b> — there's lots of room left.");
+
+  if (!notes.length) {
+    await card("🤖", "Looks great to me!",
+      "<p>I finished it in <b>" + plural(secs, "second") + "</b>" + (rep.deaths ? " and died " + rep.deaths + " times on the way" : "") +
+      ".</p><p>Have a go yourself, then you can ship it.</p>", [{ label: "▶ Play it", value: true, cls: "go" }]);
+    playGame(level, "test"); return;
+  }
+
+  const choice = await card("🤖", "A couple of ideas",
+    "<p>I got through it. Some thoughts — totally up to you:</p>" +
+    '<div class="note" style="text-align:left">' + notes.map((n) => "<p style='margin:5px 0'>• " + n + "</p>").join("") + "</div>",
+    [{ label: "Good idea, let me change it", value: "edit", cls: "" },
+     { label: "Nah, I like it", value: "play", cls: "go" }]);
+  if (choice === "play") playGame(level, "test");
+  // "let me change it" simply returns to the editor and never nags again
+}
+
+/* ==================================================================
+   PLAYING
+   ================================================================== */
+let play = null;     // { lv, state, mode, idx, raf, deaths, returnTo }
+const input = { left: false, right: false, up: false, down: false, jump: false };
+
+function playGame(lv, mode, idx, returnTo) {
+  play = { lv, state: newState(lv), mode, idx, deaths: 0, returnTo: returnTo || null, arcadeFrom: null };
+  Object.keys(input).forEach((k) => (input[k] = false));
+  setScreen("play");
+  const G = GENRES[lv.gen];
+  $("kUp").hidden = G.gravity && !countOf(lv, T.LADDER);
+  $("kDown").hidden = G.gravity && !countOf(lv, T.LADDER);
+  $("kJump").hidden = !G.gravity;
+  $("bPlayEdit").hidden = mode !== "test";
+  $("bPlayEasier").hidden = true;
+  fitCanvas($("cvPlay"), lv);
+  banner();
+  if (play.raf) cancelAnimationFrame(play.raf);
+  loop();
+}
+function banner() {
+  const s = play.state, lv = play.lv, G = GENRES[lv.gen];
+  let txt = "";
+  if (G.win === "timer") txt = "⏱ " + Math.ceil(s.timeLeft / 60) + "s to survive";
+  else txt = "🚩 reach the flag";
+  if (s.totalCoins) txt += "   🪙 " + s.coins + "/" + s.totalCoins;
+  if (countOf(lv, T.KEY)) txt += "   🔑 " + s.keys;
+  if (play.mode === "test") txt += "   ·  beat it once to ship it";
+  $("playBanner").textContent = txt;
+}
+function loop() {
+  if (screen !== "play" || !play) return;
+  const s = play.state, lv = play.lv;
+  step(lv, s, input);
+
+  if (s.arcade) {                 // an arcade machine inside the level
+    const inner = games.filter((g, i) => i !== play.idx);
+    s.arcade = null;
+    if (inner.length) { arcadeBreak(rnd(inner)); return; }
+  }
+  if (s.dead) {
+    play.deaths++;
+    play.state = newState(lv);
+    play.state.coins = 0;
+    if (play.deaths === 5 && play.mode === "test") $("bPlayEasier").hidden = false;
+  }
+  if (s.won) { finishPlay(); return; }
+
+  const g = $("cvPlay").getContext("2d");
+  drawLevel(g, lv, s, { t: s.t });
+  banner();
+  play.raf = requestAnimationFrame(loop);
+}
+
+async function arcadeBreak(inner) {
+  cancelAnimationFrame(play.raf);
+  const outer = play;
+  await card("🕹️", "An arcade machine!",
+    "<p>There's a machine in here running <b>" + esc(inner.n) + "</b> — one of your own games.</p>" +
+    "<p>Play it, then you'll pop back out.</p>", [{ label: "Play it", value: true, cls: "go" }]);
+  playGame(inner, "arcade", null, outer);
+}
+
+async function finishPlay() {
+  cancelAnimationFrame(play.raf);
+  const { lv, mode, deaths } = play;
+
+  if (mode === "arcade" && play.returnTo) {
+    const outer = play.returnTo;
+    await card("🏆", "Nice!", "<p>You finished the game inside the game. Back you go.</p>", [{ label: "Back out", value: true }]);
+    play = outer;
+    play.state = newState(outer.lv);
+    setScreen("play");
+    fitCanvas($("cvPlay"), outer.lv);
+    loop();
+    return;
+  }
+
+  if (mode === "test") {
+    await card("🏆", "You beat your own game!",
+      "<p>" + (deaths ? "It took you " + deaths + " " + (deaths === 1 ? "go" : "goes") + ". " : "First go! ") +
+      "That's the rule of the studio — if you can finish it, you can ship it.</p>",
+      [{ label: "🚀 Ship it!", value: true, cls: "go" }]);
+    shipFlow(lv);
+    return;
+  }
+
+  const g = mode === "shipped" ? games[play.idx] : null;
+  await card("🏆", "Finished!",
+    "<p>You completed <b>" + esc(lv.n || "it") + "</b>" + (deaths ? " after " + deaths + " goes" : " first go") + ".</p>",
+    [{ label: "Nice", value: true }]);
+  setScreen("home");
+}
+
+$("bPlayQuit").addEventListener("click", () => {
+  cancelAnimationFrame(play && play.raf);
+  if (play && play.mode === "arcade" && play.returnTo) {
+    play = play.returnTo; play.state = newState(play.lv);
+    setScreen("play"); fitCanvas($("cvPlay"), play.lv); loop(); return;
+  }
+  if (play && play.mode === "test") { setScreen("edit"); openEditor(); return; }
+  setScreen("home");
+});
+$("bPlayEdit").addEventListener("click", () => { cancelAnimationFrame(play.raf); setScreen("edit"); openEditor(); });
+$("bPlayEasier").addEventListener("click", async () => {
+  cancelAnimationFrame(play.raf);
+  await card("🙂", "Let's make it kinder",
+    "<p>Nothing wrong with that — real studios do it all the time. Rub out a spike or two, or add a platform.</p>",
+    [{ label: "Take me to the editor", value: true }]);
+  setScreen("edit"); openEditor();
+});
+
+/* keyboard + touch */
+const KEYMAP = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down",
+  a: "left", d: "right", w: "up", s: "down", " ": "jump", z: "jump" };
+document.addEventListener("keydown", (e) => {
+  const k = KEYMAP[e.key];
+  if (k && screen === "play") { input[k] = true; if (k === "up" && GENRES[play.lv.gen].gravity) input.jump = true; e.preventDefault(); }
+});
+document.addEventListener("keyup", (e) => {
+  const k = KEYMAP[e.key];
+  if (k) { input[k] = false; if (k === "up") input.jump = false; }
+});
+document.querySelectorAll("[data-k]").forEach((b) => {
+  const k = b.dataset.k;
+  const on = (e) => { e.preventDefault(); input[k] = true; b.classList.add("down"); };
+  const off = (e) => { e.preventDefault(); input[k] = false; b.classList.remove("down"); };
+  b.addEventListener("pointerdown", on);
+  b.addEventListener("pointerup", off);
+  b.addEventListener("pointercancel", off);
+  b.addEventListener("pointerleave", off);
+});
+
+/* ==================================================================
+   SHIPPING — after this point, only good things happen
+   ================================================================== */
+const ART = ["🎮", "🕹️", "🏰", "🐉", "🚀", "🌋", "👾", "🐺", "⭐", "🍄", "🧊", "🔥", "🌊", "🗝️", "💎", "🐧"];
+
+async function shipFlow(lv) {
+  const html = '<p>Give it a name and pick the box art.</p>' +
+    '<input type="text" id="shipName" maxlength="26" placeholder="My Amazing Game" value="' + esc(lv.n || "") + '">' +
+    '<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px" id="artPick">' +
+    ART.map((a, i) => '<button class="tbtn' + ((lv.a || "🎮") === a ? " on" : "") + '" data-art="' + a + '">' + a + "</button>").join("") +
+    "</div>";
+  let chosen = lv.a || "🎮";
+  const p = card("🚀", "Ship it!", html, [{ label: "🚀 Ship it", value: true, cls: "go" }, { label: "Not yet", value: false, cls: "" }]);
+  const pick = $("artPick");
+  pick.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-art]");
+    if (!b) return;
+    chosen = b.dataset.art;
+    pick.querySelectorAll(".tbtn").forEach((x) => x.classList.remove("on"));
+    b.classList.add("on");
+  });
+  const ok = await p;
+  if (!ok) { setScreen("edit"); openEditor(); return; }
+
+  const nameEl = $("shipName");
+  lv.n = ((nameEl && nameEl.value) || "").trim().slice(0, 26) || "Untitled Game";
+  lv.a = chosen;
+
+  const rep = botPlay(lv, 14);
+  const gained = fansFor(lv, rep);
+  const facts = makeFacts(lv, rep);
+  const wish = makeWish(lv);
+
+  lv.fans = gained;
+  lv.facts = facts;
+  lv.wish = wish;
+  lv.plays = lv.plays || 0;
+
+  let brief = currentBrief();
+  let briefPay = 0, briefWho = "";
+  if (brief && briefMet(brief, lv)) {
+    briefsDone[brief.id] = true;
+    briefPay = brief.pay;
+    briefWho = brief.who;
+  }
+
+  const idx = lv.updating;
+  let fansGained;
+  if (idx !== undefined && games[idx]) {
+    // an update only ever ADDS fans — a v2 can never lose you anybody
+    const old = games[idx];
+    fansGained = Math.max(3, Math.round(gained * 0.4));
+    lv.fans = old.fans + fansGained;
+    lv.plays = old.plays;
+    delete lv.updating;
+    games[idx] = lv;
+  } else {
+    delete lv.updating;
+    fansGained = lv.fans;
+    games.push(lv);
+  }
+  fans += fansGained;
+  const coinsGained = Math.round(fansGained * 0.6) + briefPay;
+  coins += coinsGained;
+  draft = null;
+  save(); updateBar();
+
+  await card("🎉", lv.n + (idx !== undefined ? " got an update!" : " is out!"),
+    '<div class="note good" style="text-align:left">' +
+    "<p><b>💜 " + fansGained + " new fans</b> joined your studio.</p>" +
+    "<p>🪙 +" + coinsGained + " coins" + (briefPay ? " (including " + esc(briefWho) + "'s " + briefPay + ")" : "") + "</p></div>" +
+    (briefPay ? '<div class="note">' + esc(briefWho) + ': “That\'s exactly what I wanted. Thank you!”</div>' : ""),
+    [{ label: "See what they thought", value: true, cls: "go" }]);
+
+  await card("👀", "Your fans played it",
+    '<div class="note" style="text-align:left">' + facts.map((f) => "<p style='margin:5px 0'>" + f + "</p>").join("") + "</div>" +
+    '<div class="note gold" style="text-align:left;margin-top:8px"><b>💭 One wish for next time</b><br>' + esc(wish) + "</div>",
+    [{ label: "Back to the studio", value: true }]);
+
+  await checkAwards();
+  setScreen("home");
+}
+
+function briefMet(brief, lv) {
+  const need = brief.need || {};
+  if (need.genre && lv.gen !== need.genre) return false;
+  if (need.minPainted && painted(lv) < need.minPainted) return false;
+  if (need.min) {
+    for (const k of Object.keys(need.min)) if (countOf(lv, +k) < need.min[k]) return false;
+  }
+  return true;
+}
+
+/* fans: only ever goes up, and never zero. more effort = more fans. */
+function fansFor(lv, rep) {
+  const kinds = new Set(lv.t.filter((v) => v !== T.EMPTY)).size;
+  let n = 6
+    + Math.round(painted(lv) / 3.2)
+    + countOf(lv, T.COIN) * 2
+    + countOf(lv, T.SPIKE) * 1.5
+    + countOf(lv, T.ENEMY) * 3
+    + kinds * 3
+    + Math.round((lv.w * lv.h) / 60);
+  if (rep && rep.solvable && rep.best > 60 * 8) n += 6;     // a proper adventure
+  return Math.max(5, Math.round(n));
+}
+
+/* facts, not verdicts: what actually happened when they played */
+function makeFacts(lv, rep) {
+  const testers = shuffle(FANS).slice(0, has("tester2") ? 3 : 2);
+  const out = [];
+  const secs = Math.max(2, Math.round(rep.best / 60));
+  testers.forEach((f, i) => {
+    const d = i === 0 ? rep.deaths : Math.floor(Math.random() * 4);
+    const bits = [];
+    bits.push("finished it in <b>" + (secs + Math.floor(Math.random() * 9)) + " seconds</b>");
+    if (d) bits.push("had <b>" + d + "</b> " + (d === 1 ? "go" : "goes") + " at it");
+    if (countOf(lv, T.COIN)) bits.push("found <b>" + Math.max(0, countOf(lv, T.COIN) - Math.floor(Math.random() * 2)) + "</b> of the coins");
+    out.push(f.e + " <b>" + f.nm + "</b> " + bits.join(", ") + ".");
+  });
+  const spikes = countOf(lv, T.SPIKE), ice = countOf(lv, T.ICE), bounce = countOf(lv, T.BOUNCE);
+  if (spikes > 4) out.push("🔺 The spiky bit was the part everyone talked about.");
+  if (ice > 3) out.push("🧊 Two of them slid straight past the flag on the ice. Twice.");
+  if (bounce > 1) out.push("🟪 Somebody spent four minutes just bouncing.");
+  if (countOf(lv, T.ENEMY) > 2) out.push("👾 The baddies got a proper shriek out of Rex.");
+  if (lv.gen === "maze") out.push("🧭 Sal got properly lost, in a good way.");
+  if (lv.gen === "survive") out.push("☄️ Nucky's best survival time is now the studio record.");
+  return out.slice(0, 5);
+}
+
+/* the wish is always forward-facing: a request for the NEXT game */
+function makeWish(lv) {
+  const wants = [];
+  FANS.forEach((f) => {
+    if (!tileUnlocked(tileOf(f.likes) || {})) return;
+    if (countOf(lv, f.likes) === 0) wants.push(f.e + " " + f.nm + ": “Next one with " + f.want + "? Please please please.”");
+  });
+  if (painted(lv) < 30) wants.push("🧒 Mika: “Make the next one BIGGER. I want to be in there for ages.”");
+  if (lv.w < 20 && has("medium")) wants.push("👦 Bo: “Try a medium level next — more room for trouble.”");
+  Object.keys(GENRES).forEach((k) => {
+    if (k !== lv.gen && genreUnlocked(k)) wants.push("🧓 Sal: “Could the next one be a " + GENRES[k].nm.toLowerCase() + "? I love those.”");
+  });
+  wants.push("💜 Everyone: “Whatever you make next, we'll play it.”");
+  return rnd(wants);
+}
+
+/* ==================================================================
+   AWARDS — factual superlatives about his own catalogue, so he
+   always wins something real
+   ================================================================== */
+async function checkAwards() {
+  const milestones = [3, 6, 10, 15, 20];
+  if (!milestones.includes(games.length)) return;
+  const best = (fn, label, fmt) => {
+    let top = null, val = -1;
+    games.forEach((g) => { const v = fn(g); if (v > val) { val = v; top = g; } });
+    return top && val > 0 ? "<p>🏆 <b>" + label + "</b> — " + esc(top.a) + " " + esc(top.n) + " (" + fmt(val) + ")</p>" : "";
+  };
+  let h = "";
+  h += best((g) => painted(g), "Biggest Build", (v) => v + " blocks");
+  h += best((g) => countOf(g, T.SPIKE), "Most Dangerous", (v) => v + " spikes");
+  h += best((g) => countOf(g, T.COIN), "Most Treasure", (v) => v + " coins");
+  h += best((g) => countOf(g, T.ICE), "Slipperiest", (v) => v + " ice blocks");
+  h += best((g) => g.fans, "Most Loved", (v) => v + " fans");
+  h += best((g) => g.plays, "Most Played", (v) => v + " plays");
+  coins += 25; fans += 10; save(); updateBar();
+  await card("🏆", "The " + games.length + "-Game Awards",
+    '<div class="note gold" style="text-align:left">' + h + "</div>" +
+    "<p>🪙 +25 coins · 💜 +10 fans</p>", [{ label: "🎉", value: true }]);
+}
+
+/* ==================================================================
+   SHOP / GALLERY / CODES
+   ================================================================== */
+function panel(html) { $("panelBody").innerHTML = html; setScreen("panel"); }
+
+$("bShop").addEventListener("click", () => {
+  const items = SHOP.filter((s) => !s.secret || games.length >= 4 || has(s.id));
+  let h = '<h3 style="text-align:center;margin:4px 0 10px;">🛒 Studio Shop</h3>' +
+    '<p class="hint">You have 🪙 ' + coins + "</p>";
+  items.forEach((s) => {
+    const got = has(s.id);
+    h += '<div class="card"><div class="gameRow"><div class="boxart">' + s.e + "</div>" +
+      '<div class="grow"><h3>' + esc(s.nm) + "</h3><div class=\"meta\">" + esc(s.d) + "</div></div>" +
+      (got ? '<span class="pill" style="background:#e6f7ea;border-color:#34a853">✅ owned</span>'
+           : '<button class="btn ' + (coins >= s.cost ? "gold" : "") + '" data-buy="' + s.id + '"' +
+             (coins >= s.cost ? "" : " disabled") + ">🪙 " + s.cost + "</button>") +
+      "</div></div>";
+  });
+  panel(h);
+});
+async function buyItem(id) {
+  const s = SHOP.find((x) => x.id === id);
+  if (!s || has(id) || coins < s.cost) return;
+  coins -= s.cost; owned[id] = true; save(); updateBar();
+  await card(s.e, "Unlocked: " + s.nm, "<p>" + esc(s.d) + "</p>", [{ label: "Brilliant", value: true }]);
+  $("bShop").click();
+}
+
+$("bGames").addEventListener("click", () => {
+  let h = '<h3 style="text-align:center;margin:4px 0 10px;">📚 My Games</h3>';
+  if (!games.length) h += '<p class="hint">Nothing shipped yet.</p>';
+  else games.slice().reverse().forEach((g, i) => { h += gameCardHtml(g, games.length - 1 - i); });
+  panel(h);
+});
+
+$("bCodes").addEventListener("click", () => {
+  panel('<h3 style="text-align:center;margin:4px 0 10px;">📮 Game Codes</h3>' +
+    '<p class="hint">Paste a code someone sent you, and play their game.</p>' +
+    '<textarea id="codeIn" rows="3" placeholder="DOT..."></textarea>' +
+    '<div class="row" style="margin-top:8px;"><button class="btn go" id="bCodeGo">▶ Play this game</button></div>' +
+    '<p class="hint" id="codeMsg"></p>');
+  $("bCodeGo").addEventListener("click", () => {
+    const lv = fromCode($("codeIn").value);
+    if (!lv) { $("codeMsg").textContent = "🤔 That code didn't work — check it was copied all the way to the end."; return; }
+    playGame(lv, "guest");
+  });
+});
+
+function shareCard(g) {
+  const code = toCode(g);
+  card("📮", "Send " + g.n + " to someone",
+    "<p>Copy this code and send it to anyone. They can paste it into their own Game Maker and play it.</p>" +
+    '<textarea id="shareOut" rows="4" readonly>' + esc(code) + "</textarea>",
+    [{ label: "📋 Copy it", value: "copy", cls: "go" }, { label: "Done", value: false, cls: "" }])
+    .then((v) => {
+      if (v !== "copy") return;
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = code; document.body.appendChild(ta); ta.select();
+        document.execCommand("copy"); ta.remove();
+        toast("📋 Copied! Paste it to somebody.");
+      } catch (e) { toast("Select the code and copy it by hand 🙂"); }
+    });
+  setTimeout(() => { const el = $("shareOut"); if (el) { el.focus(); el.select(); } }, 120);
+}
+
+/* ==================================================================
+   RESET + BOOT
+   ================================================================== */
+$("bReset").addEventListener("click", async () => {
+  const ok = await card("🧹", "Close the studio and start again?",
+    "<p><b>Every game you have made will be deleted.</b> Fans, coins and unlocks too.</p>" +
+    "<p>If you just want to change a game, use ✏️ on it instead.</p>",
+    [{ label: "Cancel", value: false, cls: "" }, { label: "Delete everything", value: true }]);
+  if (!ok) return;
+  const sure = await card("🤔", "Really really?", "<p>There is no undo for this one.</p>",
+    [{ label: "Keep my games", value: false, cls: "go" }, { label: "Yes, delete", value: true, cls: "" }]);
+  if (!sure) return;
+  fans = 0; coins = 0; owned = {}; games = []; briefsDone = {}; draft = null;
+  save(); updateBar(); setScreen("home");
+});
+
+window.addEventListener("resize", () => {
+  if (screen === "edit" && level) drawEditor();
+  if (screen === "play" && play) fitCanvas($("cvPlay"), play.lv);
+});
+
+async function boot() {
+  load();
+  updateBar();
+  setScreen("home");
+  if (!seenIntro) {
+    seenIntro = true; save();
+    await card("🕹️", "Welcome to your studio",
+      "<p>This is a game about <b>making games</b>.</p>" +
+      '<div class="note" style="text-align:left">' +
+      "<p>1. A kid asks you for a game.</p><p>2. You build it out of blocks.</p>" +
+      "<p>3. <b>You have to beat it yourself</b> before you're allowed to ship it.</p>" +
+      "<p>4. Your fans play it and tell you what they'd love next.</p></div>" +
+      "<p>Coins buy new blocks, bigger levels and whole new kinds of game.</p>",
+      [{ label: "Open the studio", value: true, cls: "go" }]);
+  }
+}
+boot();
+</script>
+</body>
+</html>
