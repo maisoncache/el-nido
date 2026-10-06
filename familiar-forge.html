@@ -4,6 +4,97 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Familiar Forge</title>
+  <style>
+    /* The page */
+    body {
+      margin: 0 auto;
+      max-width: 560px;
+      padding: 24px 16px;
+      font-family: Georgia, "Times New Roman", serif;
+      background: #f6f1e7;
+      color: #2b2433;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    h1 + p {
+      text-align: center;
+      color: #6b5f73;
+    }
+
+    /* The four inputs */
+    label {
+      font-weight: bold;
+    }
+    select,
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      font-size: 1rem;
+      font-family: inherit;
+      border: 1px solid #b9aec2;
+      border-radius: 8px;
+      background: #fffdf8;
+      box-sizing: border-box;
+    }
+
+    /* The Forge button */
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 8px;
+      font-size: 1.1rem;
+      font-family: inherit;
+      color: #fffdf8;
+      background: #5b3f75;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #47305c;
+    }
+
+    /* The Familiar Card. Hidden until there is something in it. */
+    #card {
+      margin-top: 24px;
+      padding: 20px;
+      background: #fffdf8;
+      border: 3px double #5b3f75;
+      border-radius: 14px;
+      box-shadow: 0 6px 18px rgba(43, 36, 51, 0.15);
+    }
+    #card:empty {
+      display: none;
+    }
+    #card h2 {
+      margin: 0;
+      text-align: center;
+      font-size: 1.8rem;
+    }
+    #card h2 + p {
+      margin-top: 4px;
+      text-align: center;
+      font-style: italic;
+      color: #6b5f73;
+    }
+    #card h3 {
+      margin: 18px 0 4px;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #5b3f75;
+      border-bottom: 1px solid #ddd3e4;
+      padding-bottom: 2px;
+    }
+    #card p,
+    #card ul {
+      margin: 4px 0;
+      line-height: 1.5;
+    }
+  </style>
 </head>
 <body>
   <h1>Familiar Forge</h1>
