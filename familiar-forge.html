@@ -49,5 +49,21 @@
       <option value="official yawner">Official yawner</option>
     </select>
   </p>
+
+  <button id="forge" type="button">Forge my familiar</button>
+
+  <div id="card"></div>
+
+  <script>
+    document.getElementById("forge").addEventListener("click", function () {
+      var body = document.getElementById("body").value;
+      var colour = document.getElementById("colour").value;
+      var name = document.getElementById("name").value.trim() || "Nameless";
+      var job = document.getElementById("job").value;
+
+      document.getElementById("card").textContent =
+        "Forging " + name + ", the " + colour + " " + body + " who works as a " + job + "...";
+    });
+  </script>
 </body>
 </html>
