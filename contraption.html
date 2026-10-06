@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Contraption — Ezra's Machine Workshop</title>
+<style>
+  :root {
+    --bg: #1b2030; --bg2: #262c40;
+    --panel: #f3efe6; --panel2: #e6dfd0;
+    --ink: #2a2518; --line: #c9bda4;
+    --bolt: #e08b2c; --bolt2: #b56a14;
+    --go: #35a35a; --go2: #277a43;
+    --blue: #3f7fd6; --white: #fffdf7;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; padding:0; background: var(--bg); color: var(--ink);
+    font-family: "Trebuchet MS","Segoe UI",system-ui,sans-serif; overscroll-behavior: none; }
+  body { background-image:
+      radial-gradient(circle at 12% 8%, rgba(224,139,44,0.18), transparent 44%),
+      radial-gradient(circle at 88% 85%, rgba(63,127,214,0.16), transparent 46%);
+    min-height: 100vh; }
+  .wrap { max-width: 740px; margin: 0 auto; padding: 8px 10px 40px; }
+  a.back { display:inline-block; color:#f0bd7c; text-decoration:none; font-weight:bold; font-size:.85rem; padding:6px 2px; }
+  .sheet { background: var(--panel); border-radius: 20px; box-shadow: 0 14px 40px rgba(0,0,0,.5); padding: 12px 12px 18px; }
+  h1 { margin:2px 0; text-align:center; font-size:1.45rem; }
+  .sub { text-align:center; font-size:.78rem; opacity:.65; margin:0 0 10px; }
+
+  #bar { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-bottom:10px; }
+  .pill { background: var(--white); border:2px solid var(--line); border-radius:999px; padding:6px 12px;
+    font-weight:bold; font-size:.8rem; min-height:38px; display:inline-flex; align-items:center; gap:5px;
+    white-space:nowrap; color: var(--ink); }
+  .pill.bolt { background:#fdf0dc; border-color: var(--bolt); }
+  button.pill { cursor:pointer; font-family:inherit; }
+  button.pill:active { transform: scale(.95); }
+
+  .btn { background: var(--white); border:2px solid var(--line); border-bottom-width:4px; border-radius:14px;
+    padding:11px 16px; font-family:inherit; font-weight:bold; font-size:.92rem; color:var(--ink);
+    cursor:pointer; min-height:46px; }
+  .btn:active { transform: translateY(2px); border-bottom-width:2px; }
+  .btn.primary { background: var(--bolt); border-color: var(--bolt2); color:#2b1a02; }
+  .btn.go { background: var(--go); border-color: var(--go2); color:#fff; }
+  .btn[disabled] { opacity:.4; cursor:default; transform:none; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+
+  canvas { display:block; touch-action:none; }
+  .stage { background:#121726; border:3px solid var(--line); border-radius:14px; overflow:hidden;
+    margin:0 auto; width:fit-content; max-width:100%; }
+  .stage canvas { max-width:100%; height:auto; }
+
+  .palette { display:flex; flex-wrap:wrap; gap:5px; justify-content:center; margin:8px 0; }
+  .pbtn { width:58px; min-height:58px; border-radius:12px; background: var(--white);
+    border:2px solid var(--line); border-bottom-width:4px; cursor:pointer; font-family:inherit;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-size:1.3rem; color:var(--ink); padding:2px; position:relative; }
+  .pbtn .nm { font-size:.5rem; font-weight:bold; opacity:.6; line-height:1.1; }
+  .pbtn .ct { position:absolute; top:-5px; right:-5px; background:var(--bolt); color:#fff;
+    border-radius:999px; font-size:.6rem; font-weight:bold; padding:1px 5px; border:2px solid var(--panel); }
+  .pbtn.on { background: var(--bolt); border-color: var(--bolt2); }
+  .pbtn.out { opacity:.35; }
+
+  .levels { display:grid; grid-template-columns:repeat(auto-fill,minmax(66px,1fr)); gap:8px; }
+  .lv { aspect-ratio:1; border-radius:14px; background:var(--white); border:3px solid var(--line);
+    border-bottom-width:6px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:inherit; font-weight:bold; cursor:pointer; color:var(--ink); font-size:.62rem; line-height:1.1; padding:3px; }
+  .lv .n { font-size:1.15rem; }
+  .lv.done { background:#dff0e4; border-color:var(--go); }
+  .lv.locked { opacity:.38; cursor:default; }
+
+  .note { background:#fdf0dc; border-left:4px solid var(--bolt); padding:9px 11px; border-radius:9px;
+    font-size:.86rem; line-height:1.45; }
+  .note.good { background:#dff0e4; border-left-color:var(--go); }
+  .banner { text-align:center; font-weight:bold; font-size:.85rem; padding:7px 10px; background:#121726;
+    color:#e8dcc4; border-radius:10px; margin-bottom:8px; }
+  .hint { text-align:center; font-size:.78rem; opacity:.66; margin:6px 0; }
+  textarea { width:100%; border:2px solid var(--line); border-radius:12px; padding:10px;
+    font-family:monospace; font-size:.8rem; background:var(--white); color:var(--ink); resize:vertical; }
+
+  #toast { position:fixed; bottom:14px; left:50%; transform:translateX(-50%); background:rgba(12,16,30,.96);
+    color:#fff; border:2px solid var(--bolt); border-radius:12px; padding:9px 15px; font-weight:bold;
+    font-size:.85rem; max-width:92vw; text-align:center; z-index:300; display:none; }
+  #toast.show { display:block; }
+  .overlay { position:fixed; inset:0; background:rgba(10,12,24,.75); display:none; align-items:center;
+    justify-content:center; z-index:400; padding:14px; }
+  .overlay.show { display:flex; }
+  .ovcard { background:var(--panel); border-radius:20px; padding:18px; max-width:430px; width:100%;
+    text-align:center; box-shadow:0 20px 50px rgba(0,0,0,.55); max-height:88vh; overflow-y:auto; }
+  .ovcard h3 { margin:6px 0 8px; }
+  .ovcard p { font-size:.9rem; line-height:1.45; margin:7px 0; }
+
+  @media (max-width:430px){
+    h1{font-size:1.2rem;} .pbtn{width:50px;min-height:50px;font-size:1.1rem;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← Back to Game Hub</a>
+  <div class="sheet">
+    <h1>⚙️ Contraption</h1>
+    <p class="sub" id="subtitle">Build a mad machine to do one simple job</p>
+
+    <div id="bar">
+      <span class="pill bolt" id="pSolved">⭐ 0</span>
+      <button class="pill" id="bMenu">🗺️ Levels</button>
+      <button class="pill" id="bSandbox">🧰 Free Build</button>
+      <button class="pill" id="bCodes">📮 Codes</button>
+      <button class="pill" id="bReset">🧹</button>
+    </div>
+
+    <!-- ============ MENU ============ -->
+    <section id="scMenu"></section>
+
+    <!-- ============ BUILD ============ -->
+    <section id="scBuild" hidden>
+      <div class="banner" id="buildBanner"></div>
+      <div class="stage"><canvas id="cv" width="600" height="420"></canvas></div>
+      <div class="palette" id="palette"></div>
+      <div class="row">
+        <button class="btn go" id="bGo">▶ GO</button>
+        <button class="btn" id="bRewind">🔁 Rewind</button>
+        <button class="btn" id="bRotate">🔄 Turn</button>
+        <button class="btn" id="bDelete">🗑️</button>
+        <button class="btn" id="bHint">💡</button>
+        <button class="btn" id="bQuit">← Back</button>
+      </div>
+      <p class="hint" id="buildHint"></p>
+    </section>
+
+    <!-- ============ PANEL ============ -->
+    <section id="scPanel" hidden>
+      <div id="panelBody"></div>
+      <div class="row" style="margin-top:12px;"><button class="btn primary" id="bPanelBack">← Back</button></div>
+    </section>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div class="overlay" id="ovr"><div class="ovcard">
+  <div id="ovE" style="font-size:2.6rem;">⚙️</div>
+  <h3 id="ovT"></h3>
+  <div id="ovB"></div>
+  <div class="row" id="ovBtns" style="margin-top:14px;"></div>
+</div></div>
+
+<script>
+/* ==================================================================
+   CONTRAPTION — build a mad machine to do one simple job.
+   Place parts, press GO, watch physics do the rest. Nothing fails:
+   a machine that doesn't work yet is just a machine that doesn't
+   work yet, and Rewind is always one tap away.
+   ================================================================== */
+
+const $ = (id) => document.getElementById(id);
+const SAVE_KEY = "contraption-v1";
+const W = 600, H = 420;              // world size in px
+const R = 13;                         // marble radius
+const GRID = 10;
+
+/* ---------------- the parts ---------------- */
+const PARTS = {
+  plank:   { e:"🪵", nm:"Plank",   len:92,  kind:"seg",  rest:.18, fric:.006, col:"#a9743c", thick:9 },
+  block:   { e:"🧱", nm:"Block",   len:48,  kind:"box",  rest:.14, fric:.04, col:"#8d5a45" },
+  seesaw:  { e:"⚖️", nm:"Seesaw",  len:110, kind:"hinge",rest:.16, fric:.008, col:"#c08a3e", thick:10, lim:52, mid:true },
+  domino:  { e:"🀫", nm:"Domino",  len:58,  kind:"hinge",rest:.10, fric:.15, col:"#e4ddcb", thick:12, lim:84, mid:false, upright:true },
+  tramp:   { e:"🟪", nm:"Bouncy",  len:74,  kind:"seg",  rest:.95, fric:.008, col:"#9b5bd6", thick:11, kick:300, maxOut:880 },
+  belt:    { e:"➡️", nm:"Belt",    len:94,  kind:"seg",  rest:.05, fric:.55,  col:"#4a5568", thick:11, surf:235 },
+  fan:     { e:"🌀", nm:"Fan",     kind:"fan",  reach:150, force:2100, col:"#4f9fd6" },
+  magnet:  { e:"🧲", nm:"Magnet",  kind:"field",reach:190, force:2300, col:"#d05a5a" },
+  booster: { e:"🚀", nm:"Booster", kind:"boost",reach:34,  power:760,  col:"#e0552c" },
+  balloon: { e:"🎈", nm:"Balloon", kind:"balloon", reach:22, col:"#e85d8a" },
+  portal:  { e:"🌀", nm:"Portal",  kind:"portal",  reach:22, col:"#44c7b0" },
+};
+const PART_ORDER = ["plank","block","seesaw","domino","tramp","belt","fan","magnet","booster","balloon","portal"];
+
+/* ---------------- levels ----------------
+   geo: fixed scenery segments [x1,y1,x2,y2]
+   give: which parts, and how many of each                        */
+const LEVELS = [
+  { nm:"First Drop", tip:"Lean a plank so the marble rolls to the star. Tap 🔄 Turn to tilt it.",
+    spawn:[70,40], goal:[505,386], geo:[[0,400,600,400]], give:{plank:2} },
+
+  { nm:"Mind the Gap", tip:"The floor has a hole. Bridge it, or ramp straight over the top.",
+    spawn:[60,40], goal:[500,386],
+    geo:[[0,400,240,400],[350,400,600,400]], give:{plank:4} },
+
+  { nm:"Up and Over", tip:"Bouncy pads fling the marble upward. Aim it like a trampoline.",
+    spawn:[70,40], goal:[505,196],
+    geo:[[0,400,600,400],[400,210,600,210]], give:{plank:2, tramp:1} },
+
+  { nm:"A Bit of a Breeze", tip:"Fans blow whichever way they face. Turn one to point the marble along.",
+    spawn:[60,40], goal:[520,386],
+    geo:[[0,400,250,400],[370,400,600,400]], give:{fan:2, plank:3} },
+
+  { nm:"On the Belt", tip:"Belts carry the marble along even when they're flat.",
+    spawn:[60,40], goal:[540,386],
+    geo:[[0,400,600,400],[140,260,420,260]], give:{belt:2, plank:1} },
+
+  { nm:"The Big Seesaw", tip:"A seesaw tips under the marble's weight. Land on the high end.",
+    spawn:[90,40], goal:[520,386],
+    geo:[[0,400,600,400],[0,250,160,250]], give:{seesaw:1, plank:2} },
+
+  { nm:"Pulled In", tip:"Magnets tug the marble towards them — even through thin air.",
+    spawn:[60,40], goal:[520,386],
+    geo:[[0,400,250,400],[420,400,600,400]], give:{magnet:3, plank:3} },
+
+  { nm:"Through the Loop", tip:"Portals come in a pair. Go in one, come out the other, still moving.",
+    spawn:[60,40], goal:[520,386],
+    geo:[[0,400,210,400],[210,400,210,180],[390,400,600,400]], give:{portal:1, plank:2} },
+
+  { nm:"Blast Off", tip:"A booster flings the marble hard in the way it faces.",
+    spawn:[60,40], goal:[520,120],
+    geo:[[0,400,600,400],[420,140,600,140]], give:{booster:1, plank:2} },
+
+  { nm:"Floating Up", tip:"A balloon sticks to the marble and carries it upward.",
+    spawn:[60,40], goal:[300,70],
+    geo:[[0,400,600,400]], give:{balloon:1, plank:2, fan:1} },
+
+  { nm:"Topple", tip:"Dominoes knock each other over. Line them up close enough to reach.",
+    spawn:[60,40], goal:[540,386],
+    geo:[[0,400,600,400],[0,250,300,250]], give:{domino:4, plank:2} },
+
+  { nm:"The Long Way Down", tip:"Zig-zag the planks so it steps down one shelf at a time.",
+    spawn:[60,30], goal:[520,386],
+    geo:[[0,400,600,400],[0,160,300,160],[240,280,460,280]], give:{plank:5, tramp:1} },
+
+  { nm:"Wind Tunnel", tip:"Two fans can hand the marble along to each other.",
+    spawn:[60,40], goal:[540,196],
+    geo:[[0,400,600,400],[430,210,600,210],[0,210,160,210]], give:{fan:2, plank:2, tramp:1} },
+
+  { nm:"Belt and Bounce", tip:"Ride the belt, then launch off the end.",
+    spawn:[60,40], goal:[540,120],
+    geo:[[0,400,600,400],[80,300,330,300],[430,140,600,140]], give:{belt:2, tramp:2, plank:2} },
+
+  { nm:"The Magnet Ladder", tip:"Magnets are stronger than gravity. Stack them up and climb.",
+    spawn:[60,40], goal:[510,226],
+    geo:[[0,400,600,400],[380,240,600,240]],
+    give:{magnet:4, plank:3} },
+
+  { nm:"Double Portal", tip:"Portals keep the marble's speed. Fall fast, come out fast.",
+    spawn:[60,30], goal:[540,120],
+    geo:[[0,400,600,400],[430,140,600,140],[0,250,250,250]], give:{portal:1, plank:3, tramp:1} },
+
+  { nm:"The Lift", tip:"A balloon lifts the marble until it bumps something — then it pops and drops. Choose where.",
+    spawn:[60,40], goal:[500,166],
+    geo:[[0,400,600,400],[360,180,600,180]], give:{balloon:2, fan:2, plank:3} },
+
+  { nm:"Rube's Breakfast", tip:"Everything you've got. There's no single right answer.",
+    spawn:[60,30], goal:[530,350],
+    geo:[[0,400,600,400],[0,180,220,180],[330,260,600,260],[330,260,330,180]],
+    give:{plank:3, tramp:1, belt:1, fan:1, seesaw:1, domino:2, magnet:1, booster:1, portal:1, balloon:1} },
+];
+
+/* ==================================================================
+   SAVE
+   ================================================================== */
+let solved = {}, builds = {}, seenIntro = false, sandboxSave = null;
+function save() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ solved, builds, seenIntro, sandboxSave })); } catch (e) {}
+}
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+    if (!s) return false;
+    solved = {};
+    Object.keys(s.solved || {}).forEach((k) => { if (+k >= 0 && +k < LEVELS.length) solved[k] = true; });
+    builds = (s.builds && typeof s.builds === "object") ? s.builds : {};
+    seenIntro = !!s.seenIntro;
+    sandboxSave = typeof s.sandboxSave === "string" ? s.sandboxSave : null;
+    return true;
+  } catch (e) { return false; }
+}
+const solvedCount = () => Object.keys(solved).length;
+const levelOpen = (i) => i === 0 || !!solved[i - 1] || !!solved[i];
+function updateBar() { $("pSolved").textContent = "⭐ " + solvedCount() + "/" + LEVELS.length; }
+
+/* ==================================================================
+   HELPERS
+   ================================================================== */
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const esc = (s) => String(s).replace(/[&<>"']/g, (c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let toastT = null;
+function toast(msg, ms) {
+  const el = $("toast"); el.textContent = msg; el.classList.add("show");
+  clearTimeout(toastT); toastT = setTimeout(()=>el.classList.remove("show"), ms || 2300);
+}
+function card(emoji, title, html, buttons) {
+  return new Promise((res) => {
+    $("ovE").textContent = emoji; $("ovT").textContent = title; $("ovB").innerHTML = html || "";
+    const box = $("ovBtns"); box.innerHTML = "";
+    (buttons || [{label:"OK", value:true}]).forEach((b) => {
+      const el = document.createElement("button");
+      el.className = "btn " + (b.cls || "primary"); el.textContent = b.label;
+      el.addEventListener("click", ()=>{ $("ovr").classList.remove("show"); res(b.value); });
+      box.appendChild(el);
+    });
+    $("ovr").classList.add("show");
+  });
+}
+
+/* ==================================================================
+   THE WORLD
+   placed parts: { t:type, x, y, a:angleDeg, (portal: x2,y2) }
+   ================================================================== */
+let level = null;        // the LEVELS entry (or a sandbox stand-in)
+let levelIdx = -1;
+let placed = [];         // what the player has built
+let sel = -1;            // index of the selected part
+let brush = null;        // part type queued for placing
+let running = false;
+let sim = null;          // live simulation state
+let raf = 0;
+let sandbox = false;
+
+const give = () => (sandbox ? null : (level.give || {}));
+function usedCount(t) { return placed.filter((p) => p.t === t).length; }
+function leftCount(t) {
+  if (sandbox) return Infinity;
+  return (level.give[t] || 0) - usedCount(t);
+}
+
+/* ---- geometry for a placed part ---- */
+function partSegments(p, angleOverride) {
+  const P = PARTS[p.t];
+  const a = (angleOverride === undefined ? p.a : angleOverride) * Math.PI / 180;
+  const out = [];
+  if (P.kind === "box") {
+    const h = P.len / 2, c = Math.cos(a), s = Math.sin(a);
+    const pt = (dx,dy) => ({ x: p.x + dx*c - dy*s, y: p.y + dx*s + dy*c });
+    const A=pt(-h,-h), B=pt(h,-h), C=pt(h,h), D=pt(-h,h);
+    [[A,B],[B,C],[C,D],[D,A]].forEach(([u,v]) => out.push({ a:u, b:v, rest:P.rest, fric:P.fric, surf:0 }));
+  } else if (P.kind === "seg" || P.kind === "hinge") {
+    const h = P.len / 2, c = Math.cos(a), s = Math.sin(a);
+    let A, B;
+    if (P.kind === "hinge" && !P.mid) { A = { x:p.x, y:p.y }; B = { x:p.x + P.len*c, y:p.y + P.len*s }; }
+    else { A = { x:p.x - h*c, y:p.y - h*s }; B = { x:p.x + h*c, y:p.y + h*s }; }
+    out.push({ a:A, b:B, rest:P.rest, fric:P.fric, surf:P.surf ? P.surf : 0, dir:{x:c,y:s},
+               kick:P.kick||0, maxOut:P.maxOut||0 });
+  }
+  return out;
+}
+
+/* ==================================================================
+   PHYSICS
+   Circles vs line segments, plus hinged planks that take torque from
+   whatever lands on them. Fixed timestep with substeps, so a fast
+   marble never tunnels through a thin plank.
+   ================================================================== */
+const GRAV = 1500;          // px/s^2
+const SUB = 6;
+
+function newSim() {
+  const s = {
+    marbles: [{ x: level.spawn[0], y: level.spawn[1], vx: 0, vy: 0, r: R, lift: 0, cool: 0, rest: 0 }],
+    hinges: [], t: 0, won: false, settled: 0, fired: {},
+  };
+  placed.forEach((p, i) => {
+    if (PARTS[p.t].kind === "hinge") {
+      const P = PARTS[p.t];
+      s.hinges.push({ i, t: p.t, px: p.x, py: p.y, a: p.a, av: 0, rest0: p.a, lim: P.lim, len: P.len });
+    }
+  });
+  return s;
+}
+
+/* every static segment in the world right now */
+function staticSegs(s) {
+  const out = [];
+  (level.geo || []).forEach((g) => out.push({ a:{x:g[0],y:g[1]}, b:{x:g[2],y:g[3]}, rest:.2, fric:.006, surf:0 }));
+  // the walls and roof of the workshop
+  out.push({ a:{x:-4,y:-200}, b:{x:-4,y:H}, rest:.2, fric:.006, surf:0 });
+  out.push({ a:{x:W+4,y:-200}, b:{x:W+4,y:H}, rest:.2, fric:.006, surf:0 });
+  out.push({ a:{x:-4,y:-6}, b:{x:W+4,y:-6}, rest:.1, fric:.05, surf:0 });
+  placed.forEach((p) => {
+    const P = PARTS[p.t];
+    if (P.kind === "seg" || P.kind === "box") partSegments(p).forEach((g) => out.push(g));
+  });
+  if (s) s.hinges.forEach((hg) => {
+    const p = placed[hg.i]; if (!p) return;
+    partSegments(p, hg.a).forEach((g) => out.push({ ...g, hinge: hg }));
+  });
+  return out;
+}
+
+function closestOnSeg(seg, px, py) {
+  const dx = seg.b.x - seg.a.x, dy = seg.b.y - seg.a.y;
+  const L2 = dx*dx + dy*dy;
+  let t = L2 ? ((px - seg.a.x)*dx + (py - seg.a.y)*dy) / L2 : 0;
+  t = clamp(t, 0, 1);
+  return { x: seg.a.x + t*dx, y: seg.a.y + t*dy, t };
+}
+
+function collide(m, seg, h) {
+  const halfT = 5;
+  const c = closestOnSeg(seg, m.x, m.y);
+  let nx = m.x - c.x, ny = m.y - c.y;
+  let d = Math.hypot(nx, ny);
+  const reach = m.r + halfT;
+  if (d > reach || d === 0) {
+    if (d !== 0) return false;
+    nx = 0; ny = -1; d = 0.001;
+  }
+  nx /= d; ny /= d;
+  const pen = reach - d;
+  m.x += nx * pen; m.y += ny * pen;
+
+  // a balloon pops on whatever it bumps into from below, so a marble
+  // always comes back down — put a plank in its way to choose where
+  if (m.lift && ny > 0.55) { m.lift = 0; m.popped = (m.popped || 0) + 1; }
+
+  // the surface may be moving: a belt slides, a hinge swings
+  let sx = 0, sy = 0;
+  if (seg.surf && seg.dir) { sx = seg.dir.x * seg.surf; sy = seg.dir.y * seg.surf; }
+  if (seg.hinge) {
+    const rx = c.x - seg.hinge.px, ry = c.y - seg.hinge.py;
+    sx += -seg.hinge.av * ry; sy += seg.hinge.av * rx;
+  }
+  const rvx = m.vx - sx, rvy = m.vy - sy;
+  const vn = rvx*nx + rvy*ny;
+  if (vn < 0) {
+    let j = -(1 + seg.rest) * vn;
+    // a bouncy pad adds a fixed kick rather than multiplying, so a marble
+    // can never bounce its way into orbit
+    if (seg.kick) {
+      let out = -vn * seg.rest + seg.kick;
+      if (seg.maxOut) out = Math.min(out, seg.maxOut);
+      j = out - vn;
+    }
+    m.vx += j * nx; m.vy += j * ny;
+    // friction along the surface
+    const tx = -ny, ty = nx;
+    const vt = (m.vx - sx)*tx + (m.vy - sy)*ty;
+    const f = clamp(seg.fric, 0, 1);
+    m.vx -= vt * f * tx; m.vy -= vt * f * ty;
+    // and the marble pushes back on anything hinged
+    if (seg.hinge) {
+      const rx = c.x - seg.hinge.px, ry = c.y - seg.hinge.py;
+      const torque = (rx * (j*ny) - ry * (j*nx)) * 0.00042;
+      seg.hinge.av += torque;
+    }
+  }
+  return true;
+}
+
+function stepSim(s, dt) {
+  const h = dt / SUB;
+  for (let k = 0; k < SUB; k++) {
+    const segs = staticSegs(s);
+
+    /* ---- hinges swing under their own weight ---- */
+    s.hinges.forEach((hg) => {
+      const P = PARTS[hg.t];
+      const a = hg.a * Math.PI / 180;
+      // gravity pulls the far end down
+      const armX = Math.cos(a), armY = Math.sin(a);
+      const grav = P.mid ? 0 : 1;           // a seesaw is balanced; a domino is top-heavy
+      hg.av += armX * 5.2 * grav * h;
+      hg.av *= 0.995;
+      hg.av = clamp(hg.av, -14, 14);
+      hg.a += hg.av * h * 57.2958;
+      const lo = hg.rest0 - hg.lim, hi = hg.rest0 + hg.lim;
+      if (hg.a < lo) { hg.a = lo; hg.av *= -0.18; }
+      if (hg.a > hi) { hg.a = hi; hg.av *= -0.18; }
+    });
+
+    /* ---- marbles ---- */
+    s.marbles.forEach((m) => {
+      let gy = GRAV;
+      if (m.lift) gy = -GRAV * 0.42;
+      m.vy += gy * h;
+
+      placed.forEach((p) => {
+        const P = PARTS[p.t];
+        if (P.kind === "fan") {
+          const a = p.a * Math.PI / 180, dx = Math.cos(a), dy = Math.sin(a);
+          const rx = m.x - p.x, ry = m.y - p.y;
+          const along = rx*dx + ry*dy;
+          const side = Math.abs(-rx*dy + ry*dx);
+          if (along > 0 && along < P.reach && side < 46) {
+            const fall = 1 - along / P.reach;
+            m.vx += dx * P.force * fall * h;
+            m.vy += dy * P.force * fall * h;
+          }
+        } else if (P.kind === "field") {
+          const rx = p.x - m.x, ry = p.y - m.y;
+          const d = Math.hypot(rx, ry);
+          if (d > 2 && d < P.reach) {
+            const fall = 1 - d / P.reach;
+            m.vx += (rx/d) * P.force * fall * h;
+            m.vy += (ry/d) * P.force * fall * h;
+          }
+        }
+      });
+
+      m.vx = clamp(m.vx, -2000, 2000);
+      m.vy = clamp(m.vy, -2000, 2000);
+      m.x += m.vx * h; m.y += m.vy * h;
+
+      segs.forEach((g) => collide(m, g));
+      if (m.cool > 0) m.cool -= h;
+
+      /* triggers: boosters, balloons, portals */
+      placed.forEach((p, pi) => {
+        const P = PARTS[p.t];
+        const d = Math.hypot(m.x - p.x, m.y - p.y);
+        if (P.kind === "boost" && d < P.reach + m.r) {
+          const a = p.a * Math.PI / 180;
+          const key = "b" + pi;
+          if (!s.fired[key] || s.t - s.fired[key] > 0.35) {
+            s.fired[key] = s.t;
+            m.vx = Math.cos(a) * P.power; m.vy = Math.sin(a) * P.power;
+          }
+        } else if (P.kind === "balloon" && d < P.reach + m.r && !m.lift) {
+          m.lift = 1; m.balloon = pi;
+        } else if (P.kind === "portal" && m.cool <= 0) {
+          const d2 = Math.hypot(m.x - p.x2, m.y - p.y2);
+          if (d < P.reach + m.r) { m.x = p.x2; m.y = p.y2; m.cool = 0.22; }
+          else if (d2 < P.reach + m.r) { m.x = p.x; m.y = p.y; m.cool = 0.22; }
+        }
+      });
+    });
+
+    /* ---- a toppling domino can shove the next one ---- */
+    s.hinges.forEach((hg) => {
+      const a = hg.a * Math.PI / 180;
+      const tipX = hg.px + Math.cos(a) * hg.len, tipY = hg.py + Math.sin(a) * hg.len;
+      s.hinges.forEach((other) => {
+        if (other === hg) return;
+        const oa = other.a * Math.PI / 180;
+        const seg = { a:{x:other.px,y:other.py}, b:{x:other.px+Math.cos(oa)*other.len, y:other.py+Math.sin(oa)*other.len} };
+        const c = closestOnSeg(seg, tipX, tipY);
+        const d = Math.hypot(tipX - c.x, tipY - c.y);
+        if (d < 11) {
+          const rx = c.x - other.px, ry = c.y - other.py;
+          const push = hg.av * 0.42;
+          other.av += (rx >= 0 ? Math.abs(push) : -Math.abs(push)) * Math.sign(Math.cos(a) || 1) * 0.5;
+          other.av = clamp(other.av, -14, 14);
+        }
+      });
+    });
+
+    s.t += h;
+  }
+
+  /* ---- did it work? ---- */
+  s.marbles.forEach((m) => {
+    if (Math.hypot(m.x - level.goal[0], m.y - level.goal[1]) < 30) s.won = true;
+    const speed = Math.hypot(m.vx, m.vy);
+    if (speed < 14) m.rest += dt; else m.rest = 0;
+  });
+  const allRest = s.marbles.every((m) => m.rest > 1.6);
+  const gone = s.marbles.every((m) => m.y > H + 120 || m.x < -120 || m.x > W + 120);
+  if (allRest || gone) s.settled += dt; else s.settled = 0;
+}
+
+/* ==================================================================
+   DRAWING
+   ================================================================== */
+function draw() {
+  if (!level) return;              // nothing loaded yet (fresh start, sitting on the menu)
+  const g = $("cv").getContext("2d");
+  const sky = g.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,"#1d2236"); sky.addColorStop(1,"#2d3350");
+  g.fillStyle = sky; g.fillRect(0,0,W,H);
+
+  // workshop grid
+  g.strokeStyle = "rgba(255,255,255,.055)"; g.lineWidth = 1;
+  for (let x=GRID; x<W; x+=GRID*4){ g.beginPath(); g.moveTo(x,0); g.lineTo(x,H); g.stroke(); }
+  for (let y=GRID; y<H; y+=GRID*4){ g.beginPath(); g.moveTo(0,y); g.lineTo(W,y); g.stroke(); }
+
+  // scenery
+  g.strokeStyle = "#6a7290"; g.lineCap = "round"; g.lineWidth = 10;
+  (level.geo||[]).forEach((s)=>{ g.beginPath(); g.moveTo(s[0],s[1]); g.lineTo(s[2],s[3]); g.stroke(); });
+  g.strokeStyle = "#868fb0"; g.lineWidth = 4;
+  (level.geo||[]).forEach((s)=>{ g.beginPath(); g.moveTo(s[0],s[1]); g.lineTo(s[2],s[3]); g.stroke(); });
+
+  // the spout the marble drops out of
+  g.fillStyle = "#99a2c4";
+  g.fillRect(level.spawn[0]-20, level.spawn[1]-34, 40, 16);
+  g.fillStyle = "#7b85a8";
+  g.fillRect(level.spawn[0]-14, level.spawn[1]-20, 28, 8);
+
+  // the goal
+  const gx = level.goal[0], gy = level.goal[1];
+  const pulse = 1 + Math.sin(Date.now()/260)*0.12;
+  const grd = g.createRadialGradient(gx,gy,2,gx,gy,30*pulse);
+  grd.addColorStop(0,"rgba(255,214,110,.75)"); grd.addColorStop(1,"rgba(255,214,110,0)");
+  g.fillStyle = grd; g.beginPath(); g.arc(gx,gy,30*pulse,0,Math.PI*2); g.fill();
+  g.font = "28px system-ui,'Segoe UI Emoji',sans-serif";
+  g.textAlign="center"; g.textBaseline="middle"; g.fillText("⭐", gx, gy+1);
+
+  // placed parts
+  placed.forEach((p,i) => drawPart(g, p, i === sel));
+
+  // marbles
+  if (sim) sim.marbles.forEach((m) => {
+    if (m.lift) {
+      g.strokeStyle="#e85d8a"; g.lineWidth=2;
+      g.beginPath(); g.moveTo(m.x,m.y); g.lineTo(m.x,m.y-30); g.stroke();
+      g.font="22px system-ui,'Segoe UI Emoji',sans-serif"; g.textAlign="center"; g.textBaseline="middle";
+      g.fillText("🎈", m.x, m.y-40);
+    }
+    const mg = g.createRadialGradient(m.x-4,m.y-5,1,m.x,m.y,m.r);
+    mg.addColorStop(0,"#ffffff"); mg.addColorStop(.35,"#9fd0ff"); mg.addColorStop(1,"#2f6fc0");
+    g.fillStyle = mg; g.beginPath(); g.arc(m.x,m.y,m.r,0,Math.PI*2); g.fill();
+    g.strokeStyle="rgba(255,255,255,.65)"; g.lineWidth=1.5; g.stroke();
+  });
+}
+
+function drawPart(g, p, isSel) {
+  const P = PARTS[p.t];
+  const hg = sim && sim.hinges.find((x)=>placed[x.i]===p);
+  const ang = hg ? hg.a : p.a;
+
+  if (P.kind === "seg" || P.kind === "hinge" || P.kind === "box") {
+    const segs = partSegments(p, ang);
+    if (P.kind === "box") {
+      g.fillStyle = P.col; g.beginPath();
+      segs.forEach((s,i)=> i? g.lineTo(s.a.x,s.a.y) : g.moveTo(s.a.x,s.a.y));
+      g.closePath(); g.fill();
+      g.strokeStyle="rgba(0,0,0,.3)"; g.lineWidth=2; g.stroke();
+    } else {
+      const s = segs[0];
+      g.strokeStyle = P.col; g.lineCap="round"; g.lineWidth = P.thick;
+      g.beginPath(); g.moveTo(s.a.x,s.a.y); g.lineTo(s.b.x,s.b.y); g.stroke();
+      g.strokeStyle="rgba(255,255,255,.28)"; g.lineWidth = Math.max(2,P.thick-6);
+      g.beginPath(); g.moveTo(s.a.x,s.a.y); g.lineTo(s.b.x,s.b.y); g.stroke();
+      if (P.surf) {
+        // little arrows so you can see which way a belt runs
+        const dx=s.b.x-s.a.x, dy=s.b.y-s.a.y, L=Math.hypot(dx,dy);
+        g.fillStyle="#cfd8ea"; g.font="11px system-ui,sans-serif"; g.textAlign="center"; g.textBaseline="middle";
+        for (let t=.2;t<=.8;t+=.3) {
+          const ax=s.a.x+dx*t, ay=s.a.y+dy*t;
+          g.save(); g.translate(ax,ay); g.rotate(Math.atan2(dy,dx)); g.fillText("›",0,0); g.restore();
+        }
+      }
+      if (P.kind === "hinge") {
+        g.fillStyle="#d8d2c0"; g.beginPath(); g.arc(p.x,p.y,4,0,Math.PI*2); g.fill();
+      }
+    }
+  } else {
+    const a = p.a * Math.PI/180;
+    if (P.kind === "fan") {
+      g.save(); g.translate(p.x,p.y); g.rotate(a);
+      g.fillStyle = "rgba(79,159,214,.18)";
+      g.beginPath(); g.moveTo(0,-20); g.lineTo(P.reach,-44); g.lineTo(P.reach,44); g.lineTo(0,20); g.closePath(); g.fill();
+      g.fillStyle = P.col; g.fillRect(-16,-22,22,44);
+      g.restore();
+      g.font="22px system-ui,'Segoe UI Emoji',sans-serif"; g.textAlign="center"; g.textBaseline="middle";
+      g.fillText("🌀", p.x, p.y);
+    } else if (P.kind === "field") {
+      g.strokeStyle = "rgba(208,90,90,.35)"; g.lineWidth=2; g.setLineDash([5,5]);
+      g.beginPath(); g.arc(p.x,p.y,P.reach,0,Math.PI*2); g.stroke(); g.setLineDash([]);
+      g.font="24px system-ui,'Segoe UI Emoji',sans-serif"; g.textAlign="center"; g.textBaseline="middle";
+      g.fillText("🧲", p.x, p.y);
+    } else if (P.kind === "boost") {
+      g.save(); g.translate(p.x,p.y); g.rotate(a);
+      g.fillStyle = P.col; g.beginPath(); g.moveTo(22,0); g.lineTo(-14,-16); g.lineTo(-14,16); g.closePath(); g.fill();
+      g.restore();
+    } else if (P.kind === "balloon") {
+      g.font="26px system-ui,'Segoe UI Emoji',sans-serif"; g.textAlign="center"; g.textBaseline="middle";
+      g.fillText("🎈", p.x, p.y);
+    } else if (P.kind === "portal") {
+      [[p.x,p.y,"#44c7b0"],[p.x2,p.y2,"#e0a33c"]].forEach(([x,y,col])=>{
+        g.strokeStyle=col; g.lineWidth=4;
+        g.beginPath(); g.ellipse(x,y,16,21,0,0,Math.PI*2); g.stroke();
+        g.strokeStyle="rgba(255,255,255,.5)"; g.lineWidth=2;
+        g.beginPath(); g.ellipse(x,y,9,13,0,0,Math.PI*2); g.stroke();
+      });
+      g.strokeStyle="rgba(68,199,176,.3)"; g.lineWidth=2; g.setLineDash([4,6]);
+      g.beginPath(); g.moveTo(p.x,p.y); g.lineTo(p.x2,p.y2); g.stroke(); g.setLineDash([]);
+    }
+  }
+
+  if (isSel && !running) {
+    g.strokeStyle="#ffd36e"; g.lineWidth=2.5; g.setLineDash([6,4]);
+    const rr = P.len ? P.len/2 + 12 : (P.reach||24) + 8;
+    g.beginPath(); g.arc(p.x,p.y,rr,0,Math.PI*2); g.stroke(); g.setLineDash([]);
+  }
+}
+
+/* ==================================================================
+   BUILD SCREEN
+   ================================================================== */
+const SCREENS = ["Menu","Build","Panel"];
+let screenNow = "menu";
+function setScreen(s) {
+  screenNow = s;
+  SCREENS.forEach((k)=>{ $("sc"+k).hidden = k.toLowerCase() !== s; });
+  if (s === "menu") renderMenu();
+  updateBar();
+}
+$("bPanelBack").addEventListener("click", ()=>setScreen("menu"));
+
+function renderMenu() {
+  let h = '<p class="hint">Place parts, press <b>▶ GO</b>, and watch what happens. If it doesn\'t work, nothing is lost — just rewind and move a piece.</p>';
+  h += '<div class="levels">';
+  LEVELS.forEach((lv,i)=>{
+    const open = levelOpen(i), done = !!solved[i];
+    h += '<button class="lv'+(done?" done":"")+(open?"":" locked")+'" data-lv="'+i+'"'+(open?"":" disabled")+'>' +
+      '<span class="n">'+(done?"⭐":(open?(i+1):"🔒"))+'</span>'+esc(lv.nm)+"</button>";
+  });
+  h += "</div>";
+  $("scMenu").innerHTML = h;
+}
+document.addEventListener("click",(e)=>{
+  const b = e.target.closest("[data-lv]");
+  if (b) openLevel(+b.dataset.lv);
+});
+
+function openLevel(i) {
+  sandbox = false; levelIdx = i; level = LEVELS[i];
+  placed = []; sel = -1; brush = null; running = false; sim = null;
+  const saved = builds[i];
+  if (saved) { const r = decode(saved); if (r) placed = r; }
+  enterBuild();
+}
+function openSandbox() {
+  sandbox = true; levelIdx = -1;
+  level = { nm:"Free Build", tip:"Everything, unlimited. Build whatever you like.",
+    spawn:[60,36], goal:[520,386], geo:[[0,400,600,400],[0,220,180,220],[420,250,600,250]], give:{} };
+  placed = []; sel = -1; brush = null; running = false; sim = null;
+  if (sandboxSave) { const r = decode(sandboxSave); if (r) placed = r; }
+  enterBuild();
+}
+function enterBuild() {
+  setScreen("build");
+  $("buildBanner").textContent = (sandbox ? "🧰 " : "⭐ " + (levelIdx+1) + ". ") + level.nm;
+  $("buildHint").textContent = "Tap a part, then tap the workshop to place it · drag to move · 🔄 turns the selected part";
+  fitCanvas();
+  renderPalette();
+  stopRun();
+  draw();
+}
+function fitCanvas() {
+  const cv = $("cv");
+  cv.width = W; cv.height = H;
+  const maxW = Math.min(712, ($(".sheet") ? 700 : 700));
+  const sheet = document.querySelector(".sheet");
+  const avail = Math.min(712, (sheet ? sheet.clientWidth : 700) - 8);
+  const sc = Math.min(1, avail / W);
+  cv.style.width = Math.floor(W*sc)+"px";
+  cv.style.height = Math.floor(H*sc)+"px";
+}
+function renderPalette() {
+  const box = $("palette"); box.innerHTML = "";
+  const list = sandbox ? PART_ORDER : PART_ORDER.filter((t)=>level.give[t]);
+  list.forEach((t)=>{
+    const P = PARTS[t], left = leftCount(t);
+    const b = document.createElement("button");
+    b.className = "pbtn" + (brush===t?" on":"") + (left<=0?" out":"");
+    b.innerHTML = P.e + '<span class="nm">'+P.nm+"</span>" +
+      (sandbox ? "" : '<span class="ct">'+Math.max(0,left)+"</span>");
+    b.addEventListener("click", ()=>{
+      if (running) { toast("Rewind first 🔁"); return; }
+      if (left <= 0) { toast("No "+P.nm.toLowerCase()+"s left — move one you've already placed!"); return; }
+      brush = (brush===t ? null : t); sel = -1; renderPalette(); draw();
+    });
+    box.appendChild(b);
+  });
+}
+
+/* ---- placing, dragging, selecting ---- */
+const snap = (v) => Math.round(v/GRID)*GRID;
+function canvasPt(e) {
+  const cv = $("cv"), r = cv.getBoundingClientRect();
+  return { x: (e.clientX-r.left)*(W/r.width), y: (e.clientY-r.top)*(H/r.height) };
+}
+function hitPart(x,y) {
+  for (let i=placed.length-1;i>=0;i--) {
+    const p = placed[i], P = PARTS[p.t];
+    if (P.kind === "portal") {
+      if (Math.hypot(x-p.x,y-p.y)<24) return { i, which:1 };
+      if (Math.hypot(x-p.x2,y-p.y2)<24) return { i, which:2 };
+      continue;
+    }
+    const rr = P.len ? P.len/2 + 8 : (P.reach||24);
+    if (Math.hypot(x-p.x,y-p.y) < Math.max(22, rr*0.75)) return { i, which:1 };
+  }
+  return null;
+}
+let drag = null;
+(function wire(){
+  const cv = $("cv");
+  cv.addEventListener("pointerdown",(e)=>{
+    e.preventDefault(); cv.setPointerCapture(e.pointerId);
+    if (running) return;
+    const pt = canvasPt(e);
+    if (brush) {
+      const P = PARTS[brush];
+      const p = { t:brush, x:snap(pt.x), y:snap(pt.y), a: PARTS[brush].upright ? -90 : 0 };
+      if (P.kind === "portal") { p.x2 = clamp(p.x+110,30,W-30); p.y2 = p.y; }
+      placed.push(p); sel = placed.length-1;
+      brush = null;          // one tap on the palette drops one part, then you're back to moving things
+      renderPalette(); draw(); persist();
+      return;
+    }
+    const hit = hitPart(pt.x, pt.y);
+    if (hit) {
+      sel = hit.i;
+      drag = { i:hit.i, which:hit.which, dx: pt.x - (hit.which===2?placed[hit.i].x2:placed[hit.i].x),
+               dy: pt.y - (hit.which===2?placed[hit.i].y2:placed[hit.i].y) };
+    } else sel = -1;
+    renderPalette(); draw();
+  });
+  cv.addEventListener("pointermove",(e)=>{
+    if (!drag || running) return;
+    e.preventDefault();
+    const pt = canvasPt(e), p = placed[drag.i];
+    if (!p) { drag = null; return; }
+    const nx = clamp(snap(pt.x - drag.dx), 10, W-10), ny = clamp(snap(pt.y - drag.dy), 10, H-10);
+    if (drag.which === 2) { p.x2 = nx; p.y2 = ny; } else { p.x = nx; p.y = ny; }
+    draw();
+  });
+  ["pointerup","pointercancel","pointerleave"].forEach((k)=>cv.addEventListener(k,()=>{
+    if (drag) { drag = null; persist(); }
+  }));
+})();
+
+$("bRotate").addEventListener("click", ()=>{
+  if (running) { toast("Rewind first 🔁"); return; }
+  if (sel < 0) { toast("Tap a part first, then turn it 🔄"); return; }
+  placed[sel].a = (placed[sel].a + 15) % 360;
+  draw(); persist();
+});
+$("bDelete").addEventListener("click", ()=>{
+  if (running) { toast("Rewind first 🔁"); return; }
+  if (sel < 0) { toast("Tap a part to pick it up first"); return; }
+  placed.splice(sel,1); sel = -1; renderPalette(); draw(); persist();
+});
+$("bHint").addEventListener("click", ()=>{
+  card("💡","A nudge","<p>"+esc(level.tip)+"</p>",[{label:"Thanks",value:true}]);
+});
+$("bQuit").addEventListener("click", ()=>{ stopRun(); persist(); setScreen("menu"); });
+
+function persist() {
+  if (sandbox) sandboxSave = encode(placed);
+  else builds[levelIdx] = encode(placed);
+  save();
+}
+
+/* ==================================================================
+   RUNNING THE MACHINE
+   ================================================================== */
+$("bGo").addEventListener("click", ()=>{ running ? stopRun() : startRun(); });
+$("bRewind").addEventListener("click", ()=>stopRun());
+
+function startRun() {
+  sel = -1; brush = null; renderPalette();
+  sim = newSim(); running = true;
+  $("bGo").textContent = "⏸ Stop";
+  tick();
+}
+function stopRun() {
+  running = false; sim = null;
+  cancelAnimationFrame(raf);
+  $("bGo").textContent = "▶ GO";
+  draw();
+}
+let lastT = 0;
+function tick(now) {
+  if (!running) return;
+  stepSim(sim, 1/60);
+  draw();
+  if (sim.won) { running = false; cancelAnimationFrame(raf); winLevel(); return; }
+  if (sim.t > 26 || sim.settled > 1.2) { running = false; cancelAnimationFrame(raf); notYet(); return; }
+  raf = requestAnimationFrame(tick);
+}
+
+async function notYet() {
+  $("bGo").textContent = "▶ GO";
+  const lines = [
+    "The marble came to a stop. Move something and have another go.",
+    "Not quite there yet. What if one piece were a bit further over?",
+    "It had a good try! Shift a part and run it again.",
+    "Hmm — it ran out of puff. Maybe it needs a push along the way.",
+  ];
+  await card("🔧","Have another go", "<p>"+lines[Math.floor(Math.random()*lines.length)]+"</p>",
+    [{label:"🔁 Rewind", value:true, cls:"go"}]);
+  stopRun();
+}
+
+async function winLevel() {
+  $("bGo").textContent = "▶ GO";
+  if (sandbox) {
+    await card("⭐","It works!","<p>Your machine did the job. Lovely.</p>",[{label:"🔁 Again",value:true,cls:"go"}]);
+    stopRun(); return;
+  }
+  const first = !solved[levelIdx];
+  solved[levelIdx] = true;
+  persist(); save(); updateBar();
+  const next = levelIdx + 1;
+  const used = placed.length;
+  const btns = [{label:"🔁 Play with it", value:"stay", cls:""}];
+  if (next < LEVELS.length) btns.unshift({label:"Next ⭐", value:"next", cls:"go"});
+  else btns.unshift({label:"🗺️ Levels", value:"menu", cls:"go"});
+  const v = await card("⭐","It works!",
+    "<p><b>"+esc(level.nm)+"</b> — done"+(first?"":" again")+"!</p>" +
+    "<p>Your machine used <b>"+used+"</b> part"+(used===1?"":"s")+".</p>" +
+    (next >= LEVELS.length ? '<div class="note good">🏆 That\'s every machine in the workshop. Free Build has everything, unlimited.</div>' : ""),
+    btns);
+  stopRun();
+  if (v === "next" && next < LEVELS.length) openLevel(next);
+  else if (v === "menu") setScreen("menu");
+}
+
+/* ==================================================================
+   SHARE CODES
+   ================================================================== */
+function encode(list) {
+  try {
+    const raw = list.map((p)=>[PART_ORDER.indexOf(p.t), Math.round(p.x), Math.round(p.y), Math.round(p.a),
+      p.x2===undefined?"":Math.round(p.x2), p.y2===undefined?"":Math.round(p.y2)].join(",")).join(";");
+    return raw;
+  } catch (e) { return ""; }
+}
+function decode(raw) {
+  try {
+    if (!raw) return [];
+    return String(raw).split(";").filter(Boolean).map((row)=>{
+      const f = row.split(",");
+      const t = PART_ORDER[+f[0]];
+      if (!t) return null;
+      const p = { t, x: clamp(+f[1]||0,0,W), y: clamp(+f[2]||0,0,H), a: ((+f[3])||0) % 360 };
+      if (PARTS[t].kind === "portal") { p.x2 = clamp(+f[4]||p.x+110,0,W); p.y2 = clamp(+f[5]||p.y,0,H); }
+      return p;
+    }).filter(Boolean).slice(0,80);
+  } catch (e) { return null; }
+}
+function shareCode() {
+  const payload = (sandbox ? "S" : "L"+levelIdx) + "|" + encode(placed);
+  try { return "CON" + btoa(payload).replace(/=+$/,""); } catch (e) { return ""; }
+}
+function readCode(code) {
+  try {
+    let c = String(code).trim().replace(/\s+/g,"");
+    if (c.slice(0,3).toUpperCase()==="CON") c = c.slice(3);
+    const raw = atob(c);
+    const bar = raw.indexOf("|");
+    if (bar < 0) return null;
+    const head = raw.slice(0,bar), body = raw.slice(bar+1);
+    const list = decode(body);
+    if (!list) return null;
+    if (head === "S") return { sandbox:true, list };
+    const i = parseInt(head.slice(1),10);
+    if (!(i >= 0 && i < LEVELS.length)) return null;
+    return { sandbox:false, idx:i, list };
+  } catch (e) { return null; }
+}
+
+$("bCodes").addEventListener("click", ()=>{
+  const mine = screenNow === "build" ? shareCode() : "";
+  $("panelBody").innerHTML =
+    '<h3 style="text-align:center;margin:4px 0 10px;">📮 Machine Codes</h3>' +
+    (mine ? '<p class="hint">Your machine right now — send it to somebody:</p><textarea rows="3" readonly id="outCode">'+esc(mine)+'</textarea>' +
+            '<div class="row" style="margin:8px 0 14px;"><button class="btn" id="bCopy">📋 Copy it</button></div>' : "") +
+    '<p class="hint">Paste a code somebody sent you:</p>' +
+    '<textarea rows="3" id="inCode" placeholder="CON..."></textarea>' +
+    '<div class="row" style="margin-top:8px;"><button class="btn go" id="bLoadCode">🔧 Open it</button></div>' +
+    '<p class="hint" id="codeMsg"></p>';
+  setScreen("panel");
+  const cp = $("bCopy");
+  if (cp) cp.addEventListener("click", ()=>{
+    try { const ta=document.createElement("textarea"); ta.value=mine; document.body.appendChild(ta);
+      ta.select(); document.execCommand("copy"); ta.remove(); toast("📋 Copied!"); }
+    catch (e) { toast("Select it and copy by hand 🙂"); }
+  });
+  $("bLoadCode").addEventListener("click", ()=>{
+    const r = readCode($("inCode").value);
+    if (!r) { $("codeMsg").textContent = "🤔 That code didn't work — check it copied all the way to the end."; return; }
+    if (r.sandbox) { openSandbox(); placed = r.list; }
+    else { openLevel(r.idx); placed = r.list; }
+    sel = -1; renderPalette(); draw(); persist();
+    toast("🔧 Machine loaded!");
+  });
+});
+
+$("bMenu").addEventListener("click", ()=>{ stopRun(); setScreen("menu"); });
+$("bSandbox").addEventListener("click", ()=>{ stopRun(); openSandbox(); });
+$("bReset").addEventListener("click", async ()=>{
+  const ok = await card("🧹","Clear the workshop?",
+    "<p>Which bit?</p>",
+    [{label:"Just this machine", value:"one", cls:"go"},
+     {label:"Everything", value:"all", cls:""},
+     {label:"Cancel", value:false, cls:""}]);
+  if (!ok) return;
+  if (ok === "one") {
+    if (screenNow !== "build") { toast("Open a machine first 🙂"); return; }
+    stopRun(); placed = []; sel = -1; renderPalette(); draw(); persist();
+    toast("🧹 Cleared — all your parts are back.");
+    return;
+  }
+  const sure = await card("🤔","Wipe every machine and every star?","<p>There's no undo for this one.</p>",
+    [{label:"Keep them", value:false, cls:"go"},{label:"Yes, wipe it", value:true, cls:""}]);
+  if (!sure) return;
+  solved = {}; builds = {}; sandboxSave = null; save(); updateBar(); setScreen("menu");
+});
+
+window.addEventListener("resize", ()=>{ if (screenNow === "build") { fitCanvas(); draw(); } });
+
+/* ==================================================================
+   BOOT
+   ================================================================== */
+async function boot() {
+  load(); updateBar(); setScreen("menu");
+  if (!seenIntro) {
+    seenIntro = true; save();
+    await card("⚙️","Welcome to the workshop",
+      "<p>Every machine in here has <b>one simple job</b>: get the marble to the ⭐.</p>" +
+      '<div class="note" style="text-align:left">' +
+      "<p>1. Tap a part, then tap the workshop to drop it in.</p>" +
+      "<p>2. Drag it about. Tap <b>🔄 Turn</b> to tilt it.</p>" +
+      "<p>3. Press <b>▶ GO</b> and watch.</p></div>" +
+      "<p>If the marble doesn't make it, nothing is lost — rewind, nudge a piece, go again. That's the whole game.</p>",
+      [{label:"Open the workshop", value:true, cls:"go"}]);
+  }
+}
+boot();
+</script>
+</body>
+</html>
