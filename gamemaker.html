@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+  <!-- Safety lock: this page can only load things from this site. It cannot
+       contact any outside server, load any third-party script, embed anything,
+       or submit a form anywhere. Nothing here can phone home. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai, noimageai">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <link rel="icon" href="favicon.png" type="image/png">
 <title>Game Maker — the game where you make the game</title>
 <style>
   :root {
@@ -319,7 +326,7 @@ const BRIEFS = [
   { id: "b7", who: "Rex",  ask: "a game with 3 baddies in it", need: { min: { [T.ENEMY]: 3 } }, needs: "enemy", pay: 26 },
   { id: "b8", who: "Nucky", ask: "a dodging game — I want to survive something", need: { genre: "survive" }, needs: "survive", pay: 28 },
   { id: "b9", who: "Mika", ask: "a BIG level, at least 60 blocks painted", need: { minPainted: 60 }, needs: "medium", pay: 26 },
-  { id: "inception", who: "Ezra", ask: "a game about making games 🪆",
+  { id: "inception", who: "Dot", ask: "a game about making games 🪆",
     need: { minPainted: 40, min: { [T.COIN]: 3 } }, pay: 60, secret: true,
     note: "This one is from you. To yourself." },
 ];

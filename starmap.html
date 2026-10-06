@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Safety lock: this page can only load things from this site. It cannot
+       contact any outside server, load any third-party script, embed anything,
+       or submit a form anywhere. Nothing here can phone home. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai, noimageai">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ezra's Antarctic Star-Map</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+<title>Antarctic Star-Map</title>
   <style>
     :root {
       --bg: #04091f;
@@ -1187,7 +1194,7 @@
         eggs.tenStamps = true;
         confetti(18, ["📮", "✉️", "🐧"]);
         setTimeout(() => card("✉️", "A postcard for YOU",
-          "<p>The penguins have sent one back.</p><p class='fact'>“Dear Ezra — thanks for putting the world back together. Come and visit any time. Love, the penguins of Port Lockroy 🐧”</p>",
+          "<p>The penguins have sent one back.</p><p class='fact'>“Dear Dot — thanks for putting the world back together. Come and visit any time. Love, the penguins of Port Lockroy 🐧”</p>",
           [{ label: "Aww", value: true }]), 700);
       }
       updateHud(); save();
@@ -1792,7 +1799,7 @@
         [{ label: "⭐ Name it", value: true }, { label: "Keep drawing", value: false }]);
       if (!ok) return;
       let nm = ($("ownName") && $("ownName").value || "").trim().slice(0, 24);
-      if (!nm) nm = "Ezra's Constellation";
+      if (!nm) nm = "Constellation";
       myStar = { name: nm, stars: ownStars.map((s) => ({ x: Math.round(s.x), y: Math.round(s.y) })) };
       frags += 25;
       updateHud(); save();
@@ -1833,7 +1840,7 @@
       const eggList = [
         ["sock", "🧦 The Lost Sock"], ["sandwich", "🥪 The Frozen Sandwich"], ["ufo", "🛸 UFO Spotted"],
         ["pole", "🎯 Stood on the South Pole"], ["tenStamps", "✉️ Postcard from the penguins"],
-        ["snowman", "⛄ Built a snowman"], ["ezra", "⭐ The Ezra Constellation"], ["finished", "🏆 Restored the whole world"],
+        ["snowman", "⛄ Built a snowman"], ["dot", "⭐ The Dot Constellation"], ["finished", "🏆 Restored the whole world"],
       ];
       const gotEggs = eggList.filter((e) => eggs[e[0]]).length;
       h += '<div class="log-sec">🥚 Secrets — ' + gotEggs + " / " + eggList.length + "</div>";
@@ -2037,13 +2044,13 @@
       const m = 60;
       const k = (p.x < m ? "l" : p.x > MAP_W - m ? "r" : "") + (p.y < m ? "t" : p.y > MAP_H - m ? "b" : "");
       if (k.length === 2) corners[k] = true;
-      if (Object.keys(corners).length >= 4 && !eggs.ezra) {
-        eggs.ezra = true;
+      if (Object.keys(corners).length >= 4 && !eggs.dot) {
+        eggs.dot = true;
         frags += 20;
         confetti(24, ["⭐", "✨", "🌟"]);
-        card("⭐", "You found the Ezra Constellation!",
+        card("⭐", "You found the Dot Constellation!",
           "<p>Tapping all four corners of the sky revealed a constellation nobody has ever charted before.</p>" +
-          '<p class="fact">It is now officially called <b>Ezra</b>, and it will hang in the southern sky forever. ✨ +20 fragments.</p>',
+          '<p class="fact">It is now officially called <b>Dot</b>, and it will hang in the southern sky forever. ✨ +20 fragments.</p>',
           [{ label: "⭐ Wow", value: true }]);
         updateHud(); save();
       }

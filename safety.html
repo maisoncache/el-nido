@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Safety lock: this page can only load things from this site. It cannot
+       contact any outside server, load any third-party script, embed anything,
+       or submit a form anywhere. Nothing here can phone home. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai, noimageai">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="favicon.png" type="image/png">
+<title>Safe &amp; Private — Dot Arcade</title>
+  <style>
+    :root { --bg:#f3f8ff; --card:#fff; --text:#1f2a3d; --accent:#2f6df3; --go:#1f9d55; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+      font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif; }
+    .wrap { max-width:720px; margin:0 auto; padding:14px 14px 60px; }
+    a.back { display:inline-block; color:var(--accent); text-decoration:none; font-weight:bold; font-size:.9rem; padding:8px 2px; }
+    h1 { margin:6px 0 4px; font-size:1.6rem; }
+    .subtitle { margin:0 0 18px; opacity:.72; font-size:.92rem; }
+    section { background:var(--card); border:2px solid #dde6f3; border-radius:16px; padding:16px; margin-bottom:14px; }
+    section h2 { margin:0 0 8px; font-size:1.05rem; }
+    p { line-height:1.6; font-size:.93rem; }
+    ul { line-height:1.7; font-size:.93rem; padding-left:20px; margin:8px 0; }
+    .yes { color:var(--go); font-weight:bold; }
+    .no { color:#c0392b; font-weight:bold; }
+    .big { background:#eafaf0; border:2px solid #b7e6c9; border-radius:14px; padding:14px; margin-bottom:16px; }
+    .big p { margin:0; font-size:1rem; }
+    code { background:#eef3fb; padding:2px 6px; border-radius:6px; font-size:.86em; }
+    .small { font-size:.82rem; opacity:.68; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html">← Back to Dot Arcade</a>
+    <h1>🛡️ Safe &amp; Private</h1>
+    <p class="subtitle">What this site does and doesn't do. In plain English.</p>
+
+    <div class="big">
+      <p><b>The short version:</b> this site asks you for nothing, knows nothing about you,
+         and can't send anything anywhere. There are no accounts, no sign-ups, no adverts,
+         no chat, and no way for anyone to message anyone else.</p>
+    </div>
+
+    <section>
+      <h2>What we collect about you</h2>
+      <p><b>Nothing.</b> No name, no email, no age, no location, no account.
+         You never type anything into this site except inside the games themselves,
+         and that stays on your own device.</p>
+    </section>
+
+    <section>
+      <h2>How the play counts and reactions work</h2>
+      <p>You can tap ❤️ <b>Loved it</b>, 🤯 <b>Tricky!</b> or 🔁 <b>Played it again</b> on any game.
+         Those are the only choices — there is <b>no comment box and no star rating</b>, on purpose.
+         That means nothing unkind can ever be posted here, and there is nothing to moderate.</p>
+      <p>What gets counted is just a number going up. It isn't tied to you in any way,
+         because there's nothing to tie it to.</p>
+    </section>
+
+    <section>
+      <h2>Where your saved games live</h2>
+      <p>Every game saves your progress in <b>your own browser</b>, on your own device,
+         using something called local storage. It never leaves your device, and we can't read it.
+         Clearing your browser data clears it. Using a different device means starting fresh.</p>
+    </section>
+
+    <section>
+      <h2>What this site can't do</h2>
+      <ul>
+        <li><span class="no">No</span> adverts, ever.</li>
+        <li><span class="no">No</span> trackers, analytics companies or cookies from anyone else.</li>
+        <li><span class="no">No</span> chat, messages, comments or usernames.</li>
+        <li><span class="no">No</span> links out to other websites, videos or social media.</li>
+        <li><span class="no">No</span> uploads, downloads or file sharing between people.</li>
+      </ul>
+      <p class="small">This isn't just a promise. Every page carries a rule
+         (a <code>Content-Security-Policy</code>) that the browser itself enforces:
+         pages here are only allowed to load things from this site. Even if somebody
+         tried to add an advert or a tracker, the browser would block it.</p>
+    </section>
+
+    <section>
+      <h2>The video</h2>
+      <p>The movie is hosted on this site and plays in a plain video player.
+         It isn't on YouTube or anywhere else, so there are no adverts before it,
+         no "up next" suggestions afterwards, and nobody is watching who watched.</p>
+    </section>
+
+    <section>
+      <h2>Who made it</h2>
+      <p>Everything here — all the games, all the artwork, the language, the movie —
+         was designed by one kid, and built with help. It's made for playing, not for profit.
+         There is nothing to buy and nothing to sign up to.</p>
+    </section>
+
+    <p class="small">Last updated when the site was locked down for going public.</p>
+  </div>
+</body>
+</html>

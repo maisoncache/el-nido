@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Safety lock: this page can only load things from this site. It cannot
+       contact any outside server, load any third-party script, embed anything,
+       or submit a form anywhere. Nothing here can phone home. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai, noimageai">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ezra's Game Hub</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+<title>Dot Arcade</title>
   <style>
     :root {
       --bg: #f3f8ff;
@@ -100,20 +107,48 @@
       font-size: 0.95rem;
       opacity: 0.8;
     }
+
+    .reacts {
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      margin-top: 10px; padding-top: 10px; border-top: 1px dashed #d8e2f0;
+    }
+    .react {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #f4f8ff; border: 2px solid #d8e2f0; border-radius: 999px;
+      padding: 5px 10px; min-height: 36px; cursor: pointer;
+      font-family: inherit; font-size: 0.85rem; font-weight: bold; color: var(--text);
+    }
+    .react:hover { border-color: var(--accent); }
+    .react.on { background: #ffe9f2; border-color: #ff6ba6; }
+    .react .e { font-size: 1rem; line-height: 1; }
+    .playcount { margin-left: auto; font-size: 0.74rem; opacity: 0.6; }
+    .hubnav { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 0 0 18px; }
+    .hubnav a {
+      text-decoration: none; background: #fff; border: 2px solid #d8e2f0;
+      border-radius: 999px; padding: 8px 14px; font-weight: bold; font-size: 0.86rem;
+      color: var(--text); min-height: 40px; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .hubnav a:hover { border-color: var(--accent); }
   </style>
 </head>
 <body>
   <main class="hub">
-    <h1>🎮 Ezra's Game Hub</h1>
+    <h1>🎮 Dot Arcade</h1>
     <p class="subtitle">Pick a game below! Designed for desktop, iPad, and phones with large buttons and simple controls.</p>
 
+
+    <nav class="hubnav">
+      <a href="dashboard.html">📊 What's popular</a>
+      <a href="movie.html">🎬 The Movie</a>
+      <a href="safety.html">🛡️ Safe &amp; private</a>
+    </nav>
     <section class="grid" aria-label="Game list">
       <article class="game-card">
-        <h2>KPS Jumper</h2>
+        <h2>Playground Dash</h2>
         <span class="tag">Action Platformer</span>
         <p>Jump, dodge, and collect stars while racing for your best score. Your previous progress is saved in this browser.</p>
         <div class="actions">
-          <a class="btn" href="kps-jumper.html">Play KPS Jumper</a>
+          <a class="btn" href="playground-dash.html">Play Playground Dash</a>
         </div>
       </article>
 
@@ -138,7 +173,7 @@
       <article class="game-card">
         <h2>Starlight</h2>
         <span class="tag">Music Player</span>
-        <p>Listen to an original melody composed just for Ezra! Watch the piano keys light up as the piece plays — 8 bars in C major.</p>
+        <p>Listen to an original melody composed just for Dot! Watch the piano keys light up as the piece plays — 8 bars in C major.</p>
         <div class="actions">
           <a class="btn" href="starlight.html" style="background:#4dd9e0; color:#05151f;">Listen to Starlight</a>
         </div>
@@ -147,7 +182,7 @@
       <article class="game-card">
         <h2>Legendary Pets</h2>
         <span class="tag">Pet Collection</span>
-        <p>Meet Ezra's legendary pets! Tap each one to see their special animation. First up: Nucky the Duck 🦆</p>
+        <p>Meet legendary pets! Tap each one to see their special animation. First up: Nucky the Duck 🦆</p>
         <div class="actions">
           <a class="btn" href="pets.html" style="background:#f5b400; color:#3a2b00;">View My Pets</a>
         </div>
@@ -156,7 +191,7 @@
       <article class="game-card">
         <h2>Carods</h2>
         <span class="tag">Board Game</span>
-        <p>Ezra's own invented board game! Draw a card, drive your car to the matching coloured square, dodge obstacles, and race the computer to the finish line. 🏁</p>
+        <p>own invented board game! Draw a card, drive your car to the matching coloured square, dodge obstacles, and race the computer to the finish line. 🏁</p>
         <div class="actions">
           <a class="btn" href="carods.html" style="background:#e44a4a;">Play Carods</a>
         </div>
@@ -181,11 +216,11 @@
       </article>
 
       <article class="game-card">
-        <h2>Ezra's World</h2>
+        <h2>World</h2>
         <span class="tag">Decorating</span>
         <p>Decorate five rooms — bedroom, space room, game room, snack bar, and library. Drag in furniture, food, planets, and your favourite pets. Look out for the hidden Mystery Room! 🏠✨</p>
         <div class="actions">
-          <a class="btn" href="ezras-world.html" style="background:#3b82f6;">Decorate</a>
+          <a class="btn" href="dot-world.html" style="background:#3b82f6;">Decorate</a>
         </div>
       </article>
 
@@ -235,7 +270,7 @@
       </article>
 
       <article class="game-card">
-        <h2>Ezra's Game of Life</h2>
+        <h2>Game of Life</h2>
         <span class="tag">Board Game</span>
         <p>Spin the wheel and drive through life against Robo! Pick a job, collect paydays, make friends, buy a house (treehouse? candy castle?) and retire with the most riches. 🎡🚗</p>
         <div class="actions">
@@ -336,7 +371,7 @@
       <article class="game-card">
         <h2>Dottinish</h2>
         <span class="tag">Learn a Language</span>
-        <p>Ezra invented a language — now learn to read and write it. All 26 glyphs of the Land of Dot, taught five at a time like a language app: match them, spell with them, trace them with your finger. Then send secret messages nobody else can read. And if a glyph isn't quite right, draw your own in the Studio — yours replaces mine everywhere. ᛞ✍️</p>
+        <p>Dot invented a language — now learn to read and write it. All 26 glyphs of the Land of Dot, taught five at a time like a language app: match them, spell with them, trace them with your finger. Then send secret messages nobody else can read. And if a glyph isn't quite right, draw your own in the Studio — yours replaces mine everywhere. ᛞ✍️</p>
         <div class="actions">
           <a class="btn" href="dottinish.html" style="background:#b9862c;">Enter the Land of Dot</a>
         </div>
@@ -352,7 +387,7 @@
       </article>
 
       <article class="game-card">
-        <h2>Ezra's Café</h2>
+        <h2>Café</h2>
         <span class="tag">Cooking &amp; Serving</span>
         <p>Customers come in with orders! Build breakfast, lunch, or dinner dishes from the pantry and serve them up. Get the wrong ingredient and your score resets — careful, chef! 🍳🌭🥪</p>
         <div class="actions">
@@ -381,5 +416,7 @@
 
     <p class="footer-note">Tip: Add this page to your iPad home screen for quick game access.</p>
   </main>
+  <script src="hub-stats.js"></script>
+  <script src="hub-wire.js"></script>
 </body>
 </html>

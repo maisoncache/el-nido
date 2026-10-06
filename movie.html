@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Safety lock: this page can only load things from this site. It cannot
+       contact any outside server, load any third-party script, embed anything,
+       or submit a form anywhere. Nothing here can phone home. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai, noimageai">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="favicon.png" type="image/png">
+<title>The Movie — Dot Arcade</title>
+  <style>
+    :root { --bg:#10131f; --text:#f2f5ff; --accent:#ff8a3d; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+      font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;
+      background-image:radial-gradient(circle at 20% 10%, rgba(255,138,61,.16), transparent 45%),
+                       radial-gradient(circle at 80% 85%, rgba(47,109,243,.18), transparent 48%); }
+    .wrap { max-width:900px; margin:0 auto; padding:14px 14px 60px; }
+    a.back { display:inline-block; color:#ffc58f; text-decoration:none; font-weight:bold; font-size:.9rem; padding:8px 2px; }
+    h1 { margin:6px 0 4px; font-size:1.8rem; text-align:center; }
+    .subtitle { margin:0 0 18px; text-align:center; opacity:.75; font-size:.92rem; }
+    .screen { background:#000; border:3px solid #2c3350; border-radius:16px; overflow:hidden;
+      box-shadow:0 18px 50px rgba(0,0,0,.55); }
+    video { display:block; width:100%; height:auto; background:#000; }
+    .placeholder { aspect-ratio:16/9; display:flex; flex-direction:column; align-items:center;
+      justify-content:center; gap:10px; text-align:center; padding:24px; background:#161b2c; }
+    .placeholder .big { font-size:3rem; }
+    .placeholder p { margin:0; opacity:.78; font-size:.92rem; line-height:1.55; max-width:420px; }
+    .meta { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:14px; }
+    .chip { background:rgba(255,255,255,.07); border:2px solid #2c3350; border-radius:999px;
+      padding:7px 13px; font-size:.84rem; font-weight:bold; }
+    code { background:rgba(255,255,255,.1); padding:2px 6px; border-radius:6px; font-size:.86em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html">← Back to Dot Arcade</a>
+    <h1>🎬 The Movie</h1>
+    <p class="subtitle" id="sub">A mini movie, made at Dot Arcade.</p>
+
+    <div class="screen" id="screen">
+      <video id="vid" controls playsinline preload="metadata" hidden></video>
+      <div class="placeholder" id="ph" hidden>
+        <div class="big">🎬</div>
+        <p><b>The movie isn't here yet.</b></p>
+        <p>To add it, drop a file called <code>movie.mp4</code> next to this page.
+           A picture called <code>movie-poster.jpg</code> becomes the thumbnail.</p>
+      </div>
+    </div>
+
+    <div class="meta">
+      <span class="chip">🔒 Played from this site only</span>
+      <span class="chip">🚫 No ads, no "up next"</span>
+      <span class="chip">👁️ Nobody is tracked</span>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+    const vid = document.getElementById("vid");
+    const ph = document.getElementById("ph");
+
+    function showPlaceholder() {
+      vid.hidden = true;
+      ph.hidden = false;
+      document.getElementById("sub").textContent = "Coming soon.";
+    }
+    function showMovie(withPoster) {
+      if (withPoster) vid.setAttribute("poster", "movie-poster.jpg");
+      const src = document.createElement("source");
+      src.src = "movie.mp4";
+      src.type = "video/mp4";
+      vid.appendChild(src);
+      vid.hidden = false;
+      ph.hidden = true;
+    }
+
+    /* Ask whether the files are there before pointing the player at them,
+       so a movie that hasn't been added yet is a friendly note rather than
+       a broken box and a console full of 404s. */
+    async function exists(url) {
+      try {
+        const r = await fetch(url, { method: "HEAD" });
+        return r.ok;
+      } catch (e) {
+        return null;           // opened straight off the disk: can't tell
+      }
+    }
+    (async function () {
+      const movie = await exists("movie.mp4");
+      if (movie === false) { showPlaceholder(); return; }
+      const poster = await exists("movie-poster.jpg");
+      showMovie(poster === true);
+      if (movie === null) vid.addEventListener("error", showPlaceholder, true);
+    })();
+
+    /* Count a view the same anonymous way the games are counted. */
+    let counted = false;
+    vid.addEventListener("play", () => {
+      if (counted || !window.DotStats) return;
+      counted = true;
+      DotStats.recordPlay("movie");
+    });
+  })();
+  </script>
+  <script src="hub-stats.js"></script>
+</body>
+</html>

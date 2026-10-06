@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Safety lock: this page can only load things from this site. It cannot
+       contact any outside server, load any third-party script, embed anything,
+       or submit a form anywhere. Nothing here can phone home. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai, noimageai">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ezra's Legendary Pets</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+<title>Legendary Pets</title>
   <style>
     :root {
       --bg: #fff7e6;
@@ -470,7 +477,7 @@
 </head>
 <body>
   <main class="page">
-    <h1>🐾 Ezra's Legendary Pets</h1>
+    <h1>🐾 Legendary Pets</h1>
     <p class="subtitle">Tap a pet card to see them in action. Find more by playing the other games!</p>
     <p class="progress-line" id="summary"></p>
     <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
@@ -998,14 +1005,14 @@
     function saveJSON(key, data) {
       try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) {}
     }
-    const loadAchievements = () => loadJSON("ezraAchievements_v1", {});
-    const loadBrainQuest = () => loadJSON("ezraBrainQuestProgress_v1", { badges: {} });
-    const loadDrops = () => loadJSON("ezraPetUnlocks_v1", {});
-    const saveDrops = d => saveJSON("ezraPetUnlocks_v1", d);
-    const loadSeen = () => loadJSON("ezraPetSeen_v1", {});
-    const saveSeen = d => saveJSON("ezraPetSeen_v1", d);
-    const loadTriggers = () => loadJSON("ezraPetTriggers_v1", { pendingRolls: 0 });
-    const saveTriggers = d => saveJSON("ezraPetTriggers_v1", d);
+    const loadAchievements = () => loadJSON("dotAchievements_v1", {});
+    const loadBrainQuest = () => loadJSON("dotBrainQuestProgress_v1", { badges: {} });
+    const loadDrops = () => loadJSON("dotPetUnlocks_v1", {});
+    const saveDrops = d => saveJSON("dotPetUnlocks_v1", d);
+    const loadSeen = () => loadJSON("dotPetSeen_v1", {});
+    const saveSeen = d => saveJSON("dotPetSeen_v1", d);
+    const loadTriggers = () => loadJSON("dotPetTriggers_v1", { pendingRolls: 0 });
+    const saveTriggers = d => saveJSON("dotPetTriggers_v1", d);
 
     function isUnlocked(pet) {
       const u = pet.unlock;

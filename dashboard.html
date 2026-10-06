@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Safety lock: this page can only load things from this site. It cannot
+       contact any outside server, load any third-party script, embed anything,
+       or submit a form anywhere. Nothing here can phone home. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai, noimageai">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="favicon.png" type="image/png">
+<title>What's Popular — Dot Arcade</title>
+  <style>
+    :root { --bg:#f3f8ff; --card:#fff; --text:#1f2a3d; --accent:#2f6df3; --accent2:#00a7b3; --warm:#ff8a3d; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+      font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif; }
+    .wrap { max-width:860px; margin:0 auto; padding:14px 14px 50px; }
+    a.back { display:inline-block; color:var(--accent); text-decoration:none; font-weight:bold; font-size:.9rem; padding:8px 2px; }
+    h1 { margin:6px 0 2px; font-size:1.6rem; }
+    .subtitle { margin:0 0 16px; opacity:.72; font-size:.92rem; }
+    .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:20px; }
+    .stat { background:var(--card); border:2px solid #dde6f3; border-radius:16px; padding:14px; text-align:center; }
+    .stat .big { font-size:1.9rem; font-weight:bold; color:var(--accent); line-height:1.1; }
+    .stat .lbl { font-size:.8rem; opacity:.7; margin-top:3px; }
+    section { background:var(--card); border:2px solid #dde6f3; border-radius:16px; padding:14px; margin-bottom:16px; }
+    section h2 { margin:0 0 10px; font-size:1.05rem; }
+    .bar { display:flex; align-items:center; gap:10px; margin-bottom:9px; }
+    .bar .nm { flex:0 0 36%; font-weight:bold; font-size:.88rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .bar .track { flex:1; background:#eef3fb; border-radius:999px; height:20px; overflow:hidden; }
+    .bar .fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:999px; min-width:3px; transition:width .5s; }
+    .bar .v { flex:0 0 auto; font-size:.8rem; opacity:.72; min-width:54px; text-align:right; }
+    .chips { display:flex; flex-wrap:wrap; gap:7px; }
+    .chip { background:#f4f8ff; border:2px solid #dde6f3; border-radius:999px; padding:6px 11px; font-size:.84rem; font-weight:bold; }
+    .note { background:#fff8ec; border-left:4px solid var(--warm); padding:10px 12px; border-radius:9px; font-size:.86rem; line-height:1.5; }
+    .empty { opacity:.65; font-size:.9rem; }
+    .btn { background:#fff; border:2px solid #dde6f3; border-radius:12px; padding:9px 14px;
+      font-family:inherit; font-weight:bold; cursor:pointer; color:var(--text); min-height:42px; }
+    .btn:hover { border-color:var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html">← Back to Dot Arcade</a>
+    <h1>📊 What's Popular</h1>
+    <p class="subtitle" id="sub">Which games people are playing.</p>
+
+    <div class="cards" id="cards"></div>
+
+    <section>
+      <h2>▶ Most played</h2>
+      <div id="plays"></div>
+    </section>
+
+    <section>
+      <h2>❤️ Most loved</h2>
+      <div id="loved"></div>
+    </section>
+
+    <section>
+      <h2>🌱 Waiting for their first player</h2>
+      <p class="subtitle" style="margin:-4px 0 10px">Brand new, or just hasn't been found yet.</p>
+      <div class="chips" id="fresh"></div>
+    </section>
+
+    <section>
+      <h2>🙂 How people reacted</h2>
+      <div class="chips" id="totals"></div>
+    </section>
+
+    <div class="note" id="where"></div>
+    <p style="margin-top:14px"><button class="btn" id="bClear">🧹 Clear the numbers on this device</button></p>
+  </div>
+
+  <script src="hub-stats.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    /* Names come from the hub page itself, so this list never goes stale. */
+    const NAMES = {};
+    const ORDER = [];
+
+    async function loadNames() {
+      try {
+        const r = await fetch("index.html");
+        const html = await r.text();
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        doc.querySelectorAll(".game-card").forEach((c) => {
+          const a = c.querySelector('a.btn[href$=".html"]');
+          const h = c.querySelector("h2");
+          if (!a || !h) return;
+          const id = a.getAttribute("href").replace(/\.html.*$/, "");
+          NAMES[id] = h.textContent.trim();
+          ORDER.push(id);
+        });
+      } catch (e) { /* opened straight off the disk — fall back to ids */ }
+    }
+    const nameOf = (id) => NAMES[id] || id.replace(/-/g, " ");
+
+    function barList(el, rows, unit) {
+      el.innerHTML = "";
+      if (!rows.length) { el.innerHTML = '<p class="empty">Nothing yet — once people play, it shows up here.</p>'; return; }
+      const max = Math.max.apply(null, rows.map((r) => r.v)) || 1;
+      rows.forEach((r) => {
+        const d = document.createElement("div");
+        d.className = "bar";
+        d.innerHTML = '<span class="nm">' + esc(nameOf(r.id)) + '</span>' +
+          '<span class="track"><span class="fill" style="width:' + Math.round((r.v / max) * 100) + '%"></span></span>' +
+          '<span class="v">' + r.v + " " + unit + "</span>";
+        el.appendChild(d);
+      });
+    }
+    const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+    async function render() {
+      await loadNames();
+      await DotStats.refresh();
+      const all = DotStats.all();
+      const ids = ORDER.length ? ORDER : Object.keys(all);
+
+      let plays = 0, love = 0, tricky = 0, again = 0, played = 0;
+      const rowsPlays = [], rowsLove = [], fresh = [];
+      ids.forEach((id) => {
+        const s = all[id] || {};
+        const p = s.plays || 0;
+        plays += p; love += s.love || 0; tricky += s.tricky || 0; again += s.again || 0;
+        if (p > 0) { played++; rowsPlays.push({ id, v: p }); } else fresh.push(id);
+        if ((s.love || 0) > 0) rowsLove.push({ id, v: s.love });
+      });
+      rowsPlays.sort((a, b) => b.v - a.v);
+      rowsLove.sort((a, b) => b.v - a.v);
+
+      document.getElementById("cards").innerHTML =
+        card(plays, plays === 1 ? "play" : "plays") +
+        card(played + " / " + ids.length, "games played") +
+        card(love, love === 1 ? "heart" : "hearts") +
+        card(again, "replays");
+
+      barList(document.getElementById("plays"), rowsPlays.slice(0, 10), "");
+      barList(document.getElementById("loved"), rowsLove.slice(0, 10), "❤️");
+
+      const fx = document.getElementById("fresh");
+      fx.innerHTML = fresh.length
+        ? fresh.map((id) => '<span class="chip">' + esc(nameOf(id)) + "</span>").join("")
+        : '<p class="empty">Every single game has been played. 🎉</p>';
+
+      document.getElementById("totals").innerHTML =
+        '<span class="chip">❤️ ' + love + " loved</span>" +
+        '<span class="chip">🤯 ' + tricky + " tricky</span>" +
+        '<span class="chip">🔁 ' + again + " played again</span>";
+
+      document.getElementById("where").innerHTML = DotStats.isRemote()
+        ? "🌍 These are the numbers from <b>everybody who has played</b>."
+        : "📱 These numbers are from <b>this device only</b> — they are stored in this browser and sent nowhere. " +
+          "Once the site is online properly, this page will show everyone's plays instead.";
+    }
+    const card = (big, lbl) => '<div class="stat"><div class="big">' + big + '</div><div class="lbl">' + lbl + "</div></div>";
+
+    document.getElementById("bClear").addEventListener("click", () => {
+      if (!confirm("Clear the play counts and reactions stored on this device?")) return;
+      DotStats.clear(); render();
+    });
+    render();
+  })();
+  </script>
+</body>
+</html>

@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Safety lock: this page can only load things from this site. It cannot
+       contact any outside server, load any third-party script, embed anything,
+       or submit a form anywhere. Nothing here can phone home. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai, noimageai">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ezra's Chess</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+<title>Chess</title>
   <style>
     :root {
       --bg: #f3f1ec;
@@ -306,7 +313,7 @@
 </head>
 <body>
   <main class="page">
-    <h1>♟️ Ezra's Chess</h1>
+    <h1>♟️ Chess</h1>
     <p class="subtitle">Click a piece, then click where you want it to go.</p>
 
     <div class="settings">
@@ -1075,7 +1082,7 @@
         showEnd(
           humanWon ? "win" : "lose",
           humanWon ? "🏆 Checkmate — you win!" : "♛ Checkmate — computer wins.",
-          humanWon ? "Wonderful play, Grandmaster Ezra." : "Tough one! Try again."
+          humanWon ? "Wonderful play, Grandmaster Dot." : "Tough one! Try again."
         );
         if (humanWon) bumpPetRoll();
         return;
@@ -1113,7 +1120,7 @@
           gameOver = true;
           if (isCheck) {
             sfx.win();
-            showEnd("win", "🏆 Checkmate — you win!", "Wonderful play, Grandmaster Ezra.");
+            showEnd("win", "🏆 Checkmate — you win!", "Wonderful play, Grandmaster Dot.");
             bumpPetRoll();
           } else {
             showEnd("draw", "🤝 Stalemate", "It's a draw — no legal moves left.");
@@ -1154,10 +1161,10 @@
 
     function bumpPetRoll() {
       try {
-        const raw = localStorage.getItem("ezraPetTriggers_v1");
+        const raw = localStorage.getItem("dotPetTriggers_v1");
         const data = raw ? JSON.parse(raw) : { pendingRolls: 0 };
         data.pendingRolls = (data.pendingRolls || 0) + 1;
-        localStorage.setItem("ezraPetTriggers_v1", JSON.stringify(data));
+        localStorage.setItem("dotPetTriggers_v1", JSON.stringify(data));
       } catch (e) {}
     }
 

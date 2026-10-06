@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Safety lock: this page can only load things from this site. It cannot
+       contact any outside server, load any third-party script, embed anything,
+       or submit a form anywhere. Nothing here can phone home. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai, noimageai">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ezra's Café</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+<title>Café</title>
   <style>
     :root {
       --paper: #fffaf0;
@@ -368,7 +375,7 @@
 <body>
   <main class="page">
     <div class="top">
-      <h1>🍳 Ezra's Café</h1>
+      <h1>🍳 Café</h1>
       <div class="scoreboard">
         <div class="score-pill score-now">Score: <span id="score">0</span></div>
         <div class="score-pill">🏆 Best: <span id="best">0</span></div>
@@ -497,7 +504,7 @@
     ];
 
     // ============ STATE ============
-    const STORAGE = "ezraCafe_v1";
+    const STORAGE = "dotCafe_v1";
     let state;
     function freshState() {
       return {
@@ -528,10 +535,10 @@
     // ============ PET ROLL ============
     function bumpPetRoll() {
       try {
-        const raw = localStorage.getItem("ezraPetTriggers_v1");
+        const raw = localStorage.getItem("dotPetTriggers_v1");
         const data = raw ? JSON.parse(raw) : { pendingRolls: 0 };
         data.pendingRolls = (data.pendingRolls || 0) + 1;
-        localStorage.setItem("ezraPetTriggers_v1", JSON.stringify(data));
+        localStorage.setItem("dotPetTriggers_v1", JSON.stringify(data));
       } catch (e) {}
     }
 
@@ -750,7 +757,7 @@
         let bonus = "";
         if (recipe.id === "hotdog") {
           state.hotdogStreak++;
-          points += 5; // Ezra's favourite bonus
+          points += 5; // favourite bonus
           bonus = " (+5 hotdog bonus!)";
         }
         state.score += points;
@@ -766,7 +773,7 @@
         // celebrations
         if (!state.celebShown.first) {
           state.celebShown.first = true;
-          showCelebration({ big: "🍴", title: "First customer served!", text: "Welcome to Ezra's Café. Keep that score going!" });
+          showCelebration({ big: "🍴", title: "First customer served!", text: "Welcome to Café. Keep that score going!" });
           bumpPetRoll();
         }
         if (state.score >= 100 && !state.celebShown.hundred) {
@@ -776,7 +783,7 @@
         }
         if (state.hotdogStreak >= 10 && !state.celebShown.hotdogChampion) {
           state.celebShown.hotdogChampion = true;
-          showCelebration({ big: "🌭🌭🌭", title: "Hotdog Champion!", text: "10 hot dogs served — Ezra's culinary specialty!" });
+          showCelebration({ big: "🌭🌭🌭", title: "Hotdog Champion!", text: "10 hot dogs served — culinary specialty!" });
           bumpPetRoll();
         }
         // pet roll every 100 points crossed (above the celebration threshold)
