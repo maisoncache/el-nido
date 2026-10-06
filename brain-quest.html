@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Safety lock: this page can only load things from this site. It cannot
+       contact any outside server, load any third-party script, embed anything,
+       or submit a form anywhere. Nothing here can phone home. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai, noimageai">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ezra's Brain Quest: Planet Flag Academy</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+<title>Brain Quest: Planet Flag Academy</title>
   <style>
     :root {
       --ink: #1f2a3d;
@@ -498,7 +505,7 @@
     };
 
     // ============ STATE & STORAGE ============
-    const STORAGE_KEY = "ezraBrainQuestProgress_v1";
+    const STORAGE_KEY = "dotBrainQuestProgress_v1";
     const progress = loadProgress();
     let soundOn = progress.soundOn !== false;
 
@@ -803,10 +810,10 @@
 
     function bumpPetRoll() {
       try {
-        const raw = localStorage.getItem("ezraPetTriggers_v1");
+        const raw = localStorage.getItem("dotPetTriggers_v1");
         const data = raw ? JSON.parse(raw) : { pendingRolls: 0 };
         data.pendingRolls = (data.pendingRolls || 0) + 1;
-        localStorage.setItem("ezraPetTriggers_v1", JSON.stringify(data));
+        localStorage.setItem("dotPetTriggers_v1", JSON.stringify(data));
       } catch (e) {}
     }
 

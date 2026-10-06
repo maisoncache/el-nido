@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+  <!-- Safety lock: this page can only load things from this site. It cannot
+       contact any outside server, load any third-party script, embed anything,
+       or submit a form anywhere. Nothing here can phone home. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai, noimageai">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <link rel="icon" href="favicon.png" type="image/png">
 <title>Dottinish — the language of Dot</title>
 <style>
   :root {
@@ -384,7 +391,7 @@
 
 <script>
 /* ==================================================================
-   DOTTINISH — Ezra's made-up language of the Land of Dot
+   DOTTINISH — made-up language of the Land of Dot
    Sounds are his. Glyphs are my reading of his notebook; the Studio
    lets him overwrite any of them with his own drawing.
    ================================================================== */
@@ -445,7 +452,7 @@ const UNITS = [
   { n: "Words of Dot",          e: "🗣️", letters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", lexicon: true },
 ];
 
-/* ---------- the facts of Dot, from Ezra ---------- */
+/* ---------- the facts of Dot, from Dot ---------- */
 const DOT_FACTS = [
   "Dot is the <b>52nd state of the United States</b>.",
   "It is not shaped like a dot. It is called Dot because it is <b>small</b>.",
@@ -509,7 +516,7 @@ const WORDS = [
   "DOT", "ICE", "MAP", "CAT", "DOG", "SUN", "BEE", "OWL", "FOX", "KEY",
   "STAR", "WOLF", "SNOW", "MOON", "TREE", "KING", "GOLD", "FIRE", "CAVE", "BOAT",
   "BIRD", "FISH", "BEAR", "LION", "GATE", "ROAD", "BOOK", "LAMP", "RING", "DOOR",
-  "EZRA", "RIVER", "SPACE", "STONE", "WATER", "NIGHT", "LIGHT", "MAGIC", "SWORD", "CROWN",
+  "DOT", "RIVER", "SPACE", "STONE", "WATER", "NIGHT", "LIGHT", "MAGIC", "SWORD", "CROWN",
   "GHOST", "TOWER", "STORM", "CLOUD", "GRASS", "BEACH",
   "SECRET", "SHADOW", "ISLAND", "GARDEN", "WINTER", "DRAGON", "CASTLE", "SILVER", "FOREST", "PLANET",
 ];
@@ -518,7 +525,7 @@ const WORDS = [
    GLYPH ENGINE
    Everything becomes a list of strokes, each a list of {x,y} points in
    a 0-100 box. Default glyphs are sampled from their SVG paths so that
-   they animate, score and compare exactly like Ezra's own drawings.
+   they animate, score and compare exactly like own drawings.
    ================================================================== */
 
 const svgNS = "http://www.w3.org/2000/svg";
@@ -1486,7 +1493,7 @@ async function finishLesson() {
     save();
     await card("🏆", "Speaker of Dottinish",
       "<p>All 26 letters of Dot, known by heart.</p>" +
-      '<p class="fact">Ezra invented a language and then learned it. Not many people can say that.</p>',
+      '<p class="fact">Dot invented a language and then learned it. Not many people can say that.</p>',
       [{ label: "🎉", value: true }]);
   }
   setScreen("map");
@@ -1579,7 +1586,7 @@ $("bStSave").addEventListener("click", () => {
   custom[studioLetter] = clean.map((s) => s.map((p) => ({ x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10 })));
   clearFitCache(studioLetter);
   save();
-  toast("✅ " + studioLetter + " is now Ezra's own glyph.");
+  toast("✅ " + studioLetter + " is now own glyph.");
   renderStudio();
 });
 $("bStRevert").addEventListener("click", () => {
@@ -1758,7 +1765,7 @@ $("bStudio").addEventListener("click", () => {
 $("bTrans").addEventListener("click", () => setScreen("trans"));
 $("bReset").addEventListener("click", async () => {
   const ok = await card("🧹", "Start Dottinish again?",
-    "<p>All XP, stars and crowns are wiped.</p><p><b>Glyphs Ezra drew himself are kept</b> — his alphabet is his.</p>",
+    "<p>All XP, stars and crowns are wiped.</p><p><b>Glyphs Dot drew himself are kept</b> — his alphabet is his.</p>",
     [{ label: "Cancel", value: false }, { label: "Wipe my progress", value: true, plain: true }]);
   if (!ok) return;
   xp = 0; streak = { n: 0, last: "" }; mastery = {}; done = {};

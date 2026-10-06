@@ -1,16 +1,16 @@
-# Ezra's Game Hub
+# Dot Arcade
 
-Ezra now has a mini game collection with a shared landing page:
+Dot now has a mini game collection with a shared landing page:
 
-- **KPS Jumper** (original action platformer)
+- **Playground Dash** (original action platformer)
 - **Brain Quest** (new quiz challenge)
 
 Play it: https://maisoncache.github.io/el-nido/
 
 ## Games
 
-### 1) KPS Jumper
-Run from Prep all the way to Grade 6, jump school-yard obstacles, grab stars, and become the KPS Champion.
+### 1) Playground Dash
+Run all the way from Level 1 to the World Challenge, jump the obstacles, grab stars, and become the Champion.
 
 #### How to play
 
@@ -32,16 +32,16 @@ Run from Prep all the way to Grade 6, jump school-yard obstacles, grab stars, an
 
 #### Levels
 
-1. **Prep — Top Court**: bags, witches hats, drink bottles. Easy warm-up.
-2. **Grade 1 — The Oval**: soccer balls, puddles, sticks, lunchboxes on grass.
-3. **Grade 2 — The Long Silver Slide**: school-yard obstacles, then auto-ride the silver slide near the end.
-4. **Grade 3 — Bottom Playground**: hoops, toy blocks, buckets, benches.
-5. **Grade 4 — Bottom Courts**: cones, basketballs, drink bottles, lunchboxes.
-6. **Grade 5 — Whole School Run**: a longer run that mixes everything together.
-7. **Grade 6 — KPS Champion Level**: hardest grade — clear it to unlock Teacher's Challenge.
+1. **Level 1 — Top Court**: bags, witches hats, drink bottles. Easy warm-up.
+2. **Level 2 — The Oval**: soccer balls, puddles, sticks, lunchboxes on grass.
+3. **Level 3 — The Long Silver Slide**: playground obstacles, then auto-ride the silver slide near the end.
+4. **Level 4 — Bottom Playground**: hoops, toy blocks, buckets, benches.
+5. **Level 5 — Bottom Courts**: cones, basketballs, drink bottles, lunchboxes.
+6. **Level 6 — The Long Way Round**: a longer run that mixes everything together.
+7. **Level 7 — Champion Level**: the hardest one — clear it to unlock Teacher's Challenge.
 8. **Teacher's Challenge**: a wholesome school obstacle course with a friendly coach teacher cheering at the finish line.
-9. **Principal's Challenge**: a longer school-wide course with a big "KPS CHALLENGE" banner, the principal at the finish line, and the whole school cheering.
-10. **World Challenge**: the longest, hardest level. Bands of court / grass / playground / rainbow ground, world-themed obstacles (mountains, clouds, suitcases, globes, rainbow gates), and a big trophy finish — beat it to become **KPS Champion of the World**.
+9. **Principal's Challenge**: a longer longer course with a big "THE BIG CHALLENGE" banner and a huge crowd cheering.
+10. **World Challenge**: the longest, hardest level. Bands of court / grass / playground / rainbow ground, world-themed obstacles (mountains, clouds, suitcases, globes, rainbow gates), and a big trophy finish — beat it to become **Champion of the World**.
 
 #### Sound
 
@@ -55,6 +55,35 @@ Brain Quest is a fast multiple-choice quiz game with 8 questions across science,
 - Running score updates each round.
 - End-of-quiz badge feedback with quick restart.
 
+
+## Safety & privacy
+
+This site is built to be safe to hand to anyone:
+
+- **No personal information anywhere.** No real names, no school, no location, no age.
+- **No outside connections.** Every page carries a `Content-Security-Policy` that the
+  browser enforces: pages may only load things from this site. No ads, no trackers,
+  no third-party scripts, no embeds, no form submissions. Verified by test — loading
+  all 34 pages produces zero external network requests.
+- **No accounts, no sign-ups, no chat, no comment boxes.** Reactions are a fixed,
+  positive set (loved it / tricky / played it again), so there is nothing to moderate
+  and nothing unkind can be posted.
+- **Saves stay on the device.** Every game stores progress in the browser's local
+  storage and it never leaves.
+- `safety.html` explains all of this to visitors in plain English.
+
+## Plays, reactions and the dashboard
+
+`hub-stats.js` is the stats layer. Today it records plays and reactions in the
+visitor's own browser and sends nothing anywhere. When hosting is ready, set `API`
+at the top of that file to a worker URL and the same functions start talking to it
+instead — no other change needed. The server contract is documented in the file.
+
+- `dashboard.html` → what's popular: total plays, most played, most loved, and the
+  games still waiting for their first player.
+- `movie.html` → self-hosted video player. Drop a `movie.mp4` beside it (and
+  optionally `movie-poster.jpg`); until then the page shows a friendly placeholder.
+
 ## Running locally
 
 Plain HTML/CSS/JavaScript only (no build step or dependencies).
@@ -67,15 +96,18 @@ python3 -m http.server 8000
 
 Pages:
 
-- `index.html` → Ezra's Game Hub (landing page)
-- `kps-jumper.html` → KPS Jumper
+- `index.html` → Dot Arcade (landing page)
+- `playground-dash.html` → Playground Dash
 - `brain-quest.html` → Brain Quest
+- `dashboard.html` → What's Popular (play counts and reactions)
+- `movie.html` → The Movie (self-hosted video)
+- `safety.html` → Safe & Private (plain-English privacy page)
 - `draw.html` → Doodle Pad (free drawing with brushes, rainbow, eraser, and emoji stamps)
 - `planet-house.html` → Planet House (create and name a planet, gather its resources, then build and decorate a house on it — every planet is saved in a "My Planets" gallery you can revisit)
 - `potion-lab.html` → Potion Lab (mix two ingredients in a cauldron to discover new ingredients and brew 15 collectible potions, starting from water, lava, earth, wood and air)
 - `country-maker.html` → Country Maker (pick a country shape, paint biomes on the land, populate it with people and animals with a live population counter, design a flag, and save countries to a gallery)
 - `space-explorer.html` → Space Explorer (fly a rocket through five scrolling space sectors, follow the radar to find 50 hidden objects, and fill the Explorer's Log — sectors unlock in order and progress saves)
-- `life.html` → Ezra's Game of Life (spin the wheel and race Robo along a 72-space board: pick a job, collect paydays, gain passengers, buy a house and retire with the biggest total — games autosave mid-play)
+- `life.html` → Game of Life (spin the wheel and race Robo along a 72-space board: pick a job, collect paydays, gain passengers, buy a house and retire with the biggest total — games autosave mid-play)
 - `blocks.html` → Block World (a Minecraft-inspired 2D sandbox: a generated world of hills, trees, caves and ore veins to mine, a crafting tree from planks to a diamond pickaxe, block building, torch-lit caves, a day/night cycle and wandering mobs; leaves drop saplings that grow into new trees, and up to six worlds save side by side in a gallery with map previews. Two modes: Survival with hearts and night monsters, or Creative with free blocks, instant digging and flight — chosen per world and switchable any time)
 - `tycoon.html` → Planet Tycoon (a Roblox-style tycoon: tap asteroids to start, walk your astronaut onto buy-pads to build and upgrade 12 planet businesses, earn credits per second plus offline earnings, and rebirth onto a new planet for a permanent multiplier)
 - `fruit-merge.html` → Fruit Merge (a Suika-style physics merge game: drop fruit into a box, two of a kind combine into the next fruit up through an 11-step chain from cherry to watermelon, with a custom circle-physics engine, best score and a discovery chart)
@@ -85,7 +117,7 @@ Pages:
 - `terraform.html` → Planet Crafter (open chests for materials and build a base of terraforming machines on a dead planet; heat, air, oxygen and plants raise a terraformation index through six stages that visibly change the world — melting ice, bluing sky, spreading forests — until a Habitat Dome brings people to live there)
 - `contraption.html` → Contraption (a Rube Goldberg physics workshop: place parts, press GO, and watch cause and effect run. A real 2D engine — circles against line segments with substepping so nothing tunnels — driving planks, solid blocks, hinged seesaws, toppling dominoes, bouncy pads, conveyor belts, fans, magnets, boosters, balloons that lift the marble until they pop on whatever is above, and linked portals that preserve momentum. 18 hand-built levels, every one verified solvable by simulated search, plus a Free Build sandbox with everything unlimited, part budgets per level, an always-available hint, saved builds per level and share codes so a machine can be sent to someone else)
 - `gamemaker.html` → Game Maker (a game about making games: run a bedroom studio where fans send you briefs, build levels in a tile editor, and beat your own level before you're allowed to ship it. One engine, three genres — jumping games, top-down mazes, and dodging games — with grass, stone, spikes, water, ice, bounce pads, ladders, keys and doors, patrolling baddies and an arcade machine that plays one of your *other* games inside the level. A robot playtester actually walks the level before you ship, reports where it got stuck and which coins it couldn't reach, and every suggestion has a "Nah, I like it" button. After shipping, only good things happen: fans only ever go up, feedback is facts rather than scores, and each game ends with one forward-looking wish for the next one. Coins unlock new blocks, bigger canvases and whole genres; every game gets a share code so somebody else can paste it in and play it)
-- `dottinish.html` → Dottinish (a language-learning app for the alphabet Ezra invented for his imaginary Land of Dot: 26 glyphs with his own sounds, taught five at a time across six units with multiple choice, pair matching, spelling, reading and finger-tracing, plus spaced repetition, XP, a streak and crowns. Includes a live English→Dottinish translator you can save as a picture, a secret-message decoder, a printable alphabet scroll, and a Glyph Studio where Ezra redraws any glyph himself — his drawing then replaces the built-in one everywhere, and survives a progress reset)
+- `dottinish.html` → Dottinish (a language-learning app for the alphabet Dot invented for his imaginary Land of Dot: 26 glyphs with his own sounds, taught five at a time across six units with multiple choice, pair matching, spelling, reading and finger-tracing, plus spaced repetition, XP, a streak and crowns. Includes a live English→Dottinish translator you can save as a picture, a secret-message decoder, a printable alphabet scroll, and a Glyph Studio where Dot redraws any glyph himself — his drawing then replaces the built-in one everywhere, and survives a progress reset)
 - `starmap.html` → Antarctic Star-Map (an astronomer at the South Pole rebuilds the sky: hunt meteorites across the ice with a detector, fly out to collect a country's stars — its real cities — identify it from progressive clues, then rotate and drop the constellation onto the world map. 29 countries from 138 real cities, detector upgrades bought at Mawson/Davis/Casey and other research stations, the Penguin Post Office, hidden secrets, and once the sky is whole you name a constellation of your own that stays on the map forever)
 - `flight.html` → The Game of Flight (guess the hidden country knowing only its continent — each guess flies your plane there and reports distance, direction and hot/cold, with clues unlocking; solo vs Robo or pass-and-play with two players, and star ranks that save)
 

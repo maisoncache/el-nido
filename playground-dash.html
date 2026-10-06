@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Safety lock: this page can only load things from this site. It cannot
+       contact any outside server, load any third-party script, embed anything,
+       or submit a form anywhere. Nothing here can phone home. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai, noimageai">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ezra's KPS Jumper</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+<title>Playground Dash</title>
   <style>
     :root {
       --ink: #1c2a3a;
@@ -282,7 +289,7 @@
     <div class="hud">
       <div class="pill" id="scorePill">Score: 0</div>
       <div class="pill gold" id="starPill">⭐ 0</div>
-      <div class="pill" id="levelPill">Prep</div>
+      <div class="pill" id="levelPill">Level 1</div>
       <div class="pill" id="charPill">Player</div>
       <div class="pill clickable" id="soundPill" title="Toggle sound">🔊</div>
       <div class="progress"><div class="progressFill" id="progressFill"></div></div>
@@ -307,7 +314,20 @@
     const progressFill = document.getElementById('progressFill');
 
     // ---------- Constants ----------
-    const PROGRESS_KEY = 'ezra-kps-progress-v3';
+    const PROGRESS_KEY = 'playground-dash-progress-v3';
+    // this game was renamed; carry over a save left under its old name, once
+    try {
+      if (!localStorage.getItem(PROGRESS_KEY)) {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k !== PROGRESS_KEY && /-progress-v3$/.test(k)) {
+            localStorage.setItem(PROGRESS_KEY, localStorage.getItem(k));
+            localStorage.removeItem(k);
+            break;
+          }
+        }
+      }
+    } catch (e) {}
     const STAR_VALUE = 50;
     const FINISH_BONUS = 500;
     const BASE_SPEED = 280;
@@ -360,44 +380,44 @@
     // ---------- Levels ----------
     // Distances tuned so each level takes longer than before, with a clear ramp.
     const LEVELS = [
-      { title: 'Prep', name: 'Top Court', finish: 'Silver Slide',
+      { title: 'Level 1', name: 'Top Court', finish: 'Silver Slide',
         speedMul: 1.00, distance: 2400, spawnGap: [1.05, 1.75],
         sky: ['#8ed0ff', '#d6efff'], hill: '#91d98e', ground: '#71859c',
         line: 'rgba(255,255,255,0.65)', textOnDark: false,
         obstacles: ['bag', 'cone', 'bottle'] },
 
-      { title: 'Grade 1', name: 'The Oval', finish: 'Far Goalpost',
+      { title: 'Level 2', name: 'The Oval', finish: 'Far Goalpost',
         speedMul: 1.08, distance: 3000, spawnGap: [0.95, 1.6],
         sky: ['#bbe7a3', '#ecf9d8'], hill: '#7dbf6f', ground: '#5fa253',
         line: 'rgba(255,255,255,0.55)', textOnDark: false,
         obstacles: ['ball', 'puddle', 'stick', 'lunch'] },
 
-      { title: 'Grade 2', name: 'The Long Silver Slide', finish: 'End of the Slide',
+      { title: 'Level 3', name: 'The Long Silver Slide', finish: 'End of the Slide',
         speedMul: 1.16, distance: 3400, spawnGap: [0.9, 1.5],
         sky: ['#7cc1ff', '#d3ecff'], hill: '#b5c5d4', ground: '#7989a0',
         line: 'rgba(255,255,255,0.65)', textOnDark: false,
         obstacles: ['bag', 'ball', 'cone', 'puddle'],
         slideAt: 0.65 },
 
-      { title: 'Grade 3', name: 'Bottom Playground', finish: 'Sandpit',
+      { title: 'Level 4', name: 'Bottom Playground', finish: 'Sandpit',
         speedMul: 1.24, distance: 3400, spawnGap: [0.85, 1.45],
         sky: ['#f9c98a', '#ffe7c2'], hill: '#d99c64', ground: '#8a6a44',
         line: 'rgba(255,255,255,0.55)', textOnDark: false,
         obstacles: ['hoop', 'block', 'bucket', 'bench'] },
 
-      { title: 'Grade 4', name: 'Bottom Courts', finish: 'Centre Line',
+      { title: 'Level 5', name: 'Bottom Courts', finish: 'Centre Line',
         speedMul: 1.32, distance: 3600, spawnGap: [0.8, 1.4],
         sky: ['#a0c4e8', '#dceaf6'], hill: '#7fa2c9', ground: '#5b6c80',
         line: 'rgba(255,255,255,0.7)', textOnDark: false,
         obstacles: ['cone', 'bball', 'bottle', 'lunch'] },
 
-      { title: 'Grade 5', name: 'Whole School Run', finish: 'Front Gate',
+      { title: 'Level 6', name: 'The Long Way Round', finish: 'Front Gate',
         speedMul: 1.40, distance: 5000, spawnGap: [0.7, 1.25],
         sky: ['#ffb778', '#ffe2c1'], hill: '#f59169', ground: '#6e553f',
         line: 'rgba(255,255,255,0.55)', textOnDark: false,
         obstacles: ['bag', 'ball', 'puddle', 'cone', 'lunch', 'bench', 'bball', 'bucket', 'skate', 'books'] },
 
-      { title: 'Grade 6', name: 'KPS Champion Level', finish: 'KPS Trophy',
+      { title: 'Level 7', name: 'Champion Level', finish: 'Gold Trophy',
         speedMul: 1.50, distance: 4400, spawnGap: [0.6, 1.05],
         sky: ['#1d2a52', '#5b4a87'], hill: '#3b3066', ground: '#2a2540',
         line: 'rgba(255,255,255,0.45)', textOnDark: true,
@@ -417,7 +437,7 @@
         obstacles: ['cone', 'hoop', 'bag', 'ball', 'lunch', 'bottle', 'puddle', 'bench'],
         isPrincipal: true },
 
-      { title: 'World Challenge', name: 'KPS vs The World', finish: 'World Trophy',
+      { title: 'World Challenge', name: 'Against The World', finish: 'World Trophy',
         speedMul: 1.70, distance: 6400, spawnGap: [0.5, 0.9],
         sky: ['#7acbff', '#ffd6f0'], hill: '#7fc7a0', ground: '#71859c',
         line: 'rgba(255,255,255,0.6)', textOnDark: false,
@@ -602,8 +622,8 @@
         ? `Continue from ${LEVELS[progress.unlocked].title}`
         : 'Play';
       setOverlay(`
-        <h1>🏃 Ezra's KPS Jumper</h1>
-        <p><b>Run from Prep all the way to the World Challenge!</b></p>
+        <h1>🏃 Playground Dash</h1>
+        <p><b>Run all the way from Level 1 to the World Challenge!</b></p>
         <p>Tap, click, or press <b>Space</b> to jump.</p>
         <p class="small">Press jump again in the air for a <b>double jump</b>. Grab ⭐ stars for bonus points.</p>
         ${cleared}
@@ -840,8 +860,8 @@
           <span class="trophy">🏆</span>
           <h1 style="color:var(--ok)">You completed the World Challenge!</h1>
           ${characterPanel()}
-          <h2>You are the ultimate KPS Jumper!</h2>
-          <h2 style="color:#3a6dd0">🌍 KPS Champion of the World! 🌍</h2>
+          <h2>You are the ultimate Playground Dash!</h2>
+          <h2 style="color:#3a6dd0">🌍 Champion of the World! 🌍</h2>
           <p>Trophies, stars, and cheers from every school around the world!</p>
           <p><b>Final Score:</b> ${Math.floor(state.score)} &nbsp;·&nbsp; ⭐ ${state.stars}</p>
           <p class="small">+${FINISH_BONUS} finish bonus included.</p>
@@ -867,7 +887,7 @@
              <h2>The whole school is cheering for you!</h2>`
           : isTeacher
           ? `<h2 style="color:var(--ok)">You completed Teacher's Challenge!</h2>
-             <h2>You are the KPS Champion!</h2>`
+             <h2>You are the Champion!</h2>`
           : `<h2 style="color:var(--ok)">${lv.finish}! 🎉</h2>
              <p><b>${lv.title}</b> complete!</p>`;
       const unlockedHint =
@@ -1098,8 +1118,8 @@
         ctx.stroke();
       }
 
-      // Stars in night sky (Grade 6)
-      if (lv.title === 'Grade 6') {
+      // Stars in night sky (the champion level)
+      if (lv.title === 'Level 7') {
         ctx.fillStyle = 'rgba(255,255,255,0.85)';
         for (let i = 0; i < 22; i++) {
           const sx = (i * 137) % state.width;
@@ -1115,7 +1135,7 @@
         ctx.fillStyle = '#ffe55c';
         ctx.font = 'bold 22px Trebuchet MS';
         ctx.textAlign = 'center';
-        ctx.fillText('★  KPS CHALLENGE  ★', state.width / 2, 30);
+        ctx.fillText('★  THE BIG CHALLENGE  ★', state.width / 2, 30);
         ctx.textAlign = 'start';
       }
 
@@ -1179,9 +1199,9 @@
       ctx.font = 'bold 14px Trebuchet MS';
       ctx.fillStyle = 'rgba(60, 40, 20, 0.55)';
       const cheers = lv.isPrincipal
-        ? ['Go go go!', 'You can do it!', 'KPS! KPS!']
+        ? ['Go go go!', 'You can do it!', 'the Cup! the Cup!']
         : lv.isWorld
-        ? ['Go KPS!', 'Champion!', 'Around the world!']
+        ? ['Go the Cup!', 'Champion!', 'Around the world!']
         : ['Go go go!', 'You can do it!'];
       for (let i = 0; i < cheers.length; i++) {
         const cx = state.width * (0.18 + i * 0.28);
@@ -1334,7 +1354,7 @@
         ctx.fillText(finisher, x - 4, state.groundY - 24 + bob);
         ctx.font = 'bold 14px Trebuchet MS';
         ctx.fillStyle = lv.isWorld ? '#fff' : '#3a2615';
-        const labelTop = lv.isWorld ? 'WORLD' : (lv.isPrincipal ? 'KPS' : 'Coach');
+        const labelTop = lv.isWorld ? 'WORLD' : (lv.isPrincipal ? 'the Cup' : 'Coach');
         const labelBot = lv.isWorld ? 'TROPHY' : (lv.isPrincipal ? 'Principal' : 'Teacher');
         ctx.fillText(labelTop, x - 2, state.groundY - 118);
         ctx.fillText(labelBot, x - 8, state.groundY - 102);

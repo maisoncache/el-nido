@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Safety lock: this page can only load things from this site. It cannot
+       contact any outside server, load any third-party script, embed anything,
+       or submit a form anywhere. Nothing here can phone home. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai, noimageai">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ezra's Lost Library</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+<title>Lost Library</title>
   <style>
     :root {
       --paper: #fdf6e3;
@@ -398,7 +405,7 @@
 <body>
   <main class="page" id="page">
     <span class="fireplace-corner" aria-hidden="true">🔥</span>
-    <h1>📚 Ezra's Lost Library</h1>
+    <h1>📚 Lost Library</h1>
     <p class="subtitle">The books have all fallen on the floor! Drag each one to the right shelf to tidy up.</p>
     <p class="progress" id="progress">0 / 0 books sorted</p>
 
@@ -444,7 +451,7 @@
     <div class="win-card">
       <div class="fireplace">🔥</div>
       <h2>The library is whole again ✨</h2>
-      <p class="message" id="winMsg">"Wonderful work, Librarian Ezra."</p>
+      <p class="message" id="winMsg">"Wonderful work, Librarian Dot."</p>
       <p style="font-size:0.9rem; opacity:0.8;">Vanda the Velociraptor approves.</p>
       <button id="playAgainBtn" type="button">Play Again</button>
       <button id="hubBtn" class="secondary" type="button">Back to Hub</button>
@@ -573,10 +580,10 @@
     // ============ PET ROLL (achievement hook) ============
     function bumpPetRoll() {
       try {
-        const raw = localStorage.getItem("ezraPetTriggers_v1");
+        const raw = localStorage.getItem("dotPetTriggers_v1");
         const data = raw ? JSON.parse(raw) : { pendingRolls: 0 };
         data.pendingRolls = (data.pendingRolls || 0) + 1;
-        localStorage.setItem("ezraPetTriggers_v1", JSON.stringify(data));
+        localStorage.setItem("dotPetTriggers_v1", JSON.stringify(data));
       } catch (e) {}
     }
 

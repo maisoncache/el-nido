@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Safety lock: this page can only load things from this site. It cannot
+       contact any outside server, load any third-party script, embed anything,
+       or submit a form anywhere. Nothing here can phone home. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai, noimageai">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ezra's Planet Lab</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+<title>Planet Lab</title>
   <style>
     :root {
       --bg: #0a0729;
@@ -593,7 +600,7 @@
 </head>
 <body>
   <main class="page">
-    <h1>🪐 Ezra's Planet Lab</h1>
+    <h1>🪐 Planet Lab</h1>
     <p class="subtitle">Design your own planets, then arrange them into your very own solar system.</p>
 
     <div class="mode-tabs">
@@ -676,7 +683,7 @@
   <script>
     // ============ DATA ============
     const COLORS = [
-      // lots of blue for Ezra
+      // lots of blue for Dot
       "#1e3a8a", "#1e40af", "#2563eb", "#3b82f6", "#60a5fa", "#93c5fd",
       // warm
       "#dc2626", "#ea580c", "#f59e0b", "#eab308",
@@ -709,7 +716,7 @@
     ];
 
     // ============ STORAGE ============
-    const STORAGE = "ezraPlanetLab_v1";
+    const STORAGE = "dotPlanetLab_v1";
     let state;
     function freshState() {
       return {
@@ -717,7 +724,7 @@
         saved: [],
         orbits: [null, null, null, null, null, null],
         speed: 1,
-        celebShown: { firstSaved: false, fivePlanets: false, ezraNamed: false }
+        celebShown: { firstSaved: false, fivePlanets: false, dotNamed: false }
       };
     }
     function defaultPlanet() {
@@ -748,10 +755,10 @@
     // ============ PET ROLL ============
     function bumpPetRoll() {
       try {
-        const raw = localStorage.getItem("ezraPetTriggers_v1");
+        const raw = localStorage.getItem("dotPetTriggers_v1");
         const data = raw ? JSON.parse(raw) : { pendingRolls: 0 };
         data.pendingRolls = (data.pendingRolls || 0) + 1;
-        localStorage.setItem("ezraPetTriggers_v1", JSON.stringify(data));
+        localStorage.setItem("dotPetTriggers_v1", JSON.stringify(data));
       } catch (e) {}
     }
 
@@ -1205,9 +1212,9 @@
         showCelebration({ big: "✨", title: "Five planets!", text: "You've designed a whole mini galaxy! +1 pet roll for your binder." });
         bumpPetRoll();
       }
-      if (/^ezra$/i.test(name) && !state.celebShown.ezraNamed) {
-        state.celebShown.ezraNamed = true;
-        showCelebration({ big: "🌟", title: "The Planet Ezra", text: "A whole planet named after you. The galaxy salutes!" });
+      if (/^dot$/i.test(name) && !state.celebShown.dotNamed) {
+        state.celebShown.dotNamed = true;
+        showCelebration({ big: "🌟", title: "The Planet Dot", text: "A whole planet named after you. The galaxy salutes!" });
         bumpPetRoll();
       }
       // every 5 planets (after the first) earn a pet roll
@@ -1364,7 +1371,7 @@
     // backfill any missing fields on saved planets
     if (!state.orbits || state.orbits.length !== 6) state.orbits = [null,null,null,null,null,null];
     if (typeof state.speed !== "number") state.speed = 1;
-    if (!state.celebShown) state.celebShown = { firstSaved: false, fivePlanets: false, ezraNamed: false };
+    if (!state.celebShown) state.celebShown = { firstSaved: false, fivePlanets: false, dotNamed: false };
     nameInputEl.value = state.current.name || "";
     renderLab();
   </script>
