@@ -55,14 +55,119 @@
   <div id="card"></div>
 
   <script>
+    // What each body is like. One entry per body in the dropdown.
+    var bodies = {
+      cat: {
+        notices: "the exact moment you sit down somewhere comfy",
+        behaviour: "Sits on whatever you are reading, then looks surprised that you mind.",
+        boundary: "Will not be picked up while it is busy loafing.",
+        goodbye: "Slow blink. Off you go."
+      },
+      owl: {
+        notices: "every small sound after dark, and the one you just made",
+        behaviour: "Turns its head almost all the way round to check you are still there.",
+        boundary: "Does not answer questions before sunset.",
+        goodbye: "Hoo. Hoo knew it was time already?"
+      },
+      frog: {
+        notices: "the weather about ten minutes before you do",
+        behaviour: "Sits in the nearest cup of water and calls it a spa day.",
+        boundary: "Must never, ever be kissed.",
+        goodbye: "Ribbit. That means see you later."
+      },
+      fox: {
+        notices: "where you left your keys, and decides not to say",
+        behaviour: "Hides one small shiny thing a day and hums while doing it.",
+        boundary: "Will not share the last bite of anything.",
+        goodbye: "A swish of the tail, and gone."
+      },
+      moth: {
+        notices: "every lamp, candle and screen in the room",
+        behaviour: "Flutters around your head when you are thinking hard.",
+        boundary: "Do not leave it alone with your favourite jumper.",
+        goodbye: "Flits off towards the nearest light."
+      },
+      teapot: {
+        notices: "when you need a break before you notice it yourself",
+        behaviour: "Whistles softly when the room gets too quiet.",
+        boundary: "Refuses to hold coffee. It has standards.",
+        goodbye: "Pours one last imaginary cup, then cools down."
+      }
+    };
+
+    // What each silly job is like. One entry per job in the dropdown.
+    var jobs = {
+      "sock finder": {
+        behaviour: "Returns odd socks to you with great ceremony, even ones you threw away.",
+        playful: "You ask it for help. It hands you a sock. It is not your sock."
+      },
+      "snack inspector": {
+        behaviour: "Sniffs every snack before you eat it and gives a tiny nod of approval.",
+        playful: "You say you are not hungry. It brings you a cracker anyway, just in case."
+      },
+      "cloud counter": {
+        behaviour: "Stares out the window and announces new cloud totals at random times.",
+        playful: "You ask how many clouds today. It says 'one big one' and refuses to explain."
+      },
+      "puddle judge": {
+        behaviour: "Scores every puddle you walk past out of ten. Nothing gets above a seven.",
+        playful: "You step in a puddle by accident. It holds up a sign: 9/10, bold choice."
+      },
+      "keeper of lost pens": {
+        behaviour: "Collects every pen in the house and guards them in a secret pile.",
+        playful: "You ask to borrow a pen. It hands you one with the lid chewed off."
+      },
+      "official yawner": {
+        behaviour: "Yawns loudly whenever it decides you have worked long enough.",
+        playful: "You say 'one more thing'. It yawns so big it falls over."
+      }
+    };
+
+    // Adds one line of text to the card. tag is "h2", "h3", "p" or "li".
+    function addLine(parent, tag, text) {
+      var el = document.createElement(tag);
+      el.textContent = text;
+      parent.appendChild(el);
+      return el;
+    }
+
     document.getElementById("forge").addEventListener("click", function () {
       var body = document.getElementById("body").value;
       var colour = document.getElementById("colour").value;
       var name = document.getElementById("name").value.trim() || "Nameless";
       var job = document.getElementById("job").value;
 
-      document.getElementById("card").textContent =
-        "Forging " + name + ", the " + colour + " " + body + " who works as a " + job + "...";
+      var b = bodies[body];
+      var j = jobs[job];
+
+      var card = document.getElementById("card");
+      card.textContent = ""; // clear the old card first
+
+      addLine(card, "h2", name);
+      addLine(card, "p", "A " + colour + " " + body + ". Job: " + job + ".");
+
+      addLine(card, "h3", "What it notices");
+      addLine(card, "p", name + " notices " + b.notices + ".");
+
+      addLine(card, "h3", "Three behaviours");
+      var list = document.createElement("ul");
+      addLine(list, "li", b.behaviour);
+      addLine(list, "li", j.behaviour);
+      addLine(list, "li", "Glows a little " + colour + " when it is pleased with you.");
+      card.appendChild(list);
+
+      addLine(card, "h3", "One boundary");
+      addLine(card, "p", b.boundary);
+
+      addLine(card, "h3", "Summoning phrase");
+      var Colour = colour.charAt(0).toUpperCase() + colour.slice(1);
+      addLine(card, "p", "“" + Colour + " and clever, " + job + " true, " + name + ", " + name + ", I call you.”");
+
+      addLine(card, "h3", "Goodbye phrase");
+      addLine(card, "p", "“Thank you, " + name + ". Rest now.” " + b.goodbye);
+
+      addLine(card, "h3", "Playful response");
+      addLine(card, "p", j.playful);
     });
   </script>
 </body>
