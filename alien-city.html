@@ -206,6 +206,7 @@
       <div class="fieldLbl">Eyes</div><div class="designRow" id="optEyes"></div>
       <div class="fieldLbl">Legs</div><div class="designRow" id="optLegs"></div>
       <div class="fieldLbl">Armour</div><div class="designRow" id="optArmour"></div>
+      <div class="fieldLbl">Antennae</div><div class="designRow" id="optAntenna"></div>
 
       <div class="fieldLbl">The four Etras</div>
       <p class="hint" style="margin-top:0">Every alien has four <b>Etra organs</b>. Together they protect it
@@ -213,7 +214,7 @@
       <div class="etras" id="etraList"></div>
 
       <div class="fieldLbl">Species name</div>
-      <input type="text" id="bpName" maxlength="22" placeholder="Name this species…" aria-label="Species name">
+      <input type="text" id="bpName" maxlength="22" placeholder="Mercurian Glowbug" aria-label="Species name">
       <div class="row" style="margin-top:10px">
         <button class="btn v4" id="bSaveBp">💾 Approve design <small>(2 science)</small></button>
         <button class="btn" data-go="home">← Mission Control</button>
@@ -311,14 +312,26 @@ const EXPEDITIONS = {
 };
 
 const BUILDINGS = {
-  habitat: { icon:"🏠", nm:"Habitat",     cost:{metal:5},            capacity:2, blurb:"Somewhere for two aliens to live." },
-  solar:   { icon:"☀️", nm:"Solar array", cost:{metal:4},            perDay:{energy:2}, needsSun:true, blurb:"+2 energy on every bright day." },
+  habitat: { icon:"🏠", nm:"Habitat Dome", cost:{metal:5},            capacity:2, blurb:"Somewhere for two aliens to live." },
+  solar:   { icon:"☀️", nm:"Solar Tower",  cost:{metal:4},            perDay:{energy:2}, needsSun:true, blurb:"+2 energy on every bright day." },
   lab:     { icon:"🔬", nm:"Science lab", cost:{metal:6},            perDay:{science:1}, blurb:"+1 science every day." },
-  shield:  { icon:"🛡️", nm:"Shield station", cost:{metal:8,science:2}, perDay:{energy:1}, blurb:"Keeps working through the long night." },
+  shield:  { icon:"🛡️", nm:"Heat Shield",   cost:{metal:8,science:2}, perDay:{energy:1}, blurb:"Keeps working through the long night." },
   pad:     { icon:"🛸", nm:"Landing pad", cost:{metal:7},            blurb:"Where the Voyager probes touch down." },
-  dome:    { icon:"🔭", nm:"Observation dome", cost:{metal:10,science:3}, perDay:{science:1}, blurb:"+1 science, and great views." },
+  dome:    { icon:"🔭", nm:"Observatory",   cost:{metal:10,science:3}, perDay:{science:1}, blurb:"+1 science, and great views." },
 };
 const STARTER_BUILDINGS = ["habitat","solar","lab"];
+
+/* After the first milestone, Alien City keeps going. These are the
+   creative director's own city goals from his prototype. */
+const QUESTS = [
+  { id:"q-hab",  t:"Build 2 Habitat Domes", done:(st)=>countBuilt(st,"habitat") >= 2 },
+  { id:"q-sol",  t:"Build 2 Solar Towers",  done:(st)=>countBuilt(st,"solar")   >= 2 },
+  { id:"q-shd",  t:"Build 1 Heat Shield",   done:(st)=>countBuilt(st,"shield")  >= 1 },
+  { id:"q-obs",  t:"Build 1 Observatory",   done:(st)=>countBuilt(st,"dome")    >= 1 },
+  { id:"q-crew", t:"Grow the crew to 5 aliens", done:(st)=>st.aliens.length >= 5 },
+  { id:"q-two",  t:"Design a second species",   done:(st)=>st.blueprints.length >= 2 },
+  { id:"q-night",t:"Survive a long night (reach day 10)", done:(st)=>st.day >= 10 },
+];
 
 const ETRA_DEFAULTS = [
   { nm:"Heat Sink",    icon:"🔥", d:"Soaks up the heat so the alien doesn't cook." },
@@ -328,9 +341,12 @@ const ETRA_DEFAULTS = [
 ];
 
 const BODIES  = [ {id:"blob",nm:"Blob"}, {id:"tall",nm:"Tall"}, {id:"round",nm:"Round"}, {id:"spiky",nm:"Spiky"} ];
-const COLOURS = [ {id:"#6ee7a8",nm:"green"}, {id:"#8fc7ff",nm:"blue"}, {id:"#ffb3d9",nm:"pink"},
-                  {id:"#ffd36e",nm:"yellow"}, {id:"#c9a3ff",nm:"purple"}, {id:"#ff9b7a",nm:"orange"} ];
+const COLOURS = [ {id:"#67f59a",nm:"glow green"}, {id:"#5ee7ff",nm:"ice blue"}, {id:"#ff66cf",nm:"hot pink"},
+                  {id:"#ffe57a",nm:"star yellow"}, {id:"#8d6cff",nm:"deep violet"}, {id:"#ff9b7a",nm:"ember orange"} ];
 const ARMOURS = [ {id:"none",nm:"None"}, {id:"plates",nm:"Plates"}, {id:"shell",nm:"Shell"}, {id:"spines",nm:"Spines"} ];
+/* The antenna options are the creative director's own, kept word for word. */
+const ANTENNAE = [ {id:"one",nm:"One signal stalk"}, {id:"two",nm:"Two cosmic feelers"},
+                   {id:"three",nm:"Three star sensors"}, {id:"none",nm:"No antennae"} ];
 const EYE_CHOICES = [1,2,3,4,6];
 const LEG_CHOICES = [2,3,4,6,8];
 const BP_COST = { science:2 };
@@ -484,6 +500,7 @@ function reduce(state, action) {
         eyes: EYE_CHOICES.includes(bp.eyes) ? bp.eyes : 2,
         legs: LEG_CHOICES.includes(bp.legs) ? bp.legs : 4,
         armour: ARMOURS.some((a)=>a.id===bp.armour) ? bp.armour : "none",
+        antenna: ANTENNAE.some((a)=>a.id===bp.antenna) ? bp.antenna : "two",
         etras: st.etraNames.slice(0, 4),
       });
       note("🛰️ Voyager 4 approved a new design: " + name + ".");
@@ -570,6 +587,7 @@ function sanitise(raw) {
     eyes: EYE_CHOICES.includes(b.eyes) ? b.eyes : 2,
     legs: LEG_CHOICES.includes(b.legs) ? b.legs : 4,
     armour: ARMOURS.some((x)=>x.id===b.armour) ? b.armour : "none",
+    antenna: ANTENNAE.some((x)=>x.id===b.antenna) ? b.antenna : "two",
     etras: Array.isArray(b.etras) && b.etras.length === 4 ? b.etras.map((e)=>String(e).slice(0,20)) : st.etraNames.slice(),
   })).filter((b) => b.id);
   st.buildings = (Array.isArray(raw.buildings) ? raw.buildings : []).filter((b) =>
@@ -604,7 +622,7 @@ function load() {
 }
 
 /* exposed so the test suite can drive the rules directly */
-window.AlienCity = { newState, reduce, sanitise, canAfford, capacityOf, countBuilt,
+window.AlienCity = { newState, reduce, sanitise, canAfford, capacityOf, countBuilt, QUESTS, ANTENNAE,
   productionOf, winMet, winProgress, isDaylight, BUILDINGS, EXPEDITIONS, BP_COST,
   ALIEN_COST, GRID_W, GRID_H, LIGHT_DAYS, DARK_DAYS, SCIENCE_CARDS, ETRA_DEFAULTS };
 
@@ -708,7 +726,7 @@ function renderHome() {
 
   h += '<div class="note"><b>Mission briefing.</b> We\'re on <b>Mercury</b> — the second-densest planet in the ' +
        'solar system, after Earth. Rocky, boiling by day, freezing by night. Our job: build <b>Alien City</b> ' +
-       'on the surface, and fill it with aliens we design ourselves.</div>';
+       '<b>entirely on the surface</b>, and fill it with aliens we design ourselves.</div>';
 
   h += '<div class="probes">' +
     probeBtn("p4","🛰️","Voyager 4","Prototype","Designs an alien and shows you what it will look like.","v4") +
@@ -729,6 +747,11 @@ function renderHome() {
        (S.won ? '<div class="row" style="margin-top:8px"><button class="btn sun" id="bCert">📜 See the certificate</button></div>' : "") +
        "</div>";
 
+  if (S.won) {
+    const qd = QUESTS.filter((q)=>q.done(S)).length;
+    h += '<div class="card"><h3>🛠️ Keep building — ' + qd + " of " + QUESTS.length + '</h3>' +
+      QUESTS.map((q)=>'<div class="meta">' + (q.done(S)?"✅":"⬜") + " " + esc(q.t) + "</div>").join("") + "</div>";
+  }
   if (S.aliens.length) {
     h += '<div class="card"><h3>👽 Who lives here</h3><div class="meta">' +
       S.aliens.map((a)=>{
@@ -757,7 +780,7 @@ document.querySelectorAll("[data-act]").forEach((b) => {
 });
 
 /* ---------- Voyager 4: the designer ---------- */
-let design = { body:"blob", colour:COLOURS[0].id, eyes:2, legs:4, armour:"none" };
+let design = { body:"blob", colour:COLOURS[0].id, eyes:3, legs:4, armour:"none", antenna:"two" };
 
 function renderDesigner() {
   const opt = (host, list, key, labelOf) => {
@@ -783,6 +806,7 @@ function renderDesigner() {
   opt("optEyes", EYE_CHOICES, "eyes", (n)=>"👁 "+n);
   opt("optLegs", LEG_CHOICES, "legs", (n)=>"🦵 "+n);
   opt("optArmour", ARMOURS, "armour");
+  opt("optAntenna", ANTENNAE, "antenna");
 
   $("etraList").innerHTML = ETRA_DEFAULTS.map((e,i)=>
     '<div class="etra"><div class="t">' + e.icon + " Etra " + (i+1) + ": " + esc(S.etraNames[i]) + "</div>" +
@@ -801,8 +825,9 @@ function describeDesign(d) {
   const col = (COLOURS.find((c)=>c.id===d.colour) || {}).nm || "coloured";
   const body = (BODIES.find((b)=>b.id===d.body) || {}).nm || "blob";
   const arm = d.armour === "none" ? "no armour" : (ARMOURS.find((a)=>a.id===d.armour)||{}).nm.toLowerCase() + " armour";
+  const ant = (ANTENNAE.find((a)=>a.id===(d.antenna||"two")) || ANTENNAE[1]).nm.toLowerCase();
   return col + " " + body.toLowerCase() + " alien with " + d.eyes + " eye" + (d.eyes===1?"":"s") +
-         ", " + d.legs + " legs and " + arm;
+         ", " + d.legs + " legs, " + arm + " and " + ant;
 }
 document.addEventListener("click", async (e) => {
   const r = e.target.closest("[data-etra]");
@@ -812,7 +837,8 @@ document.addEventListener("click", async (e) => {
   if (nm !== null) act({ type:"RENAME_ETRA", index:i, name:nm });
 });
 $("bSaveBp").addEventListener("click", () => {
-  const nm = $("bpName").value;
+  // a blank box falls back to the creative director's own species name
+  const nm = $("bpName").value.trim() || "Mercurian Glowbug";
   if (act({ type:"SAVE_BLUEPRINT", blueprint:{ ...design, name:nm } })) {
     $("bpName").value = "";
     toast("🛰️ Voyager 4 approved the design. Voyager 3 can build it now!", 3200);
@@ -868,6 +894,19 @@ function drawAlien(g, d, W, H) {
     for (let i=0;i<7;i++){ const a=-Math.PI + (i/6)*Math.PI;
       const x1=cx+Math.cos(a)*bw*0.46, y1=top+bh/2+Math.sin(a)*bh*0.46;
       g.beginPath(); g.moveTo(x1,y1); g.lineTo(x1+Math.cos(a)*11, y1+Math.sin(a)*11); g.stroke(); }
+  }
+  // antennae — one signal stalk, two cosmic feelers, three star sensors
+  const antN = { one:1, two:2, three:3, none:0 }[d.antenna === undefined ? "two" : d.antenna] || 0;
+  if (antN) {
+    g.strokeStyle = col; g.lineWidth = 4; g.lineCap = "round";
+    for (let i=0;i<antN;i++) {
+      const t = antN===1 ? .5 : i/(antN-1);
+      const ax = cx - bw*0.26 + t*bw*0.52;
+      const tipX = ax + (t-.5)*22, tipY = top - 26;
+      g.beginPath(); g.moveTo(ax, top + 6); g.quadraticCurveTo(ax, top - 14, tipX, tipY); g.stroke();
+      g.fillStyle = "#fff"; g.beginPath(); g.arc(tipX, tipY, 5, 0, Math.PI*2); g.fill();
+      g.fillStyle = col; g.beginPath(); g.arc(tipX, tipY, 2.6, 0, Math.PI*2); g.fill();
+    }
   }
   // eyes
   for (let i=0;i<eyes;i++) {
