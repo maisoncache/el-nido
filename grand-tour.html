@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Safety lock: this page can only load things from this site. It cannot
+       contact any outside server, load any third-party script, embed anything,
+       or submit a form anywhere. Nothing here can phone home. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai, noimageai">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="icon" href="favicon.png" type="image/png">
+  <title>Grand Tour</title>
+<style>
+  :root{
+    --space:#05060f; --panel:#f2f0ea; --panel2:#e3dfd4;
+    --ink:#1b1a2b; --line:#bcb5a4; --white:#fffdf8;
+    --go:#2f9e63; --go2:#227a4b; --fuel:#ffb33c; --fuel2:#cf8617;
+    --pop:#5aa9e6; --pop2:#3a7fb8;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--space);color:var(--ink);
+    font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;overscroll-behavior:none}
+  body{min-height:100vh;background-image:
+    radial-gradient(circle at 70% 15%, rgba(255,179,60,.16), transparent 42%),
+    radial-gradient(circle at 20% 80%, rgba(90,169,230,.14), transparent 46%)}
+  .wrap{max-width:780px;margin:0 auto;padding:8px 10px 40px}
+  a.back{color:#ffd79a;text-decoration:none;font-weight:bold;font-size:.85rem;
+    min-height:44px;display:inline-flex;align-items:center;padding:0 2px}
+  .sheet{background:var(--panel);border-radius:20px;box-shadow:0 14px 40px rgba(0,0,0,.55);padding:12px 12px 18px}
+  h1{margin:2px 0;text-align:center;font-size:1.42rem}
+  .sub{text-align:center;font-size:.78rem;opacity:.7;margin:0 0 10px}
+
+  #bar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:9px}
+  .pill{background:var(--white);border:2px solid var(--line);border-radius:999px;padding:6px 12px;
+    font-weight:bold;font-size:.8rem;min-height:44px;display:inline-flex;align-items:center;gap:5px;
+    white-space:nowrap;color:var(--ink);font-family:inherit}
+  .pill.fuel{background:#fff4dc;border-color:var(--fuel)}
+  button.pill{cursor:pointer}
+  button.pill:active{transform:scale(.95)}
+  button.pill:focus-visible{outline:3px solid var(--pop);outline-offset:2px}
+
+  .btn{background:var(--white);border:2px solid var(--line);border-bottom-width:4px;border-radius:14px;
+    padding:11px 15px;font-family:inherit;font-weight:bold;font-size:.9rem;color:var(--ink);
+    cursor:pointer;min-height:44px}
+  .btn:active{transform:translateY(2px);border-bottom-width:2px}
+  .btn:focus-visible{outline:3px solid var(--pop);outline-offset:2px}
+  .btn[disabled]{opacity:.45;cursor:default;transform:none}
+  .btn.go{background:var(--go);border-color:var(--go2);color:#fff}
+  .btn.fuel{background:var(--fuel);border-color:var(--fuel2);color:#3a2503}
+  .btn.pop{background:var(--pop);border-color:var(--pop2);color:#fff}
+  .row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+
+  .stage{position:relative;background:#02030a;border:3px solid var(--line);border-radius:16px;
+    overflow:hidden;margin:0 auto;width:fit-content;max-width:100%}
+  canvas{display:block;max-width:100%;height:auto;touch-action:none}
+  #hud{position:absolute;left:8px;top:8px;right:8px;display:flex;gap:6px;align-items:flex-start;
+    pointer-events:none;font-size:.72rem;font-weight:bold;color:#dfe8ff;text-shadow:0 1px 3px #000}
+  #hudL{background:rgba(6,8,22,.62);border-radius:10px;padding:5px 8px;line-height:1.45}
+  #fuelBar{height:9px;width:110px;background:rgba(255,255,255,.2);border-radius:999px;overflow:hidden;margin-top:3px}
+  #fuelFill{height:100%;background:var(--fuel);width:100%;transition:width .18s}
+  #compass{margin-left:auto;background:rgba(6,8,22,.62);border-radius:10px;padding:5px 8px;text-align:right;line-height:1.45}
+
+  /* flight controls */
+  .pad{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}
+  .kbtn{width:66px;height:66px;border-radius:50%;border:3px solid var(--line);border-bottom-width:5px;
+    background:var(--white);font-size:1.4rem;font-family:inherit;color:var(--ink);cursor:pointer;
+    touch-action:none;display:flex;align-items:center;justify-content:center}
+  .kbtn:active,.kbtn.down{background:var(--pop);color:#fff;transform:translateY(2px)}
+  .kbtn.thrust{background:#fff3da;border-color:var(--fuel)}
+  .kbtn.thrust:active,.kbtn.thrust.down{background:var(--fuel);color:#3a2503}
+  .kbtn:focus-visible{outline:3px solid var(--pop);outline-offset:2px}
+
+  /* landing */
+  #landArt{display:block;margin:0 auto}
+  .fact{background:#e6f1fb;border-left:4px solid var(--pop);padding:10px 12px;border-radius:10px;
+    font-size:.86rem;line-height:1.5;text-align:left}
+  .note{background:#fff4dc;border-left:4px solid var(--fuel);padding:9px 11px;border-radius:9px;
+    font-size:.85rem;line-height:1.5;text-align:left}
+  .note.good{background:#e7f6ec;border-left-color:var(--go)}
+
+  /* log */
+  .worlds{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+  .w{background:var(--white);border:2px solid var(--line);border-radius:13px;padding:8px 5px;text-align:center}
+  .w.done{background:#e7f6ec;border-color:var(--go)}
+  .w .ic{font-size:1.5rem;line-height:1.2}
+  .w .nm{font-size:.72rem;font-weight:bold;margin-top:2px}
+  .w .st{font-size:.62rem;opacity:.68}
+
+  #toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(6,8,22,.96);
+    color:#fff;border:2px solid var(--fuel);border-radius:12px;padding:9px 15px;font-weight:bold;
+    font-size:.84rem;max-width:92vw;text-align:center;z-index:300;display:none}
+  #toast.show{display:block}
+  .overlay{position:fixed;inset:0;background:rgba(3,4,12,.82);display:none;align-items:center;
+    justify-content:center;z-index:400;padding:14px}
+  .overlay.show{display:flex}
+  .ovcard{background:var(--panel);border-radius:20px;padding:18px;max-width:460px;width:100%;
+    text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.65);max-height:88vh;overflow-y:auto}
+  .ovcard h3{margin:6px 0 8px}
+  .ovcard p{font-size:.9rem;line-height:1.5;margin:7px 0}
+  .hint{text-align:center;font-size:.76rem;opacity:.68;margin:6px 0}
+
+  @media (prefers-reduced-motion: reduce){ *{animation:none!important} }
+  @media (max-width:430px){ h1{font-size:1.16rem} .kbtn{width:58px;height:58px} }
+  .visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← Back to Dot Arcade</a>
+  <div class="sheet">
+    <h1>🚀 Grand Tour</h1>
+    <p class="sub">Fly the solar system. Bump into a world and you land on it.</p>
+
+    <div id="bar"></div>
+
+    <!-- ==================== FLIGHT ==================== -->
+    <section id="scFly" aria-label="Flying">
+      <div class="stage">
+        <canvas id="cv" width="680" height="440" aria-label="Your ship flying through the solar system"></canvas>
+        <div id="hud">
+          <div id="hudL">
+            <div id="hudSpeed">speed 0</div>
+            <div id="fuelBar"><div id="fuelFill"></div></div>
+          </div>
+          <div id="compass"><div id="hudNear">—</div><div id="hudDist"></div></div>
+        </div>
+      </div>
+      <div class="pad">
+        <div style="display:flex;gap:8px">
+          <button class="kbtn" data-k="left"  aria-label="Turn left">◀</button>
+          <button class="kbtn" data-k="right" aria-label="Turn right">▶</button>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="kbtn" data-k="brake" aria-label="Slow down">🛑</button>
+          <button class="kbtn thrust" data-k="thrust" aria-label="Fire the engine">🔥</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn pop" id="bPoint">🧭 Point me at the nearest world</button>
+        <button class="btn" id="bMap">🗺️ Map</button>
+        <button class="btn" id="bTow" hidden>🛟 Call a tow</button>
+      </div>
+      <p class="hint" id="flyHint">Hold 🔥 to fly. Planets gently pull you in — just bump into one to land.</p>
+    </section>
+
+    <!-- ==================== LANDED ==================== -->
+    <section id="scLand" hidden aria-label="Landed on a world"></section>
+
+    <!-- ==================== MAP / LOG ==================== -->
+    <section id="scLog" hidden aria-label="Flight log">
+      <div id="logBody"></div>
+      <div class="row" style="margin-top:12px"><button class="btn go" id="bBackFly">🚀 Back to the ship</button></div>
+    </section>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<div class="overlay" id="ovr" role="dialog" aria-modal="true" aria-labelledby="ovT"><div class="ovcard">
+  <div id="ovE" style="font-size:2.6rem" aria-hidden="true">🚀</div>
+  <h3 id="ovT"></h3>
+  <div id="ovB"></div>
+  <div class="row" id="ovBtns" style="margin-top:14px"></div>
+</div></div>
+
+<script>
+/* ==================================================================
+   GRAND TOUR
+   Fly freely around the solar system. Every world pulls you towards it,
+   and touching one lands you on it — which is the whole point.
+   Nothing can kill you: run dry and a tow is one tap away, and the Sun
+   pushes you back rather than ending the run.
+   ================================================================== */
+
+const $ = (id) => document.getElementById(id);
+const SAVE_KEY = "grand-tour-v1";
+const W = 680, H = 440;
+
+/* ---------- the solar system ----------
+   Distances are squashed so the outer planets are reachable in a few
+   minutes, but the ORDER and the relative sizes are honest, and the
+   game says so on the map screen.                                   */
+const SUN = { id:"sun", nm:"the Sun", r:72, col:"#ffcc44", dist:0 };
+
+const WORLDS = [
+  { id:"mercury", nm:"Mercury", r:14, dist:330,  speed:.000055, col:"#9c8a7a", icon:"🪨",
+    fact:"The smallest planet and the closest to the Sun. It has almost no air, so its days are scorching and its nights are freezing.",
+    extra:"A year on Mercury is only 88 Earth days." },
+  { id:"venus",   nm:"Venus",   r:20, dist:470,  speed:.000042, col:"#e6c07a", icon:"🌕",
+    fact:"The hottest planet — about 465°C, hot enough to melt lead. A thick blanket of carbon dioxide traps the heat.",
+    extra:"Venus spins backwards, and one of its days is longer than its whole year." },
+  { id:"earth",   nm:"Earth",   r:21, dist:620,  speed:.000033, col:"#4a90d9", icon:"🌍",
+    fact:"Home. The only world we know of with life, and about 71% of it is covered in water.",
+    extra:"You are, right now, standing on this one.",
+    moons:[ { id:"moon", nm:"the Moon", r:8, dist:52, speed:.00022, col:"#cfcfcf", icon:"🌙",
+      fact:"The Moon always shows Earth the same face, because it turns once for every lap it makes.",
+      extra:"People walked here in 1969." } ] },
+  { id:"mars",    nm:"Mars",    r:17, dist:790,  speed:.000026, col:"#c1522f", icon:"🔴",
+    fact:"The red planet. Its rust-coloured dust is literally iron oxide — the same stuff as rust on a bike.",
+    extra:"Olympus Mons on Mars is the tallest volcano in the solar system — about three times the height of Mount Everest.",
+    moons:[ { id:"phobos", nm:"Phobos", r:6, dist:40, speed:.00032, col:"#8b8178", icon:"🥔",
+      fact:"Phobos is a tiny lumpy moon only about 22 km across, and it zips around Mars three times a day.",
+      extra:"It is slowly spiralling closer to Mars." } ] },
+  { id:"jupiter", nm:"Jupiter", r:48, dist:1180, speed:.000015, col:"#d8a46a", icon:"🟤",
+    fact:"The biggest planet by far — every other planet could fit inside it. It is a giant ball of gas with no solid ground.",
+    extra:"The Great Red Spot is a storm that has been spinning for hundreds of years, and it is wider than Earth.",
+    moons:[
+      { id:"io",     nm:"Io",     r:8, dist:88,  speed:.00026, col:"#e8d96a", icon:"🌋",
+        fact:"Io is the most volcanic world in the solar system. Jupiter squeezes it so hard that the inside melts.",
+        extra:"Its volcanoes can throw plumes hundreds of kilometres high." },
+      { id:"europa", nm:"Europa", r:8, dist:124, speed:.00019, col:"#dfe6ef", icon:"🧊",
+        fact:"Europa is covered in cracked ice, and underneath there is probably an ocean with more water than all of Earth's.",
+        extra:"It is one of the best places to go looking for life." } ] },
+  { id:"saturn",  nm:"Saturn",  r:42, dist:1520, speed:.000011, col:"#e3d08f", icon:"🪐", rings:true,
+    fact:"Saturn's rings are billions of chunks of ice and rock, most no bigger than a house.",
+    extra:"Saturn is the least dense planet. If you had a bathtub big enough, it would float.",
+    moons:[ { id:"titan", nm:"Titan", r:10, dist:96, speed:.00020, col:"#d9a05b", icon:"🟠",
+      fact:"Titan has a thick orange atmosphere and lakes and rivers — but they are made of liquid methane, not water.",
+      extra:"It is the only moon with a proper atmosphere." } ] },
+  { id:"uranus",  nm:"Uranus",  r:30, dist:1830, speed:.0000078, col:"#9fd8e3", icon:"🔵", rings:true, tilted:true,
+    fact:"Uranus is tipped right over on its side, so it rolls around the Sun like a ball instead of spinning like a top.",
+    extra:"It has faint rings too, standing up and down instead of side to side." },
+  { id:"neptune", nm:"Neptune", r:29, dist:2080, speed:.0000061, col:"#3f66c9", icon:"🔷",
+    fact:"The windiest world we know. Its storms blow at around 2,000 km/h — faster than a jet fighter.",
+    extra:"Neptune takes about 165 Earth years to go round the Sun once." },
+  { id:"pluto",   nm:"Pluto",   r:11, dist:2330, speed:.0000048, col:"#c9b5a0", icon:"🤍", dwarf:true,
+    fact:"Pluto was called the ninth planet until 2006, when it was reclassified as a dwarf planet.",
+    extra:"It has a huge heart-shaped glacier on its surface, and a moon, Charon, that is half Pluto's size." },
+];
+
+/* asteroid belt, drawn between Mars and Jupiter */
+const BELT_IN = 900, BELT_OUT = 1060;
+
+const SHIP_R = 9;
+/* Space has no air, so there is almost no drag — a tiny amount only, so a
+   drifting ship eventually settles rather than spinning off forever. The
+   brake button is how you actually slow down. */
+const THRUST = 62, ROT = 2.9, MAX_FUEL = 140, FUEL_BURN = 5, DAMP = 0.99995, MAX_SPEED = 240;
+
+/* ---------- flat list of everything landable ---------- */
+function allBodies() {
+  const out = [];
+  WORLDS.forEach((p) => {
+    out.push({ ...p, parent:null });
+    (p.moons || []).forEach((m) => out.push({ ...m, parent:p.id }));
+  });
+  return out;
+}
+const BODIES = allBodies();
+const bodyById = (id) => BODIES.find((b) => b.id === id);
+
+/* ---------- where is everything, right now ---------- */
+function positionsAt(t) {
+  const pos = { sun:{ x:0, y:0, r:SUN.r } };
+  WORLDS.forEach((p) => {
+    const a = p.dist * 0.7 + t * p.speed;          // a stable starting spread
+    const px = Math.cos(a) * p.dist, py = Math.sin(a) * p.dist;
+    pos[p.id] = { x:px, y:py, r:p.r };
+    (p.moons || []).forEach((m) => {
+      const ma = m.dist * 0.9 + t * m.speed;
+      pos[m.id] = { x: px + Math.cos(ma) * m.dist, y: py + Math.sin(ma) * m.dist, r:m.r };
+    });
+  });
+  return pos;
+}
+
+/* ==================================================================
+   SAVE
+   ================================================================== */
+function newSave() {
+  return { v:1, visited:{}, landings:0, flights:0, best:{}, seenIntro:false, muted:false };
+}
+let SV = (function load() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+    if (!raw || typeof raw !== "object") return newSave();
+    const s = newSave();
+    Object.keys(raw.visited || {}).forEach((k) => { if (bodyById(k)) s.visited[k] = true; });
+    s.landings = Math.max(0, Math.floor(Number(raw.landings) || 0));
+    s.flights  = Math.max(0, Math.floor(Number(raw.flights)  || 0));
+    s.seenIntro = !!raw.seenIntro;
+    s.muted = !!raw.muted;
+    return s;
+  } catch (e) { return newSave(); }
+})();
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(SV)); } catch (e) {} }
+
+const planetsVisited = () => WORLDS.filter((p) => !p.dwarf && SV.visited[p.id]).length;
+const PLANET_COUNT = WORLDS.filter((p) => !p.dwarf).length;
+const allVisited = () => BODIES.every((b) => SV.visited[b.id]);
+
+/* ==================================================================
+   HELPERS
+   ================================================================== */
+const esc = (s) => String(s).replace(/[&<>"']/g, (c)=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+let actx = null;
+function beep(f, d, type, vol) {
+  if (SV.muted) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type || "sine"; o.frequency.value = f; g.gain.value = vol || .05;
+    o.connect(g); g.connect(actx.destination); o.start();
+    g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime + (d||.14));
+    o.stop(actx.currentTime + (d||.14));
+  } catch (e) {}
+}
+const sLand = () => [392,523,659].forEach((f,i)=>setTimeout(()=>beep(f,.18,"triangle",.06), i*110));
+const sNew  = () => [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.2,"triangle",.06), i*120));
+
+let toastT = null;
+function toast(msg, ms) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove("show"), ms || 2400);
+}
+function card(emoji, title, html, buttons) {
+  return new Promise((res) => {
+    $("ovE").textContent = emoji; $("ovT").textContent = title; $("ovB").innerHTML = html || "";
+    const box = $("ovBtns"); box.innerHTML = "";
+    (buttons || [{label:"OK", value:true}]).forEach((b,i) => {
+      const el = document.createElement("button");
+      el.className = "btn " + (b.cls || "go"); el.textContent = b.label;
+      el.addEventListener("click", ()=>{ $("ovr").classList.remove("show"); res(b.value); });
+      box.appendChild(el);
+      if (i===0) setTimeout(()=>el.focus(), 50);
+    });
+    $("ovr").classList.add("show");
+  });
+}
+
+/* ==================================================================
+   SHIP + FLIGHT
+   ================================================================== */
+let ship, t0, raf = 0, screenNow = "fly", landed = null;
+const input = { left:false, right:false, thrust:false, brake:false };
+
+/** Where you end up, and how fast, when you leave a world.
+    Moons launch away from their planet, not away from the Sun, so you
+    never take off straight into Jupiter. */
+function launchFrom(fromBody, pos) {
+  const b = bodyById(fromBody);
+  const p = pos[fromBody];
+  if (!b || !p) {
+    const e = pos.earth;
+    return { x:e.x, y:e.y - (WORLDS[2].r + 42), ang:-Math.PI/2, kick:0 };
+  }
+  const anchor = b.parent ? pos[b.parent] : { x:0, y:0 };
+  let away = Math.atan2(p.y - anchor.y, p.x - anchor.x);
+  if (!isFinite(away)) away = 0;
+  return {
+    x: p.x + Math.cos(away) * (b.r + 40),
+    y: p.y + Math.sin(away) * (b.r + 40),
+    ang: away,
+    kick: 70 + b.r * 2.2,
+  };
+}
+
+function startFlight(fromBody) {
+  const t = performance.now();
+  const pos = positionsAt(t);
+  const L = launchFrom(fromBody, pos);
+  // Push off hard enough to actually get away, and ignore the world you just
+  // left for a moment — otherwise its own gravity drags you straight back
+  // down and you land again before you have gone anywhere.
+  ship = { x:L.x, y:L.y, vx:Math.cos(L.ang)*L.kick, vy:Math.sin(L.ang)*L.kick, ang:L.ang,
+           fuel:MAX_FUEL, cool:0, justLeft: fromBody || null, grace: fromBody ? 2.2 : 0 };
+  t0 = t;
+  setScreen("fly");
+  loop(t);
+}
+
+function nearestBody(pos, x, y, skip) {
+  let best = null, bd = Infinity;
+  BODIES.forEach((b) => {
+    if (skip && b.id === skip) return;
+    const p = pos[b.id]; if (!p) return;
+    const d = Math.hypot(p.x - x, p.y - y) - b.r;
+    if (d < bd) { bd = d; best = { body:b, pos:p, d }; }
+  });
+  return best;
+}
+
+function physics(dt, now) {
+  const pos = positionsAt(now);
+
+  if (input.left)  ship.ang -= ROT * dt;
+  if (input.right) ship.ang += ROT * dt;
+
+  if (input.thrust && ship.fuel > 0) {
+    ship.vx += Math.cos(ship.ang) * THRUST * dt;
+    ship.vy += Math.sin(ship.ang) * THRUST * dt;
+    ship.fuel = Math.max(0, ship.fuel - FUEL_BURN * dt);
+  }
+  if (input.brake) { ship.vx *= Math.pow(.18, dt); ship.vy *= Math.pow(.18, dt); }
+
+  /* Solar panels top the tank back up whenever the engine is off. They work
+     best close to the Sun and barely at all out past Neptune, which is why
+     the outer planets are a proper expedition. You can never be stranded. */
+  if (!input.thrust) {
+    const sunDist = Math.hypot(ship.x, ship.y);
+    const strength = 1 - Math.min(0.80, sunDist / 2600);
+    ship.fuel = Math.min(MAX_FUEL, ship.fuel + 3.4 * strength * dt);
+  }
+
+  if (ship.grace > 0) ship.grace -= dt;
+  const skip = ship.grace > 0 ? ship.justLeft : null;
+
+  /* every world tugs you towards it — which is how you end up landing */
+  BODIES.forEach((b) => {
+    if (b.id === skip) return;
+    const p = pos[b.id]; if (!p) return;
+    const dx = p.x - ship.x, dy = p.y - ship.y;
+    const d = Math.hypot(dx, dy);
+    const reach = b.r * 9 + 90;
+    if (d < reach && d > 1) {
+      const pull = (1 - d / reach) * (b.r * 2.6);
+      ship.vx += (dx/d) * pull * dt;
+      ship.vy += (dy/d) * pull * dt;
+    }
+  });
+
+  /* the Sun is too hot to land on, so it pushes you away instead of ending anything */
+  const ds = Math.hypot(ship.x, ship.y);
+  if (ds < SUN.r + 120) {
+    const push = (1 - ds / (SUN.r + 120)) * 320;
+    const a = Math.atan2(ship.y, ship.x);
+    ship.vx += Math.cos(a) * push * dt;
+    ship.vy += Math.sin(a) * push * dt;
+    if (ship.cool <= 0) { ship.cool = 2.4; toast("🔥 Far too hot! The Sun pushed you back."); }
+  }
+  if (ship.cool > 0) ship.cool -= dt;
+
+  /* Fly far enough past Pluto and the autopilot quietly turns you round.
+     Better than drifting into nothing with no fuel and no way back. */
+  const far = Math.hypot(ship.x, ship.y);
+  if (far > 2900) {
+    const a = Math.atan2(ship.y, ship.x);
+    const strength = Math.min(260, (far - 2900) * 0.9 + 60);
+    ship.vx -= Math.cos(a) * strength * dt;
+    ship.vy -= Math.sin(a) * strength * dt;
+    if (ship.cool <= 0) { ship.cool = 4; toast("🧭 Autopilot is turning you back towards the Sun."); }
+  }
+
+  ship.vx *= Math.pow(DAMP, dt * 60);
+  ship.vy *= Math.pow(DAMP, dt * 60);
+  const sp = Math.hypot(ship.vx, ship.vy);
+  if (sp > MAX_SPEED) { ship.vx = ship.vx/sp*MAX_SPEED; ship.vy = ship.vy/sp*MAX_SPEED; }
+
+  ship.x += ship.vx * dt;
+  ship.y += ship.vy * dt;
+
+  /* bump into a world and you land on it */
+  for (const b of BODIES) {
+    if (b.id === skip) continue;
+    const p = pos[b.id];
+    if (Math.hypot(p.x - ship.x, p.y - ship.y) < b.r + SHIP_R) return b;
+  }
+  return null;
+}
+
+function loop(now) {
+  if (screenNow !== "fly") return;
+  const dt = Math.min(0.034, (now - (loop.last || now)) / 1000);
+  loop.last = now;
+  const hit = physics(dt, now);
+  draw(now);
+  updateHud(now);
+  if (hit) { doLanding(hit); return; }
+  raf = requestAnimationFrame(loop);
+}
+
+/* ==================================================================
+   DRAWING
+   ================================================================== */
+const STARS = (function () {
+  const a = [];
+  for (let i=0;i<190;i++) a.push({
+    x:(i*367.7) % 880, y:(i*211.3) % 640,
+    z:.18 + ((i%6)/9),                     // how much it drifts with you
+    s:(i%4) ? 1 : 2,
+    b:.3 + ((i%7)/11),                     // brightness
+  });
+  return a;
+})();
+
+function draw(now) {
+  const g = $("cv").getContext("2d");
+  const pos = positionsAt(now);
+  const sp = Math.hypot(ship.vx, ship.vy);
+  const zoom = clamp(1 - sp/900, .66, 1);
+  const cx = W/2, cy = H/2;
+
+  g.fillStyle = "#02030a"; g.fillRect(0,0,W,H);
+
+  /* parallax starfield — tiled so it always fills the window */
+  const SX = 880, SY = 640;
+  STARS.forEach((st) => {
+    const px = (((st.x - ship.x * st.z) % SX) + SX) % SX - 100;
+    const py = (((st.y - ship.y * st.z) % SY) + SY) % SY - 100;
+    if (px < -6 || px > W + 6 || py < -6 || py > H + 6) return;
+    g.fillStyle = "rgba(255,255,255," + st.b.toFixed(2) + ")";
+    g.fillRect(px, py, st.s, st.s);
+  });
+
+  g.save();
+  g.translate(cx, cy); g.scale(zoom, zoom); g.translate(-ship.x, -ship.y);
+
+  /* orbit rings */
+  g.strokeStyle = "rgba(140,170,220,.11)"; g.lineWidth = 1/zoom;
+  WORLDS.forEach((p) => { g.beginPath(); g.arc(0,0,p.dist,0,Math.PI*2); g.stroke(); });
+
+  /* asteroid belt */
+  g.fillStyle = "rgba(190,175,150,.5)";
+  for (let i=0;i<150;i++) {
+    const a = (i*2.399) % (Math.PI*2), d = BELT_IN + ((i*83) % (BELT_OUT-BELT_IN));
+    const ax = Math.cos(a + now*.000012)*d, ay = Math.sin(a + now*.000012)*d;
+    if (Math.abs(ax-ship.x) > W/zoom || Math.abs(ay-ship.y) > H/zoom) continue;
+    g.fillRect(ax, ay, 2.5, 2.5);
+  }
+
+  drawSun(g, now);
+  WORLDS.forEach((p) => {
+    drawBody(g, p, pos[p.id], now);
+    (p.moons||[]).forEach((m) => drawBody(g, m, pos[m.id], now));
+  });
+
+  /* the ship */
+  g.save();
+  g.translate(ship.x, ship.y); g.rotate(ship.ang);
+  if (input.thrust && ship.fuel > 0) {
+    const fl = 10 + (reduced ? 4 : Math.random()*9);
+    g.fillStyle = "#ffcf5a";
+    g.beginPath(); g.moveTo(-7,-4); g.lineTo(-7-fl,0); g.lineTo(-7,4); g.closePath(); g.fill();
+  }
+  g.fillStyle = "#eef3ff";
+  g.beginPath(); g.moveTo(13,0); g.lineTo(-8,-7); g.lineTo(-4,0); g.lineTo(-8,7); g.closePath(); g.fill();
+  g.fillStyle = "#5aa9e6";
+  g.beginPath(); g.arc(3,0,3,0,Math.PI*2); g.fill();
+  g.restore();
+  g.restore();
+
+  drawMinimap(g, pos);
+}
+
+function drawSun(g, now) {
+  const grd = g.createRadialGradient(0,0,8,0,0,SUN.r*2.4);
+  grd.addColorStop(0,"rgba(255,230,140,1)");
+  grd.addColorStop(.25,"rgba(255,180,60,.85)");
+  grd.addColorStop(1,"rgba(255,140,20,0)");
+  g.fillStyle = grd; g.beginPath(); g.arc(0,0,SUN.r*2.4,0,Math.PI*2); g.fill();
+  g.fillStyle = "#ffd64a"; g.beginPath(); g.arc(0,0,SUN.r,0,Math.PI*2); g.fill();
+  g.fillStyle = "rgba(255,255,220,.7)"; g.beginPath(); g.arc(-SUN.r*.25,-SUN.r*.25,SUN.r*.45,0,Math.PI*2); g.fill();
+}
+
+function drawBody(g, b, p, now) {
+  if (!p) return;
+  if (b.rings) {
+    g.save(); g.translate(p.x, p.y);
+    if (b.tilted) g.rotate(Math.PI/2.1); else g.rotate(-.42);
+    g.strokeStyle = b.id==="saturn" ? "rgba(236,217,170,.85)" : "rgba(180,225,235,.6)";
+    g.lineWidth = b.id==="saturn" ? 7 : 3;
+    g.beginPath(); g.ellipse(0,0,b.r*1.95,b.r*.56,0,0,Math.PI*2); g.stroke();
+    if (b.id==="saturn") {
+      g.strokeStyle="rgba(200,180,140,.6)"; g.lineWidth=3;
+      g.beginPath(); g.ellipse(0,0,b.r*2.35,b.r*.68,0,0,Math.PI*2); g.stroke();
+    }
+    g.restore();
+  }
+  const grd = g.createRadialGradient(p.x - b.r*.35, p.y - b.r*.35, b.r*.1, p.x, p.y, b.r);
+  grd.addColorStop(0, "#ffffff"); grd.addColorStop(.35, b.col); grd.addColorStop(1, shade(b.col,-38));
+  g.fillStyle = grd; g.beginPath(); g.arc(p.x,p.y,b.r,0,Math.PI*2); g.fill();
+
+  if (b.id === "jupiter") {
+    g.save(); g.beginPath(); g.arc(p.x,p.y,b.r,0,Math.PI*2); g.clip();
+    ["rgba(150,110,80,.5)","rgba(240,220,190,.4)","rgba(160,120,90,.45)"].forEach((c,i)=>{
+      g.fillStyle=c; g.fillRect(p.x-b.r, p.y - b.r + i*b.r*.55 + 6, b.r*2, b.r*.3);
+    });
+    g.fillStyle="rgba(200,80,60,.8)";
+    g.beginPath(); g.ellipse(p.x + b.r*.3, p.y + b.r*.25, b.r*.26, b.r*.16, 0, 0, Math.PI*2); g.fill();
+    g.restore();
+  }
+  if (b.id === "earth") {
+    g.save(); g.beginPath(); g.arc(p.x,p.y,b.r,0,Math.PI*2); g.clip();
+    g.fillStyle = "#4caf50";
+    g.beginPath(); g.ellipse(p.x-b.r*.2,p.y-b.r*.2,b.r*.42,b.r*.3,.4,0,Math.PI*2); g.fill();
+    g.beginPath(); g.ellipse(p.x+b.r*.35,p.y+b.r*.3,b.r*.3,b.r*.24,-.3,0,Math.PI*2); g.fill();
+    g.fillStyle = "rgba(255,255,255,.55)";
+    g.beginPath(); g.ellipse(p.x-b.r*.1,p.y+b.r*.45,b.r*.6,b.r*.18,0,0,Math.PI*2); g.fill();
+    g.restore();
+  }
+  if (b.id === "mars") {
+    g.fillStyle = "rgba(255,255,255,.8)";
+    g.beginPath(); g.arc(p.x, p.y - b.r*.75, b.r*.3, 0, Math.PI*2); g.fill();
+  }
+
+  if (SV.visited[b.id]) {
+    g.fillStyle = "#7bffb0"; g.font = "bold 11px system-ui,sans-serif";
+    g.textAlign = "center"; g.fillText("✓", p.x, p.y - b.r - 5);
+  }
+  g.fillStyle = "rgba(220,232,255,.78)"; g.font = "10px system-ui,sans-serif"; g.textAlign = "center";
+  g.fillText(b.nm, p.x, p.y + b.r + 13);
+}
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1),16);
+  const r = clamp((n>>16)+amt,0,255), gg = clamp(((n>>8)&255)+amt,0,255), bl = clamp((n&255)+amt,0,255);
+  return "rgb(" + r + "," + gg + "," + bl + ")";
+}
+
+function drawMinimap(g, pos) {
+  const S = 92, pad = 8, ox = W - S - pad, oy = H - S - pad;
+  g.fillStyle = "rgba(6,8,22,.68)"; g.strokeStyle = "rgba(255,255,255,.25)"; g.lineWidth = 1.5;
+  g.beginPath(); g.roundRect ? g.roundRect(ox,oy,S,S,9) : g.rect(ox,oy,S,S); g.fill(); g.stroke();
+  const far = 2450, k = (S/2 - 5) / far;
+  const mx = ox + S/2, my = oy + S/2;
+  g.fillStyle = "#ffd64a"; g.beginPath(); g.arc(mx,my,3,0,Math.PI*2); g.fill();
+  WORLDS.forEach((p) => {
+    const q = pos[p.id];
+    g.fillStyle = SV.visited[p.id] ? "#7bffb0" : p.col;
+    g.beginPath(); g.arc(mx + q.x*k, my + q.y*k, p.r > 25 ? 2.6 : 1.8, 0, Math.PI*2); g.fill();
+  });
+  g.fillStyle = "#fff";
+  g.beginPath(); g.arc(mx + clamp(ship.x*k,-S/2+4,S/2-4), my + clamp(ship.y*k,-S/2+4,S/2-4), 2.2, 0, Math.PI*2); g.fill();
+}
+
+function updateHud(now) {
+  const sp = Math.round(Math.hypot(ship.vx, ship.vy));
+  $("hudSpeed").textContent = "speed " + sp;
+  $("fuelFill").style.width = (ship.fuel / MAX_FUEL * 100) + "%";
+  $("fuelFill").style.background = ship.fuel < 20 ? "#ff7a59" : "var(--fuel)";
+  const sunDist = Math.hypot(ship.x, ship.y);
+  const charge = 1 - Math.min(0.80, sunDist / 2600);
+  $("hudSpeed").textContent = "speed " + sp + "   ☀️ charge " +
+    (charge > .55 ? "strong" : charge > .33 ? "ok" : "weak");
+  const near = nearestBody(positionsAt(now), ship.x, ship.y);
+  if (near) {
+    $("hudNear").textContent = (SV.visited[near.body.id] ? "✓ " : "") + near.body.nm;
+    $("hudDist").textContent = Math.round(Math.max(0, near.d)) + " away";
+  }
+  $("bTow").hidden = ship.fuel > 0;
+}
+
+/* ==================================================================
+   LANDING
+   ================================================================== */
+function doLanding(b) {
+  cancelAnimationFrame(raf);
+  const first = !SV.visited[b.id];
+  SV.visited[b.id] = true;
+  SV.landings += 1;
+  save();
+  first ? sNew() : sLand();
+  landed = b;
+  renderLanding(b, first);
+  setScreen("land");
+  if (first && allVisited()) setTimeout(grandFinale, 700);
+  else if (first && planetsVisited() === PLANET_COUNT) setTimeout(allPlanets, 700);
+}
+
+function renderLanding(b, first) {
+  const parent = b.parent ? bodyById(b.parent) : null;
+  const done = BODIES.filter((x)=>SV.visited[x.id]).length;
+  $("scLand").innerHTML =
+    '<div class="stage" style="padding:0"><canvas id="landArt" width="340" height="230" ' +
+      'aria-label="Your ship landed on ' + esc(b.nm) + '"></canvas></div>' +
+    '<h2 style="text-align:center;margin:10px 0 2px;font-size:1.25rem">' + b.icon + " " + esc(b.nm) + "</h2>" +
+    '<p class="sub" style="margin-bottom:10px">' +
+      (parent ? "a moon of " + esc(parent.nm) : (b.dwarf ? "a dwarf planet" : "planet number " +
+        (WORLDS.findIndex((p)=>p.id===b.id)+1) + " from the Sun")) + "</p>" +
+    (first ? '<div class="note good"><b>🚩 First landing!</b> Flag planted. ' + done + " of " + BODIES.length +
+             " worlds visited.</div>" : '<div class="note">🚩 You have been here before. Welcome back.</div>') +
+    '<div class="fact" style="margin-top:9px"><b>🔬 Real science</b><br>' + esc(b.fact) + "</div>" +
+    '<div class="fact" style="margin-top:7px;background:#f1ecfb;border-left-color:#8b6fd0">💡 ' + esc(b.extra) + "</div>" +
+    '<div class="row" style="margin-top:12px">' +
+      '<button class="btn fuel" id="bRefuel">⛽ Refuel and take off</button>' +
+      '<button class="btn" id="bLogFromLand">🗺️ Map</button>' +
+    "</div>";
+  drawLandArt(b);
+  $("bRefuel").addEventListener("click", () => { SV.flights++; save(); startFlight(b.id); });
+  $("bLogFromLand").addEventListener("click", () => setScreen("log"));
+}
+
+function drawLandArt(b) {
+  const cv = $("landArt"); if (!cv) return;
+  const g = cv.getContext("2d"), w = 340, h = 230;
+  const grd = g.createLinearGradient(0,0,0,h);
+  grd.addColorStop(0, b.id==="earth" ? "#9fd8ff" : (b.id==="mars" ? "#e3a177" : "#0a0c1c"));
+  grd.addColorStop(1, shade(b.col, -60));
+  g.fillStyle = grd; g.fillRect(0,0,w,h);
+  if (b.id !== "earth") for (let i=0;i<60;i++) {
+    g.fillStyle = "rgba(255,255,255,.5)";
+    g.fillRect((i*137)%w, (i*71)%(h*.5), 1.5, 1.5);
+  }
+  // the ground
+  g.fillStyle = b.col; g.beginPath();
+  g.moveTo(0,h); g.lineTo(0,h-52);
+  for (let x=0;x<=w;x+=20) g.lineTo(x, h-52 + Math.sin(x/34 + b.r)*7);
+  g.lineTo(w,h); g.closePath(); g.fill();
+  g.fillStyle = shade(b.col,-26);
+  for (let i=0;i<7;i++) {
+    const cxx = 24 + i*46, cyy = h - 34 + ((i%2)?5:0);
+    g.beginPath(); g.ellipse(cxx, cyy, 13, 5, 0, 0, Math.PI*2); g.fill();
+  }
+  // the lander and a flag
+  const sx = w/2, sy = h-56;
+  g.strokeStyle="#cfd8ea"; g.lineWidth=3;
+  g.beginPath(); g.moveTo(sx-13,sy+14); g.lineTo(sx-20,sy+26); g.stroke();
+  g.beginPath(); g.moveTo(sx+13,sy+14); g.lineTo(sx+20,sy+26); g.stroke();
+  g.fillStyle="#eef3ff";
+  g.beginPath(); g.moveTo(sx,sy-16); g.lineTo(sx+16,sy+14); g.lineTo(sx-16,sy+14); g.closePath(); g.fill();
+  g.fillStyle="#5aa9e6"; g.beginPath(); g.arc(sx,sy,5,0,Math.PI*2); g.fill();
+  g.strokeStyle="#ddd"; g.lineWidth=2;
+  g.beginPath(); g.moveTo(sx+44,sy+26); g.lineTo(sx+44,sy-14); g.stroke();
+  g.fillStyle="#ff6b6b";
+  g.beginPath(); g.moveTo(sx+44,sy-14); g.lineTo(sx+74,sy-6); g.lineTo(sx+44,sy+2); g.closePath(); g.fill();
+}
+
+/* ==================================================================
+   MAP / LOG
+   ================================================================== */
+function renderLog() {
+  const done = BODIES.filter((b)=>SV.visited[b.id]).length;
+  let h = '<h2 style="text-align:center;margin:4px 0 2px;font-size:1.1rem">🗺️ Flight log</h2>' +
+    '<p class="sub">' + done + " of " + BODIES.length + " worlds visited · " +
+    planetsVisited() + " of " + PLANET_COUNT + " planets</p>";
+  h += '<div class="worlds">';
+  BODIES.forEach((b) => {
+    const v = SV.visited[b.id];
+    h += '<div class="w' + (v?" done":"") + '"><div class="ic">' + (v ? b.icon : "❔") + "</div>" +
+      '<div class="nm">' + (v ? esc(b.nm) : "???") + "</div>" +
+      '<div class="st">' + (v ? "🚩 landed" : (b.parent ? "moon" : (b.dwarf ? "dwarf planet" : "planet"))) + "</div></div>";
+  });
+  h += "</div>";
+  h += '<div class="note" style="margin-top:12px"><b>About the map.</b> The planets are in the right order and ' +
+       'roughly the right sizes next to each other, but the distances are squeezed up a lot. ' +
+       'Really, Neptune is about 30 times further from the Sun than Earth is — you would be flying for a very long time.</div>';
+  $("logBody").innerHTML = h;
+}
+
+/* ==================================================================
+   SCREENS + CONTROLS
+   ================================================================== */
+function setScreen(s) {
+  screenNow = s;
+  ["Fly","Land","Log"].forEach((k)=>{ $("sc"+k).hidden = k.toLowerCase() !== s; });
+  if (s === "log") renderLog();
+  renderBar();
+  if (s === "fly") { loop.last = performance.now(); raf = requestAnimationFrame(loop); }
+  else cancelAnimationFrame(raf);
+}
+function renderBar() {
+  const done = BODIES.filter((b)=>SV.visited[b.id]).length;
+  $("bar").innerHTML =
+    '<span class="pill">🚩 ' + done + "/" + BODIES.length + "</span>" +
+    '<span class="pill fuel">🪐 ' + planetsVisited() + "/" + PLANET_COUNT + " planets</span>" +
+    '<button class="pill" id="bSound" aria-pressed="' + (SV.muted?"true":"false") + '">' +
+      (SV.muted ? "🔇 Sound off" : "🔊 Sound on") + "</button>" +
+    '<button class="pill" id="bReset">🧹</button>';
+}
+document.addEventListener("click", async (e) => {
+  if (e.target.closest("#bSound")) { SV.muted = !SV.muted; save(); renderBar(); return; }
+  if (e.target.closest("#bReset")) {
+    const ok = await card("🧹","Clear your flight log?",
+      "<p>Every flag you have planted will be removed and you will start the tour again.</p>",
+      [{label:"Keep my log", value:false, cls:""},{label:"Clear it", value:true}]);
+    if (!ok) return;
+    SV = newSave(); SV.seenIntro = true; save();
+    toast("🚀 Fresh tour. Off you go!");
+    startFlight("earth");
+  }
+});
+$("bMap").addEventListener("click", ()=>setScreen("log"));
+$("bBackFly").addEventListener("click", ()=>{ if (landed) startFlight(landed.id); else startFlight("earth"); });
+$("bPoint").addEventListener("click", () => {
+  const near = nearestBody(positionsAt(performance.now()), ship.x, ship.y);
+  if (!near) return;
+  ship.ang = Math.atan2(near.pos.y - ship.y, near.pos.x - ship.x);
+  toast("🧭 Pointing at " + near.body.nm + ". Hold 🔥!");
+  beep(700,.1,"sine",.04);
+});
+$("bTow").addEventListener("click", () => {
+  const near = nearestBody(positionsAt(performance.now()), ship.x, ship.y);
+  toast("🛟 Tow ship on the way…");
+  if (near) setTimeout(()=>doLanding(near.body), 500);
+});
+
+/* keyboard + touch */
+const KEYS = { ArrowLeft:"left", ArrowRight:"right", ArrowUp:"thrust", ArrowDown:"brake",
+               a:"left", d:"right", w:"thrust", s:"brake", " ":"thrust" };
+document.addEventListener("keydown",(e)=>{ const k=KEYS[e.key]; if(k&&screenNow==="fly"){ input[k]=true; e.preventDefault(); } });
+document.addEventListener("keyup",(e)=>{ const k=KEYS[e.key]; if(k) input[k]=false; });
+document.querySelectorAll("[data-k]").forEach((b)=>{
+  const k = b.dataset.k;
+  const on = (e)=>{ e.preventDefault(); input[k]=true; b.classList.add("down"); };
+  const off = (e)=>{ e.preventDefault(); input[k]=false; b.classList.remove("down"); };
+  b.addEventListener("pointerdown",on);
+  ["pointerup","pointercancel","pointerleave"].forEach((ev)=>b.addEventListener(ev,off));
+  b.addEventListener("keydown",(e)=>{ if(e.key===" "||e.key==="Enter"){ e.preventDefault(); input[k]=true; } });
+  b.addEventListener("keyup",(e)=>{ if(e.key===" "||e.key==="Enter"){ input[k]=false; } });
+});
+
+/* ==================================================================
+   MILESTONES
+   ================================================================== */
+async function allPlanets() {
+  await card("🏆","All eight planets!",
+    "<p>You have landed on <b>every planet</b> in the solar system — Mercury all the way out to Neptune.</p>" +
+    '<div class="note" style="margin-top:8px">Still out there: the moons, and <b>Pluto</b>, right out on the edge.</div>',
+    [{label:"Keep flying 🚀", value:true}]);
+}
+async function grandFinale() {
+  await card("🌟","THE GRAND TOUR IS COMPLETE",
+    "<p>Every planet. Every moon. Pluto as well.</p>" +
+    '<div class="note good" style="margin-top:8px"><b>🚩 ' + BODIES.length + " worlds, all flagged.</b><br>" +
+    "You flew " + SV.landings + " landings to do it.</div>" +
+    '<p style="margin-top:9px">The real <i>Grand Tour</i> was a once-in-175-years line-up of the outer planets that ' +
+    "Voyager 2 used in the 1970s and 80s to visit Jupiter, Saturn, Uranus and Neptune on one trip. It is still going.</p>",
+    [{label:"🎉", value:true}]);
+}
+
+/* ==================================================================
+   BOOT
+   ================================================================== */
+window.GT = { launchFrom, positionsAt, BODIES, WORLDS, bodyById };
+
+(function boot(){
+  const cv = $("cv");
+  const fit = () => {
+    const sheet = document.querySelector(".sheet");
+    const avail = Math.min(720, (sheet ? sheet.clientWidth : 700) - 6);
+    const sc = Math.min(1, avail / W);
+    cv.style.width = Math.floor(W*sc) + "px";
+    cv.style.height = Math.floor(H*sc) + "px";
+  };
+  fit(); window.addEventListener("resize", fit);
+
+  renderBar();
+  startFlight("earth");
+
+  if (!SV.seenIntro) {
+    SV.seenIntro = true; save();
+    card("🚀","Welcome aboard",
+      "<p>You are parked just above <b>Earth</b>. Out there is the whole solar system.</p>" +
+      '<div class="note" style="margin-top:8px"><p>🔥 holds the engine on · ◀ ▶ turn you · 🛑 slows you down.</p>' +
+      "<p>Every world <b>gently pulls you in</b>. Bump into one and you land on it.</p></div>" +
+      "<p>Your solar panels refill the tank whenever the engine is off — quickly near the Sun, slowly out in the dark. So you can never be stranded.</p>" +
+      "<p>Plant a flag on all <b>" + BODIES.length + "</b> worlds to finish the Grand Tour. Nothing out here can hurt you.</p>",
+      [{label:"Launch 🚀", value:true}]);
+  }
+})();
+</script>
+</body>
+</html>
