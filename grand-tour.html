@@ -201,6 +201,9 @@ const WORLDS = [
     moons:[ { id:"phobos", nm:"Phobos", r:6, dist:40, speed:.00032, col:"#8b8178", icon:"🥔",
       fact:"Phobos is a tiny lumpy moon only about 22 km across, and it zips around Mars three times a day.",
       extra:"It is slowly spiralling closer to Mars." } ] },
+  { id:"ceres",   nm:"Ceres",   r:10, dist:980,  speed:.000021, col:"#9e978d", icon:"⚪", dwarf:true, belt:true,
+    fact:"Ceres is the biggest thing in the asteroid belt — about 940 km across — and it holds roughly a quarter of all the mass in the belt.",
+    extra:"When it was found in 1801 everybody called it a planet. Then it was demoted to an asteroid, and in 2006 it was promoted again to dwarf planet. Same year Pluto went the other way." },
   { id:"jupiter", nm:"Jupiter", r:48, dist:1180, speed:.000015, col:"#d8a46a", icon:"🟤",
     fact:"The biggest planet by far — every other planet could fit inside it. It is a giant ball of gas with no solid ground.",
     extra:"The Great Red Spot is a storm that has been spinning for hundreds of years, and it is wider than Earth.",
@@ -513,11 +516,14 @@ function draw(now) {
   WORLDS.forEach((p) => { g.beginPath(); g.arc(0,0,p.dist,0,Math.PI*2); g.stroke(); });
 
   /* asteroid belt */
-  g.fillStyle = "rgba(190,175,150,.5)";
-  for (let i=0;i<150;i++) {
-    const a = (i*2.399) % (Math.PI*2), d = BELT_IN + ((i*83) % (BELT_OUT-BELT_IN));
+  g.fillStyle = "rgba(198,183,158,.62)";
+  const cz = pos.ceres;
+  for (let i=0;i<460;i++) {
+    const a = (i*2.3999632) % (Math.PI*2), d = BELT_IN + ((i*37.7) % (BELT_OUT-BELT_IN));
     const ax = Math.cos(a + now*.000012)*d, ay = Math.sin(a + now*.000012)*d;
     if (Math.abs(ax-ship.x) > W/zoom || Math.abs(ay-ship.y) > H/zoom) continue;
+    // leave a clearing around Ceres so it reads as a world, not another rock
+    if (cz && Math.hypot(ax-cz.x, ay-cz.y) < 58) continue;
     g.fillRect(ax, ay, 2.5, 2.5);
   }
 
@@ -667,7 +673,9 @@ function renderLanding(b, first) {
       'aria-label="Your ship landed on ' + esc(b.nm) + '"></canvas></div>' +
     '<h2 style="text-align:center;margin:10px 0 2px;font-size:1.25rem">' + b.icon + " " + esc(b.nm) + "</h2>" +
     '<p class="sub" style="margin-bottom:10px">' +
-      (parent ? "a moon of " + esc(parent.nm) : (b.dwarf ? "a dwarf planet" : "planet number " +
+      (parent ? "a moon of " + esc(parent.nm)
+              : b.belt ? "a dwarf planet, out in the asteroid belt"
+              : (b.dwarf ? "a dwarf planet" : "planet number " +
         (WORLDS.findIndex((p)=>p.id===b.id)+1) + " from the Sun")) + "</p>" +
     (first ? '<div class="note good"><b>🚩 First landing!</b> Flag planted. ' + done + " of " + BODIES.length +
              " worlds visited.</div>" : '<div class="note">🚩 You have been here before. Welcome back.</div>') +
@@ -812,7 +820,7 @@ async function allPlanets() {
 }
 async function grandFinale() {
   await card("🌟","THE GRAND TOUR IS COMPLETE",
-    "<p>Every planet. Every moon. Pluto as well.</p>" +
+    "<p>Every planet. Every moon. Both dwarf planets — Ceres out in the belt and Pluto on the edge.</p>" +
     '<div class="note good" style="margin-top:8px"><b>🚩 ' + BODIES.length + " worlds, all flagged.</b><br>" +
     "You flew " + SV.landings + " landings to do it.</div>" +
     '<p style="margin-top:9px">The real <i>Grand Tour</i> was a once-in-175-years line-up of the outer planets that ' +
