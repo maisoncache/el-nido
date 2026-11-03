@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Safety lock: this page can only load things from this site. It cannot
+       contact any outside server, load any third-party script, embed anything,
+       or submit a form anywhere. Nothing here can phone home. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai, noimageai">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="favicon.png" type="image/png">
+  <title>The Lost &amp; Found Detective Agency</title>
+<style>
+  :root{
+    --bg:#1a1626; --sheet:#f6f1e6; --ink:#2a2335; --line:#d8cdb6;
+    --white:#fffdf7; --gold:#d9a521; --green:#1f8a52; --rose:#b3454f;
+    --ink2:#6a5f78;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);
+    font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;
+    background-image:radial-gradient(circle at 18% 8%, rgba(217,165,33,.16), transparent 42%),
+                     radial-gradient(circle at 84% 88%, rgba(120,90,170,.2), transparent 46%)}
+  .wrap{max-width:860px;margin:0 auto;padding:10px 12px 70px}
+  a.back{display:inline-block;color:#e9c67a;text-decoration:none;font-weight:bold;font-size:.9rem;
+    line-height:1.4;padding:12px 2px}
+  .sheet{background:var(--sheet);border-radius:22px;padding:16px 14px 20px;
+    box-shadow:0 18px 50px rgba(0,0,0,.5)}
+  h1{margin:2px 0 2px;font-size:clamp(1.3rem,4.6vw,1.75rem);text-align:center}
+  .sub{margin:0 0 12px;text-align:center;opacity:.68;font-size:.86rem}
+
+  .row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .btn{font-family:inherit;font-size:.92rem;font-weight:bold;color:var(--ink);
+    background:var(--white);border:2px solid var(--line);border-radius:13px;
+    padding:11px 15px;min-height:44px;cursor:pointer}
+  .btn:hover{background:#fff}
+  .btn.gold{background:var(--gold);border-color:#b9881a;color:#20190a}
+  .btn.green{background:var(--green);border-color:#176b3f;color:#fff}
+  .btn.ghost{background:transparent}
+  .btn:disabled{opacity:.45;cursor:default}
+
+  .rank{display:flex;gap:10px;align-items:center;justify-content:center;
+    background:var(--white);border:2px solid var(--line);border-radius:14px;
+    padding:8px 12px;margin:0 auto 12px;max-width:460px;font-size:.84rem}
+  .rank b{font-size:.95rem}
+
+  /* ---- case brief ---- */
+  .brief{background:var(--white);border:2px dashed #c3b48f;border-radius:16px;
+    padding:14px;margin-bottom:12px}
+  .brief h2{margin:0 0 6px;font-size:1.05rem}
+  .brief p{margin:6px 0;line-height:1.55;font-size:.92rem}
+  .stolen{font-size:2.4rem;text-align:center;margin:4px 0 2px}
+
+  /* ---- suspect board ---- */
+  .board{display:grid;gap:9px;margin:10px 0;
+    grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .sus{background:var(--white);border:2px solid var(--line);border-radius:14px;
+    padding:9px;text-align:center;position:relative;transition:opacity .25s}
+  .sus.out{opacity:.4;background:#efe9db}
+  .sus .face{font-size:2rem;line-height:1.1}
+  .sus .nm{font-weight:bold;font-size:.86rem;margin:2px 0 1px}
+  .sus .sp{font-size:.72rem;opacity:.6}
+  .chips{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-top:6px}
+  .chip{font-size:.68rem;background:#f0ead9;border:1px solid #ddd2b7;border-radius:999px;
+    padding:2px 6px;white-space:nowrap}
+  .chip.bad{background:#f7dcdc;border-color:#e0a9a9;text-decoration:line-through;opacity:.8}
+  .chip.good{background:#dff3e4;border-color:#a8d6ba}
+  .stamp{position:absolute;top:4px;right:6px;font-size:1.3rem}
+  .sus .act{margin-top:7px;display:flex;gap:4px;justify-content:center;flex-wrap:wrap}
+  .sus .act button{font-family:inherit;font-size:.74rem;font-weight:bold;cursor:pointer;
+    border:2px solid var(--line);background:var(--sheet);border-radius:9px;padding:6px 8px;min-height:32px}
+  .sus .act button.ask{border-color:#9db9d8;background:#e6f0fb}
+  .sus .act button.acc{border-color:#d8a9ad;background:#fbe9ea}
+
+  /* ---- notebook ---- */
+  .nb{background:#fffaea;border:2px solid var(--line);border-radius:14px;padding:11px;margin:10px 0}
+  .nb h3{margin:0 0 7px;font-size:.92rem}
+  .nb ul{margin:0;padding-left:18px;line-height:1.6;font-size:.85rem}
+  .nb li{margin-bottom:3px}
+  .nb .none{opacity:.6;font-size:.84rem;margin:0}
+
+  /* ---- places ---- */
+  .places{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin:10px 0}
+  .place{background:var(--white);border:2px solid var(--line);border-radius:14px;padding:11px 9px;
+    font-family:inherit;color:var(--ink);cursor:pointer;text-align:center;min-height:76px}
+  .place:hover{background:#fff}
+  .place.done{background:#eef5ee;border-color:#b6d4bd}
+  .place .pe{font-size:1.7rem;display:block}
+  .place .pn{display:block;font-weight:bold;font-size:.84rem;margin-top:3px}
+  .place .ps{display:block;font-size:.72rem;opacity:.62;margin-top:2px}
+
+  /* ---- search scene ---- */
+  .stage{position:relative;background:#0e1322;border:3px solid var(--line);border-radius:16px;
+    overflow:hidden;touch-action:none}
+  canvas{display:block;width:100%;height:auto;cursor:none}
+  .sweepnote{text-align:center;font-size:.78rem;opacity:.66;margin:7px 0}
+
+  .found{background:#fff5d6;border:2px solid var(--gold);border-radius:13px;padding:10px 12px;
+    margin:9px 0;font-size:.9rem;line-height:1.5}
+  .found .ttl{display:block;font-weight:bold;margin-bottom:2px}
+
+  /* ---- dialog ---- */
+  .ovr{position:fixed;inset:0;background:rgba(14,10,22,.86);display:none;align-items:center;
+    justify-content:center;z-index:400;padding:14px}
+  .ovr.show{display:flex}
+  .card{background:var(--sheet);border-radius:20px;padding:18px;max-width:460px;width:100%;
+    text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.6);max-height:88vh;overflow-y:auto}
+  .card h3{margin:6px 0 8px;font-size:1.15rem}
+  .card p{margin:7px 0;line-height:1.55;font-size:.92rem;text-align:left}
+  .card .em{font-size:2.6rem}
+  .speech{background:var(--white);border:2px solid var(--line);border-radius:14px;
+    padding:11px 13px;margin:9px 0;text-align:left;font-size:.92rem;line-height:1.55}
+  .speech .who{font-weight:bold;display:block;margin-bottom:3px}
+
+  .toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);
+    background:rgba(16,12,26,.96);color:#fff;border:2px solid var(--gold);border-radius:12px;
+    padding:9px 15px;font-weight:bold;font-size:.84rem;max-width:90vw;text-align:center;
+    z-index:450;display:none;pointer-events:none}
+  .toast.show{display:block}
+
+  .hint{text-align:center;font-size:.76rem;opacity:.64;margin:8px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← Back to Dot Arcade</a>
+  <div class="sheet">
+    <h1>🔎 The Lost &amp; Found Detective Agency</h1>
+    <p class="sub">Something has gone missing. Somebody knows where it is.</p>
+    <div class="rank" id="rank"></div>
+    <div id="main"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="ovr" id="ovr" role="dialog" aria-modal="true" aria-labelledby="ovT"><div class="card">
+  <div class="em" id="ovE" aria-hidden="true">🔎</div>
+  <h3 id="ovT"></h3>
+  <div id="ovB"></div>
+  <div class="row" id="ovBtns" style="margin-top:12px"></div>
+</div></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+
+/* ==========================================================================
+   THE CAST
+   Species and footprints are fixed, so he learns who leaves what. Hat, snack
+   and what they are carrying get shuffled every case, so knowing the cast
+   helps without ever handing him the answer.
+   ========================================================================== */
+const CAST = [
+  { nm:"Pip",       sp:"Mouse",     em:"🐭", feet:"claw" },
+  { nm:"Bramble",   sp:"Badger",    em:"🦡", feet:"claw" },
+  { nm:"Nutmeg",    sp:"Squirrel",  em:"🐿️", feet:"claw" },
+  { nm:"Winifred",  sp:"Owl",       em:"🦉", feet:"claw" },
+  { nm:"Hugo",      sp:"Hedgehog",  em:"🦔", feet:"claw" },
+  { nm:"Marlow",    sp:"Crow",      em:"🐦", feet:"claw" },
+  { nm:"Sheldon",   sp:"Tortoise",  em:"🐢", feet:"claw" },
+  { nm:"Clementine",sp:"Cat",       em:"🐱", feet:"paw" },
+  { nm:"Rufus",     sp:"Dog",       em:"🐶", feet:"paw" },
+  { nm:"Barnaby",   sp:"Bear",      em:"🐻", feet:"paw" },
+  { nm:"Saffron",   sp:"Fox",       em:"🦊", feet:"paw" },
+  { nm:"Juno",      sp:"Rabbit",    em:"🐰", feet:"paw" },
+  { nm:"Nessa",     sp:"Duck",      em:"🦆", feet:"webbed" },
+  { nm:"Otto",      sp:"Otter",     em:"🦦", feet:"webbed" },
+  { nm:"Fergus",    sp:"Frog",      em:"🐸", feet:"webbed" },
+  { nm:"Pearl",     sp:"Penguin",   em:"🐧", feet:"webbed" },
+  { nm:"Horace",    sp:"Horse",     em:"🐴", feet:"hoof" },
+  { nm:"Dot",       sp:"Deer",      em:"🦌", feet:"hoof" },
+  { nm:"Gwendolyn", sp:"Goat",      em:"🐐", feet:"hoof" },
+  { nm:"Hamish",    sp:"Sheep",     em:"🐑", feet:"hoof" }
+];
+
+const FEET = {
+  claw:   { word:"clawed",  show:"clawed feet",      ev:"small clawed prints" },
+  paw:    { word:"padded",  show:"soft paws",        ev:"soft padded paw prints" },
+  webbed: { word:"webbed",  show:"webbed feet",      ev:"webbed prints with a drip of water" },
+  hoof:   { word:"hoofed",  show:"hooves",           ev:"neat little hoof marks" }
+};
+
+const HATS   = ["a red hat","a blue hat","a yellow hat","a green hat","no hat at all"];
+const SNACKS = ["cheese","berries","fish","ginger biscuits","acorns"];
+const CARRY  = ["a satchel","an umbrella","a lantern","a butterfly net","nothing at all"];
+
+/* Things that go missing, and where from. */
+const ITEMS = [
+  { nm:"the golden pinecone", em:"🌰" }, { nm:"the brass telescope", em:"🔭" },
+  { nm:"the lucky spoon", em:"🥄" },     { nm:"the jar of fireflies", em:"🫙" },
+  { nm:"the Very Big Key", em:"🗝️" },    { nm:"the silver whistle", em:"🪈" },
+  { nm:"the map of the island", em:"🗺️" }, { nm:"the old compass", em:"🧭" },
+  { nm:"the prize marrow", em:"🥒" },    { nm:"the music box", em:"🎵" },
+  { nm:"the bag of marbles", em:"🔮" },  { nm:"the first-place rosette", em:"🏵️" },
+  { nm:"the tin of toffees", em:"🍬" },  { nm:"the lighthouse lamp", em:"💡" },
+  { nm:"the enormous cake", em:"🎂" },   { nm:"the fossil tooth", em:"🦷" }
+];
+
+const PLACES = [
+  { nm:"the Lighthouse",  em:"🗼", wall:"#2a3a56", floor:"#17233a", props:["window","crate","barrel","steps"] },
+  { nm:"the Bakery",      em:"🥐", wall:"#5a4330", floor:"#3b2d1f", props:["shelf","table","sack","sack"] },
+  { nm:"the Treehouse",   em:"🏕️", wall:"#2f4430", floor:"#243325", props:["plant","crate","rug","plant"] },
+  { nm:"the Museum",      em:"🏛️", wall:"#3a3450", floor:"#272240", props:["picture","picture","case","rug"] },
+  { nm:"the Greenhouse",  em:"🪴", wall:"#27443c", floor:"#1d3029", props:["plant","plant","table","barrel"] },
+  { nm:"the Clocktower",  em:"🕰️", wall:"#453b2c", floor:"#2e271c", props:["steps","crate","picture","barrel"] },
+  { nm:"the Harbour Shed",em:"⚓", wall:"#243d4a", floor:"#182a34", props:["barrel","barrel","crate","net"] },
+  { nm:"the Library",     em:"📚", wall:"#432f3a", floor:"#2d1f27", props:["shelf","shelf","table","rug"] },
+  { nm:"the Village Hall",em:"🏫", wall:"#3c4258", floor:"#282d3e", props:["table","rug","picture","crate"] },
+  { nm:"the Windmill",    em:"🌾", wall:"#4d4330", floor:"#332c1f", props:["sack","sack","steps","shelf"] },
+  { nm:"the Boathouse",   em:"🛶", wall:"#20394a", floor:"#152734", props:["net","barrel","crate","steps"] },
+  { nm:"the Observatory", em:"🔭", wall:"#2b2b4d", floor:"#1c1c35", props:["case","steps","picture","table"] }
+];
+
+/* Nobody here is wicked. Everybody had a reason. */
+const REASONS = [
+  "was polishing it as a surprise for {other}'s birthday, and meant to put it back before anybody noticed.",
+  "borrowed it to copy the pattern for a scarf, and then got completely lost in the knitting.",
+  "was keeping it safe from the rain, because the roof has been leaking for a fortnight.",
+  "took it home to draw it properly, and fell asleep halfway through the drawing.",
+  "hid it from the seagulls, who have form, and then forgot which cupboard.",
+  "needed it for a school project about {item}, and was going to ask, honestly.",
+  "was mending the little crack in it, in secret, as a kindness.",
+  "thought it had been left out by mistake and was looking after it until somebody asked.",
+  "wanted to show it to {other}, who had never seen one, and lost track of the time.",
+  "was practising a magic trick with it and the magic trick went somewhat too well."
+];
+
+/* ==========================================================================
+   SOUND — made from nothing, no files.
+   ========================================================================== */
+let AC = null;
+function tone(f, dur, type, vol, when) {
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === "suspended") AC.resume();
+    const t = AC.currentTime + (when || 0);
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type || "sine"; o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol || 0.16, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + dur + 0.02);
+  } catch (e) { /* sound is a bonus, never a requirement */ }
+}
+const sFound  = () => { tone(880,.14,"triangle",.14); tone(1320,.2,"triangle",.11,.08); };
+const sNope   = () => { tone(300,.16,"sine",.1); };
+const sClear  = () => { tone(520,.12,"triangle",.12); tone(700,.16,"triangle",.1,.1); };
+const sSolved = () => { [523,659,784,1047].forEach((f,i)=>tone(f,.34,"triangle",.14,i*0.13)); };
+
+/* ==========================================================================
+   SEEDED RANDOM — so a case looks the same every time you come back to it.
+   ========================================================================== */
+function rngFrom(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function pick(rnd, arr) { return arr[Math.floor(rnd() * arr.length)]; }
+function shuffled(rnd, arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+/* ==========================================================================
+   THE CASE GENERATOR
+   This is the heart of it. It builds the answer first, then works out which
+   clues prove that answer and nobody else's. A case is only handed over if
+   the evidence genuinely narrows the field and the interviews finish the job
+   — so every case can be reasoned out, never guessed at.
+   ========================================================================== */
+function suspectCount(solved) {
+  if (solved < 2) return 4;
+  if (solved < 5) return 5;
+  if (solved < 9) return 6;
+  return 7;
+}
+
+function buildCase(seed, solved) {
+  const rnd = rngFrom(seed);
+  const n = suspectCount(solved);
+
+  for (let attempt = 0; attempt < 400; attempt++) {
+    const targetEnd = n <= 4 ? 2 : 3;
+
+    /* Footprints are the best thing to find in a dusty room, but species fix
+       them, so a cast drawn at random almost never splits on them usefully —
+       one duck among six means "webbed prints" names the duck outright, which
+       is no fun at all. So when we want to use footprints we cast the suspects
+       for it: several animals that walk the same way, plus enough others to
+       make it a real question. */
+    let roster = null, feetGroup = null;
+    if (rnd() < 0.6) {
+      const groups = {};
+      CAST.forEach((c) => { (groups[c.feet] = groups[c.feet] || []).push(c); });
+      const viable = Object.keys(groups).filter((k) => groups[k].length >= targetEnd + 1);
+      if (viable.length) {
+        const gk = pick(rnd, viable);
+        const grp = groups[gk], rest = CAST.filter((c) => c.feet !== gk);
+        const lo = targetEnd + 1, hi = Math.min(grp.length, n - 1);
+        if (hi >= lo) {
+          const fc = lo + Math.floor(rnd() * (hi - lo + 1));
+          roster = shuffled(rnd, shuffled(rnd, grp).slice(0, fc)
+                   .concat(shuffled(rnd, rest).slice(0, n - fc)));
+          feetGroup = gk;
+        }
+      }
+    }
+    if (!roster) roster = shuffled(rnd, CAST).slice(0, n);
+    if (roster.length < n) continue;
+
+    const people = roster.map((c) => ({
+      nm: c.nm, sp: c.sp, em: c.em,
+      feet: c.feet,
+      hat: pick(rnd, HATS),
+      snack: pick(rnd, SNACKS),
+      carry: pick(rnd, CARRY)
+    }));
+    /* If we cast for footprints, the thief has to be one of the animals that
+       leaves them, or the footprint clue would point away from them. */
+    const eligible = feetGroup
+      ? people.map((p, i) => i).filter((i) => people[i].feet === feetGroup)
+      : people.map((_, i) => i);
+    if (!eligible.length) continue;
+    const culprit = eligible[Math.floor(rnd() * eligible.length)];
+    const thief = people[culprit];
+
+    /* Deal the traits to a plan, rather than rolling them and hoping.
+       Rolling at random looks fair but is not: with five hat colours and six
+       suspects, "the thief wore a red hat" almost always leaves exactly one
+       person, so every extra suspect is wasted and the second clue has nothing
+       left to do. Instead we decide in advance how the field should narrow —
+       seven down to five down to three, say — and then hand out the hats,
+       snacks and satchels so that it does. */
+    const all = people.map((_, i) => i);
+    const used = [];
+    let base = all;
+
+    /* Footprints are fixed by species, so they can only be used when the cast
+       we happened to draw splits on them nicely. When it does, they go first:
+       a footprint is the most satisfying thing to find. */
+    const F = all.filter((i) => people[i].feet === thief.feet);
+    if (F.length > targetEnd && F.length < n) { used.push("feet"); base = F; }
+
+    /* How many of the dealt traits to narrow with, and the sizes to pass through. */
+    const dealt = shuffled(rnd, ["hat", "snack", "carry"]);
+    /* Two narrowing steps need room for an in-between size. Where there is no
+       room, take one step rather than throwing the whole case away. */
+    const canTwo = base.length >= targetEnd + 2;
+    const want = canTwo ? (used.length ? (rnd() < 0.6 ? 2 : 1) : 2) : 1;
+    const sizes = [];
+    let cur = base.length, ok = true;
+    for (let st = 0; st < want; st++) {
+      const after = want - st - 1;                  // steps still to come
+      const lo = targetEnd + after, hi = cur - 1;
+      if (hi < lo) { ok = false; break; }
+      const sz = (st === want - 1) ? targetEnd : lo + Math.floor(rnd() * (hi - lo + 1));
+      sizes.push(sz); cur = sz;
+    }
+    if (!ok || cur !== targetEnd) continue;
+
+    let standing = base;
+    const POOLS = { hat: HATS, snack: SNACKS, carry: CARRY };
+    sizes.forEach((sz, st) => {
+      const f = dealt[st], pool = POOLS[f];
+      const keep = [culprit].concat(
+        shuffled(rnd, standing.filter((i) => i !== culprit)).slice(0, sz - 1));
+      const v = pick(rnd, pool);
+      const rest = pool.filter((x) => x !== v);
+      all.forEach((i) => { people[i][f] = (keep.indexOf(i) !== -1) ? v : pick(rnd, rest); });
+      used.push(f);
+      standing = keep;
+    });
+    /* Traits nobody is going to find evidence of are just colour. */
+    dealt.slice(sizes.length).forEach((f) => {
+      all.forEach((i) => { people[i][f] = pick(rnd, POOLS[f]); });
+    });
+
+    const chosen = used.map((f) => ({ field: f, value: thief[f] }));
+
+    /* The evidence must leave a short list — not one name, and not a crowd. */
+    const minClues = n <= 4 ? 1 : 2;
+    if (standing.length < 2 || standing.length > 3) continue;
+    if (chosen.length < minClues) continue;
+    if (standing.indexOf(culprit) === -1) continue;     // belt and braces
+
+    /* Everyone still standing gets interviewed. The innocent ones have
+       somebody who can vouch for them. The thief was on their own. */
+    const others = people.map((p, i) => i).filter((i) => standing.indexOf(i) === -1);
+    if (!others.length) continue;
+    const alibis = {};
+    standing.forEach((i) => {
+      if (i === culprit) return;
+      const witness = people[others[Math.floor(rnd() * others.length)]];
+      alibis[i] = { where: pick(rnd, PLACES).nm, witness: witness.nm };
+    });
+
+    const item = pick(rnd, ITEMS);
+    const spots = shuffled(rnd, PLACES);
+    const scene = spots[0];
+    const searchable = spots.slice(1, 4);
+
+    /* Spread the evidence around the places you can search. */
+    const bag = shuffled(rnd, chosen);
+    const clues = bag.map((c, i) => ({
+      field: c.field, value: c.value,
+      place: i % searchable.length,
+      text: clueText(c.field, c.value),
+      got: false
+    }));
+
+    const notThief = people.filter((_, i) => i !== culprit);
+    const reason = pick(rnd, REASONS)
+      .replace("{other}", notThief.length ? pick(rnd, notThief).nm : "the mayor")
+      .replace("{item}", item.nm);
+
+    return {
+      seed: seed, n: n,
+      people: people, culprit: culprit,
+      item: item, scene: scene.nm, sceneEm: scene.em,
+      places: searchable, clues: clues, alibis: alibis,
+      reason: reason,
+      cleared: [],          // ruled out by an interview or a wrong accusation
+      asked: [],            // who we have already spoken to
+      searched: [],         // which places we have been through
+      guesses: 0,
+      done: false
+    };
+  }
+  return null;              // should never happen; the caller reseeds
+}
+
+function clueText(field, value) {
+  if (field === "feet") {
+    return { em:"🐾", find:"Footprints!", say:"There are " + FEET[value].ev + " in the dust.",
+             means:"Whoever took it has " + FEET[value].show + "." };
+  }
+  if (field === "hat") {
+    if (value === "no hat at all") {
+      return { em:"🕸️", find:"A cobweb, undisturbed.", say:"The cobweb across the low doorway is still perfectly whole.",
+               means:"Whoever took it was wearing no hat at all — a hat would have torn it." };
+    }
+    const col = value.replace("a ", "").replace(" hat", "");
+    return { em:"🧶", find:"A thread of wool.", say:"A single thread of " + col + " wool, snagged on a nail.",
+             means:"Whoever took it was wearing " + value + "." };
+  }
+  if (field === "snack") {
+    return { em:"🍽️", find:"Crumbs.", say:"Crumbs of " + value + ", right under the window.",
+             means:"Whoever took it had been eating " + value + "." };
+  }
+  if (value === "nothing at all") {
+    return { em:"🖐️", find:"Two handprints.", say:"Handprints on both sides of the window frame — both hands were free.",
+             means:"Whoever took it was carrying nothing at all." };
+  }
+  const thing = value.replace(/^an? /, "");
+  return { em:"🧰", find:"A scuff mark.", say:"A scuff in the shape of " + value + ", set down in a hurry.",
+           means:"Whoever took it was carrying " + value + "." };
+}
+
+/* Who is still in the frame, given the evidence collected so far. */
+function stillStanding(C) {
+  return C.people.map((p, i) => i).filter((i) => {
+    if (C.cleared.indexOf(i) !== -1) return false;
+    return C.clues.every((c) => !c.got || C.people[i][c.field] === c.value);
+  });
+}
+function ruledOutBy(C, i) {
+  const hits = [];
+  C.clues.forEach((c) => { if (c.got && C.people[i][c.field] !== c.value) hits.push(c); });
+  return hits;
+}
+
+/* ==========================================================================
+   SAVED PROGRESS
+   Counters only ever go up. Nothing here can be lost.
+   ========================================================================== */
+const KEY = "mystery-v1";
+const RANKS = [
+  { at:0,  nm:"Trainee",            em:"🪪" },
+  { at:1,  nm:"Junior Detective",   em:"🔎" },
+  { at:3,  nm:"Detective",          em:"🕵️" },
+  { at:6,  nm:"Senior Detective",   em:"🎖️" },
+  { at:10, nm:"Inspector",          em:"🏅" },
+  { at:15, nm:"Master Detective",   em:"👑" }
+];
+function rankOf(solved) {
+  let r = RANKS[0];
+  RANKS.forEach((x) => { if (solved >= x.at) r = x; });
+  return r;
+}
+let S = load();
+function load() {
+  let raw = null;
+  try { raw = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { raw = null; }
+  const d = { solved:0, firstTry:0, cluesFound:0, seed:0, caseState:null };
+  if (!raw || typeof raw !== "object") return d;
+  const num = (v) => (typeof v === "number" && isFinite(v) && v >= 0 ? Math.floor(v) : 0);
+  d.solved = num(raw.solved); d.firstTry = Math.min(num(raw.firstTry), d.solved);
+  d.cluesFound = num(raw.cluesFound); d.seed = num(raw.seed);
+  d.caseState = (raw.caseState && typeof raw.caseState === "object") ? raw.caseState : null;
+  return d;
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+/* ==========================================================================
+   SMALL UI HELPERS
+   ========================================================================== */
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+let toastT = null;
+function toast(msg, ms) {
+  const t = $("toast"); t.innerHTML = msg; t.classList.add("show");
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), ms || 2600);
+}
+function dialog(em, title, bodyHTML, buttons) {
+  $("ovE").textContent = em; $("ovT").textContent = title; $("ovB").innerHTML = bodyHTML;
+  const box = $("ovBtns"); box.innerHTML = "";
+  (buttons || [{ label:"OK" }]).forEach((b) => {
+    const el = document.createElement("button");
+    el.className = "btn" + (b.cls ? " " + b.cls : "");
+    el.textContent = b.label;
+    el.addEventListener("click", () => { $("ovr").classList.remove("show"); if (b.go) b.go(); });
+    box.appendChild(el);
+  });
+  $("ovr").classList.add("show");
+}
+
+/* ==========================================================================
+   SCREENS
+   ========================================================================== */
+let CASE = null;
+let view = "brief";
+
+function renderRank() {
+  const r = rankOf(S.solved);
+  $("rank").innerHTML =
+    '<span style="font-size:1.5rem">' + r.em + "</span>" +
+    "<span><b>" + esc(r.nm) + "</b><br>" +
+    S.solved + (S.solved === 1 ? " case solved" : " cases solved") +
+    (S.cluesFound ? " · " + S.cluesFound + " clues found" : "") + "</span>";
+}
+
+function newCase(keepSeed) {
+  if (!keepSeed) S.seed = (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0;
+  let c = null, tries = 0;
+  while (!c && tries < 200) { c = buildCase((S.seed + tries * 7919) >>> 0, S.solved); tries++; }
+  if (!c) {
+    /* Belt and braces. A case we cannot build must never leave a blank page:
+       fall back to the gentlest settings, and if even that fails, say so
+       plainly rather than spinning. */
+    for (let t = 0; t < 200 && !c; t++) c = buildCase((S.seed + t * 104729) >>> 0, 0);
+  }
+  if (!c) {
+    CASE = null;
+    $("main").innerHTML = '<div class="brief"><h2>Hmm.</h2>' +
+      "<p>The case file would not come together that time. Give it another go.</p></div>" +
+      '<div class="row"><button class="btn gold" id="retry">Try again</button></div>';
+    $("retry").addEventListener("click", () => newCase());
+    return;
+  }
+  CASE = c;
+  S.caseState = CASE;
+  save();
+  view = "brief";
+  render();
+}
+
+let building = false;
+function render() {
+  renderRank();
+  if (!CASE) {
+    if (building) return;            // never let a failed build loop back on itself
+    building = true; newCase(); building = false;
+    return;
+  }
+  if (view === "brief") return renderBrief();
+  if (view === "search") return renderSearch();
+  renderDesk();
+}
+
+function renderBrief() {
+  const C = CASE;
+  $("main").innerHTML =
+    '<div class="brief">' +
+      '<div class="stolen">' + C.item.em + "</div>" +
+      "<h2>Case " + (S.solved + 1) + ": " + esc(C.item.nm.replace(/^the /, "The ")) + "</h2>" +
+      "<p>" + esc(C.item.nm.charAt(0).toUpperCase() + C.item.nm.slice(1)) +
+        " has gone missing from <b>" + esc(C.scene) + "</b> " + C.sceneEm + ".</p>" +
+      "<p>There are <b>" + C.n + " suspects</b>. Three places nearby are worth a look. " +
+        "Find evidence first — it tells you what the thief is <i>like</i>, which crosses " +
+        "people off. Then go and talk to whoever is left.</p>" +
+      '<p style="opacity:.72;font-size:.86rem">Nothing bad can happen in this game. ' +
+        "If you accuse the wrong person they just tell you where they really were, " +
+        "and that helps too.</p>" +
+    "</div>" +
+    '<div class="row"><button class="btn gold" id="go">🔎 Start investigating</button></div>';
+  $("go").addEventListener("click", () => { view = "desk"; render(); });
+}
+
+/* ---- the detective's desk: places, suspects, notebook ---- */
+function renderDesk() {
+  const C = CASE;
+  const standing = stillStanding(C);
+  const gotAll = C.clues.every((c) => c.got);
+  const toAsk = standing.filter((i) => C.asked.indexOf(i) === -1);
+
+  let h = "";
+
+  /* where we are up to, in one line */
+  let status;
+  if (!gotAll) status = "🔦 Search the places below for evidence. " +
+      C.clues.filter((c) => c.got).length + " of " + C.clues.length + " clues found.";
+  else if (toAsk.length) status = "🗣️ The evidence leaves <b>" + standing.length +
+      "</b>. Go and talk to them — ask where they were.";
+  else status = "🤔 You have everything. Who was on their own?";
+  h += '<div class="found" style="background:#eef3fb;border-color:#9db9d8">' + status + "</div>";
+
+  /* places */
+  h += '<div class="places">';
+  C.places.forEach((p, i) => {
+    const done = C.searched.indexOf(i) !== -1;
+    const here = C.clues.filter((c) => c.place === i);
+    const left = here.filter((c) => !c.got).length;
+    h += '<button class="place' + (done && !left ? " done" : "") + '" data-place="' + i + '">' +
+      '<span class="pe">' + p.em + "</span>" +
+      '<span class="pn">' + esc(p.nm) + "</span>" +
+      '<span class="ps">' + (left ? (done ? "look again" : "not searched yet")
+                                  : (here.length ? "found everything here" : "nothing hidden here")) + "</span>" +
+      "</button>";
+  });
+  h += "</div>";
+
+  /* notebook */
+  const got = C.clues.filter((c) => c.got);
+  h += '<div class="nb"><h3>📓 Notebook</h3>';
+  if (!got.length && !C.cleared.length) h += '<p class="none">Nothing in it yet.</p>';
+  else {
+    h += "<ul>";
+    got.forEach((c) => { h += "<li>" + c.text.em + " " + esc(c.text.means) + "</li>"; });
+    C.cleared.forEach((i) => {
+      const a = C.alibis[i];
+      h += "<li>✅ <b>" + esc(C.people[i].nm) + "</b> is in the clear" +
+        (a ? " — was at " + esc(a.where) + " with " + esc(a.witness) + "." : ".") + "</li>";
+    });
+    h += "</ul>";
+  }
+  h += "</div>";
+
+  /* suspects */
+  h += '<div class="board">';
+  C.people.forEach((p, i) => {
+    const out = standing.indexOf(i) === -1;
+    const bad = ruledOutBy(C, i);
+    const badFields = bad.map((c) => c.field);
+    const chip = (field, label) => {
+      const isBad = badFields.indexOf(field) !== -1;
+      const isGood = !isBad && C.clues.some((c) => c.got && c.field === field);
+      return '<span class="chip' + (isBad ? " bad" : isGood ? " good" : "") + '">' + esc(label) + "</span>";
+    };
+    h += '<div class="sus' + (out ? " out" : "") + '">';
+    if (out) h += '<span class="stamp">' + (C.cleared.indexOf(i) !== -1 ? "✅" : "❌") + "</span>";
+    h += '<div class="face" aria-hidden="true">' + p.em + "</div>" +
+      '<div class="nm">' + esc(p.nm) + "</div>" +
+      '<div class="sp">the ' + esc(p.sp) + "</div>" +
+      '<div class="chips">' +
+        chip("feet", FEET[p.feet].show) + chip("hat", p.hat) +
+        chip("snack", p.snack) + chip("carry", p.carry) +
+      "</div>";
+    if (!out) {
+      h += '<div class="act">';
+      if (gotAll) h += '<button class="ask" data-ask="' + i + '">' +
+        (C.asked.indexOf(i) !== -1 ? "🗣️ Again" : "🗣️ Ask") + "</button>";
+      h += '<button class="acc" data-acc="' + i + '">🫵 It was you</button></div>';
+    }
+    h += "</div>";
+  });
+  h += "</div>";
+  h += '<p class="hint">Chips with a line through them are things the evidence says the thief is <i>not</i>.</p>';
+
+  $("main").innerHTML = h;
+
+  $("main").querySelectorAll("[data-place]").forEach((b) =>
+    b.addEventListener("click", () => { openSearch(+b.dataset.place); }));
+  $("main").querySelectorAll("[data-ask]").forEach((b) =>
+    b.addEventListener("click", () => interview(+b.dataset.ask)));
+  $("main").querySelectorAll("[data-acc]").forEach((b) =>
+    b.addEventListener("click", () => accuse(+b.dataset.acc)));
+}
+
+/* ==========================================================================
+   SEARCHING A PLACE — drag the magnifying glass around to find things
+   ========================================================================== */
+const W = 720, H = 420, LENS = 74;
+let placeIdx = 0, lens = { x: W / 2, y: H * 0.26, on: false, moved: false }, spots = [], raf = 0;
+
+function openSearch(i) {
+  placeIdx = i; view = "search";
+  lens.moved = false; lens.x = W / 2; lens.y = H * 0.26;
+  const C = CASE;
+  if (C.searched.indexOf(i) === -1) C.searched.push(i);
+  /* lay the room out from the seed so it looks the same if you come back */
+  const rnd = rngFrom((C.seed + i * 104729) >>> 0);
+  const place = C.places[i];
+  spots = C.clues.map((c, k) => ({ clue: c, idx: k }))
+    .filter((o) => o.clue.place === i)
+    .map((o) => ({ clue: o.clue, x: 90 + rnd() * (W - 180), y: 150 + rnd() * (H - 230) }));
+  /* a few red herrings that are just nice to find */
+  const JUNK = [["🧦","a very old sock"],["🪙","a bent coin"],["🐚","a shell"],
+                ["📎","a paperclip"],["🪶","a feather"],["🫧","a bubble, somehow"]];
+  spots = spots.concat(shuffled(rnd, JUNK).slice(0, 2).map((j) => ({
+    junk: j, x: 60 + rnd() * (W - 120), y: 150 + rnd() * (H - 220), got: false
+  })));
+  layout = buildRoom(place, rngFrom((C.seed + i * 7919) >>> 0));
+  render();
+}
+
+let layout = [];
+function buildRoom(place, rnd) {
+  const out = [];
+  const slots = [0.12, 0.34, 0.58, 0.8];
+  place.props.forEach((kind, k) => {
+    out.push({ kind: kind, x: W * slots[k % 4] + (rnd() - 0.5) * 40, s: 0.85 + rnd() * 0.4 });
+  });
+  return out;
+}
+
+function renderSearch() {
+  const C = CASE, place = C.places[placeIdx];
+  $("main").innerHTML =
+    '<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">' +
+      '<button class="btn ghost" id="bBack">← Back to the desk</button>' +
+      '<b style="font-size:.95rem">' + place.em + " " + esc(place.nm) + "</b>" +
+    "</div>" +
+    '<div class="stage"><canvas id="cv" width="' + W + '" height="' + H + '" role="img" ' +
+      'aria-label="A dark room. Move the magnifying glass to search it. Or use the Search carefully button."></canvas></div>' +
+    '<p class="sweepnote">Drag the magnifying glass around the room. ' +
+      "Hold it over something interesting.</p>" +
+    '<div class="row"><button class="btn" id="bSweep">🔦 Search carefully for me</button>' +
+      '<button class="btn gold" id="bDone">✔️ Done here</button></div>' +
+    '<div id="finds"></div>';
+  $("bBack").addEventListener("click", leaveSearch);
+  $("bDone").addEventListener("click", leaveSearch);
+  $("bSweep").addEventListener("click", sweep);
+  const cv = $("cv");
+  const toLocal = (ev) => {
+    const r = cv.getBoundingClientRect();
+    return { x: (ev.clientX - r.left) * (W / r.width), y: (ev.clientY - r.top) * (H / r.height) };
+  };
+  cv.addEventListener("pointerdown", (ev) => {
+    cv.setPointerCapture(ev.pointerId); lens.on = true; lens.moved = true;
+    const p = toLocal(ev); lens.x = p.x; lens.y = p.y; ev.preventDefault();
+  });
+  cv.addEventListener("pointermove", (ev) => {
+    if (!lens.on && ev.pointerType !== "mouse") return;
+    lens.moved = true;
+    const p = toLocal(ev); lens.x = p.x; lens.y = p.y;
+  });
+  cv.addEventListener("pointerup", () => { lens.on = false; });
+  cv.addEventListener("pointercancel", () => { lens.on = false; });
+  cancelAnimationFrame(raf);
+  loop();
+}
+
+function leaveSearch() {
+  cancelAnimationFrame(raf); lens.moved = false;
+  lens.x = W / 2; lens.y = H * 0.26;
+  view = "desk"; save(); render();
+}
+
+function sweep() {
+  const next = spots.find((s) => s.clue && !s.clue.got) || spots.find((s) => s.junk && !s.got);
+  if (!next) { toast("Nothing else in here. 🧹"); return; }
+  lens.x = next.x; lens.y = next.y; lens.moved = true;
+  collectAt();
+}
+
+function collectAt() {
+  if (!lens.moved) return;
+  spots.forEach((s) => {
+    if (Math.hypot(s.x - lens.x, s.y - lens.y) > LENS * 0.55) return;
+    if (s.clue && !s.clue.got) {
+      s.clue.got = true; S.cluesFound++; sFound(); save();
+      showFind(s.clue.text.em, s.clue.text.find, s.clue.text.say, s.clue.text.means);
+    } else if (s.junk && !s.got) {
+      s.got = true; tone(620, .1, "sine", .08);
+      showFind(s.junk[0], "You found " + s.junk[1] + ".", "Not a clue. Still, nice to find.", null);
+    }
+  });
+}
+
+function showFind(em, title, say, means) {
+  const box = $("finds"); if (!box) return;
+  const d = document.createElement("div");
+  d.className = "found";
+  d.setAttribute("role", "status");
+  d.innerHTML = '<span class="ttl">' + em + " " + esc(title) + "</span>" + esc(say) +
+    (means ? '<br><span style="color:#1f8a52"><b>So:</b> ' + esc(means) + "</span>" : "");
+  box.insertBefore(d, box.firstChild);
+}
+
+function loop() {
+  drawRoom();
+  collectAt();
+  raf = requestAnimationFrame(loop);
+}
+
+/* ---- the room, drawn twice: dark everywhere, lit inside the lens ---- */
+function drawRoom() {
+  const cv = $("cv"); if (!cv) return;
+  const g = cv.getContext("2d");
+  const place = CASE.places[placeIdx];
+
+  /* The room is painted twice: almost black everywhere, and properly lit
+     inside the glass. The gap between the two is the whole game, so it is a
+     big gap — a dim version at under half brightness, a lit one above full. */
+  const DARK = 0.42, LIT = 1.3;
+  const floorY = H * 0.62;
+
+  const paint = (lit) => {
+    const f = lit ? LIT : DARK;
+    g.fillStyle = shade(place.wall, f);
+    g.fillRect(0, 0, W, floorY);
+    g.fillStyle = shade(place.floor, f);
+    g.fillRect(0, floorY, W, H - floorY);
+
+    /* floorboards and a skirting board, so there is something to find detail in */
+    g.strokeStyle = shade(place.floor, f * 0.72); g.lineWidth = 2;
+    for (let y = floorY + 16; y < H; y += 22) {
+      g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+    }
+    for (let k = 0; k < 9; k++) {
+      const x = ((k * 97) % W);
+      g.beginPath(); g.moveTo(x, floorY); g.lineTo(x - 26, H); g.stroke();
+    }
+    g.fillStyle = shade(place.wall, f * 0.68);
+    g.fillRect(0, floorY - 9, W, 9);
+
+    layout.forEach((p) => drawProp(g, p, lit, place));
+
+    if (lit) {
+      /* a warm pool of light, so the glass reads as a lens and not a hole */
+      const gl = g.createRadialGradient(lens.x, lens.y, 4, lens.x, lens.y, LENS);
+      gl.addColorStop(0, "rgba(255,230,160,.22)");
+      gl.addColorStop(1, "rgba(255,210,120,0)");
+      g.fillStyle = gl; g.fillRect(lens.x - LENS, lens.y - LENS, LENS * 2, LENS * 2);
+
+      spots.forEach((s) => {
+        if (s.clue && s.clue.got) return;
+        if (s.junk && s.got) return;
+        const pulse = 1 + Math.sin(Date.now() / 260) * 0.06;
+        g.save(); g.translate(s.x, s.y - 8); g.scale(pulse, pulse);
+        g.strokeStyle = "rgba(255,225,130,.9)"; g.lineWidth = 2.5;
+        g.beginPath(); g.arc(0, 0, 21, 0, Math.PI * 2); g.stroke();
+        g.fillStyle = "rgba(255,240,190,.16)"; g.fill();
+        g.font = "26px system-ui,sans-serif"; g.textAlign = "center";
+        g.fillText(s.clue ? s.clue.text.em : s.junk[0], 0, 9);
+        g.restore();
+      });
+    }
+  };
+
+  paint(false);
+  g.save();
+  g.beginPath(); g.arc(lens.x, lens.y, LENS, 0, Math.PI * 2); g.clip();
+  paint(true);
+  g.restore();
+
+  /* the glass itself */
+  g.strokeStyle = "rgba(255,255,255,.5)"; g.lineWidth = 5;
+  g.beginPath(); g.arc(lens.x, lens.y, LENS, 0, Math.PI * 2); g.stroke();
+  g.strokeStyle = "#8a6a3a"; g.lineWidth = 9; g.lineCap = "round";
+  g.beginPath();
+  g.moveTo(lens.x + LENS * 0.72, lens.y + LENS * 0.72);
+  g.lineTo(lens.x + LENS * 1.35, lens.y + LENS * 1.35);
+  g.stroke();
+}
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+    .map((v) => Math.max(0, Math.min(255, Math.round(v * f))));
+  return "rgb(" + c.join(",") + ")";
+}
+function drawProp(g, p, lit, place) {
+  const base = H * 0.62, s = p.s;
+  const col = (c) => shade(c, lit ? 1.3 : 0.42);
+  /* a soft shadow where each thing meets the floor */
+  g.save(); g.translate(p.x, base);
+  g.fillStyle = "rgba(0,0,0," + (lit ? .3 : .45) + ")";
+  g.beginPath(); g.ellipse(0, 4, 52 * s, 9 * s, 0, 0, Math.PI * 2); g.fill();
+  if (p.kind === "crate") {
+    g.fillStyle = col("#6b4f2e"); g.fillRect(-32*s, -56*s, 64*s, 56*s);
+    g.strokeStyle = col("#4a3620"); g.lineWidth = 3;
+    g.strokeRect(-32*s, -56*s, 64*s, 56*s);
+    g.beginPath(); g.moveTo(-32*s,-56*s); g.lineTo(32*s,0); g.moveTo(32*s,-56*s); g.lineTo(-32*s,0); g.stroke();
+  } else if (p.kind === "barrel") {
+    g.fillStyle = col("#7a5330"); g.beginPath();
+    g.ellipse(0, -34*s, 26*s, 34*s, 0, 0, Math.PI*2); g.fill();
+    g.strokeStyle = col("#3f2c18"); g.lineWidth = 4;
+    [-48,-34,-20].forEach((y) => { g.beginPath(); g.ellipse(0, y*s, 26*s, 7*s, 0, 0, Math.PI*2); g.stroke(); });
+  } else if (p.kind === "shelf") {
+    g.fillStyle = col("#5a4228"); g.fillRect(-46*s, -118*s, 92*s, 118*s);
+    g.fillStyle = shade(place.wall, lit ? 1.0 : 0.33);
+    [-100,-70,-40].forEach((y) => g.fillRect(-40*s, y*s, 80*s, 22*s));
+    g.fillStyle = col("#9c5f4a");
+    for (let k = 0; k < 9; k++) g.fillRect((-36 + (k%3)*26)*s, (-98 + Math.floor(k/3)*30)*s, 8*s, 18*s);
+  } else if (p.kind === "table") {
+    g.fillStyle = col("#6e5132"); g.fillRect(-50*s, -62*s, 100*s, 10*s);
+    g.fillRect(-44*s, -52*s, 8*s, 52*s); g.fillRect(36*s, -52*s, 8*s, 52*s);
+  } else if (p.kind === "sack") {
+    g.fillStyle = col("#a8905f"); g.beginPath();
+    g.ellipse(0, -28*s, 24*s, 30*s, 0, 0, Math.PI*2); g.fill();
+    g.strokeStyle = col("#6d5c3a"); g.lineWidth = 3;
+    g.beginPath(); g.moveTo(-10*s,-52*s); g.lineTo(10*s,-52*s); g.stroke();
+  } else if (p.kind === "plant") {
+    g.fillStyle = col("#8a4f33"); g.fillRect(-18*s, -26*s, 36*s, 26*s);
+    g.fillStyle = col("#2f6b3c");
+    for (let k = -2; k <= 2; k++) {
+      g.beginPath(); g.ellipse(k*11*s, -52*s, 9*s, 30*s, k*0.3, 0, Math.PI*2); g.fill();
+    }
+  } else if (p.kind === "rug") {
+    g.fillStyle = col("#8c3a44"); g.beginPath();
+    g.ellipse(0, 46*s, 76*s, 22*s, 0, 0, Math.PI*2); g.fill();
+    g.strokeStyle = col("#d8b25a"); g.lineWidth = 3;
+    g.beginPath(); g.ellipse(0, 46*s, 56*s, 15*s, 0, 0, Math.PI*2); g.stroke();
+  } else if (p.kind === "picture") {
+    g.fillStyle = col("#c9a24a"); g.fillRect(-34*s, -150*s, 68*s, 52*s);
+    g.fillStyle = col("#45597a"); g.fillRect(-28*s, -144*s, 56*s, 40*s);
+  } else if (p.kind === "steps") {
+    g.fillStyle = col("#5c5a52");
+    for (let k = 0; k < 4; k++) g.fillRect((-50 + k*14)*s, (-16 - k*18)*s, 60*s, (16 + k*18)*s);
+  } else if (p.kind === "case") {
+    g.fillStyle = "rgba(170,210,235," + (lit ? .5 : .12) + ")";
+    g.fillRect(-34*s, -90*s, 68*s, 90*s);
+    g.strokeStyle = col("#8d7a4d"); g.lineWidth = 4; g.strokeRect(-34*s, -90*s, 68*s, 90*s);
+  } else if (p.kind === "net") {
+    g.strokeStyle = col("#8b8257"); g.lineWidth = 2;
+    for (let k = -4; k <= 4; k++) {
+      g.beginPath(); g.moveTo(k*11*s, -96*s); g.lineTo(k*11*s + 20*s, 0); g.stroke();
+      g.beginPath(); g.moveTo(k*11*s, -96*s); g.lineTo(k*11*s - 20*s, 0); g.stroke();
+    }
+  }
+  g.restore();
+}
+
+/* ==========================================================================
+   TALKING TO PEOPLE, AND ACCUSING THEM
+   ========================================================================== */
+function interview(i) {
+  const C = CASE, p = C.people[i];
+  if (C.asked.indexOf(i) === -1) C.asked.push(i);
+  if (i === C.culprit) {
+    dialog(p.em, p.nm + " the " + p.sp,
+      '<div class="speech"><span class="who">' + esc(p.nm) + ' says:</span>' +
+      '"I was… on my own, actually. Just walking. Nobody saw me, if that is what you mean."</div>' +
+      "<p>They look at their feet. Nobody can vouch for " + esc(p.nm) + ".</p>",
+      [{ label:"Hmm.", cls:"gold" }]);
+    sNope();
+  } else {
+    const a = C.alibis[i];
+    if (C.cleared.indexOf(i) === -1) C.cleared.push(i);
+    sClear();
+    dialog(p.em, p.nm + " the " + p.sp,
+      '<div class="speech"><span class="who">' + esc(p.nm) + ' says:</span>' +
+      '"Me? I was over at ' + esc(a.where) + " the whole time. " +
+      esc(a.witness) + ' was there too — go and ask."</div>' +
+      "<p>You do go and ask. " + esc(a.witness) + " nods. That checks out — " +
+      esc(p.nm) + " is in the clear. ✅</p>",
+      [{ label:"Cross them off", cls:"green" }]);
+  }
+  save(); render();
+}
+
+function accuse(i) {
+  const C = CASE, p = C.people[i];
+  C.guesses++;
+  if (i === C.culprit) return solved(i);
+  /* A wrong accusation is never a loss. They tell you where they were,
+     and that is one more name off the list. */
+  const a = C.alibis[i];
+  if (C.cleared.indexOf(i) === -1) C.cleared.push(i);
+  sClear();
+  dialog(p.em, "Not " + p.nm,
+    '<div class="speech"><span class="who">' + esc(p.nm) + ' says:</span>' +
+    (a ? '"Oh — no. I was at ' + esc(a.where) + " with " + esc(a.witness) + '. Ask them!"'
+       : '"It honestly was not me. Look at my feet, detective."') + "</div>" +
+    "<p>And it checks out. Not " + esc(p.nm) + " then — but that is one more name crossed off, " +
+    "which is exactly how this job works. 🔎</p>",
+    [{ label:"Keep looking", cls:"gold" }]);
+  save(); render();
+}
+
+function solved(i) {
+  const C = CASE, p = C.people[i];
+  C.done = true;
+  S.solved++;
+  if (C.guesses === 1) S.firstTry++;
+  S.caseState = null;
+  save();
+  sSolved();
+  const r = rankOf(S.solved);
+  const before = rankOf(S.solved - 1);
+  const rankUp = r.nm !== before.nm;
+  dialog(p.em, "It was " + p.nm + "!",
+    "<p><b>" + esc(p.nm) + " the " + esc(p.sp) + "</b> " + esc(C.reason) + "</p>" +
+    '<div class="speech">' + esc(C.item.nm.charAt(0).toUpperCase() + C.item.nm.slice(1)) +
+      " is back where it belongs. Nobody is in trouble. Everybody has had a cup of tea.</div>" +
+    "<p>Case closed on " + (C.guesses === 1 ? "<b>the very first accusation</b> 🏅"
+      : C.guesses + " accusations") + ", with " +
+      C.clues.filter((c) => c.got).length + " of " + C.clues.length + " clues found.</p>" +
+    (rankUp ? '<p style="color:#1f8a52"><b>' + r.em + " You have been promoted to " +
+      esc(r.nm) + "!</b></p>" : ""),
+    [{ label:"📁 Next case", cls:"gold", go:() => newCase() }]);
+  view = "brief";
+  renderRank();
+}
+
+/* ==========================================================================
+   GO
+   ========================================================================== */
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && $("ovr").classList.contains("show")) $("ovr").classList.remove("show");
+});
+
+/* Pick up an unfinished case if there is one, otherwise start a new one. */
+(function start() {
+  const c = S.caseState;
+  if (c && c.people && c.clues && !c.done &&
+      typeof c.culprit === "number" && c.people[c.culprit]) {
+    CASE = c;
+    view = "desk";
+    render();
+  } else {
+    newCase();
+  }
+})();
+
+/* exposed so the case generator can be unit-tested */
+window.Mystery = {
+  buildCase: buildCase, stillStanding: stillStanding, suspectCount: suspectCount,
+  CAST: CAST, get CASE() { return CASE; }
+};
+</script>
+</body>
+</html>
