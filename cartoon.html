@@ -1,0 +1,2407 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Safety lock: this page can only load things from this site. It cannot
+       contact any outside server, load any third-party script, embed anything,
+       or submit a form anywhere. Nothing here can phone home. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai, noimageai">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <link rel="icon" href="favicon.png" type="image/png">
+  <title>Make a Cartoon</title>
+<style>
+  :root{
+    --bg:#171a2b; --panel:#f4f1ea; --ink:#23203a; --ink2:#6d6785;
+    --line:#d6cfc0; --white:#fffdf8; --accent:#4a7de0; --go:#1f8a52;
+    --warn:#c2473f; --gold:#e0a21c; --bar:#201f36;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0;overscroll-behavior:none}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:"Trebuchet MS","Segoe UI",system-ui,Arial,sans-serif;
+    display:flex;flex-direction:column;overflow:hidden;
+    -webkit-user-select:none;user-select:none;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* ---------- buttons, shared ---------- */
+  .btn{
+    font-family:inherit;font-size:.86rem;font-weight:bold;color:var(--ink);
+    background:var(--white);border:2px solid var(--line);border-radius:12px;
+    min-height:46px;min-width:46px;padding:8px 13px;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    white-space:nowrap;line-height:1.1;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.38;cursor:default}
+  .btn.on{background:var(--accent);border-color:#2f5cb0;color:#fff}
+  .btn.go{background:var(--go);border-color:#17663c;color:#fff}
+  .btn.warn{background:#f6e2e1;border-color:#d8a9a5;color:#8d2f29}
+  .btn.ghost{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);color:#f2efe6}
+  .btn .ic{font-size:1.1rem}
+  .btn small{display:block;font-size:.66rem;font-weight:normal;opacity:.7}
+
+  /* ---------- top bar ---------- */
+  .top{
+    flex:0 0 auto;background:var(--bar);color:#f2efe6;
+    display:flex;align-items:center;gap:7px;padding:6px 9px;
+  }
+  .top .ttl{
+    flex:1;min-width:0;font-weight:bold;font-size:.95rem;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    background:none;border:none;color:#f2efe6;font-family:inherit;
+    text-align:left;padding:8px 6px;min-height:44px;cursor:pointer;
+  }
+  .top .ttl .sub{display:block;font-size:.66rem;font-weight:normal;opacity:.62}
+  .saved{font-size:.7rem;opacity:.7;white-space:nowrap;padding:0 4px}
+  .saved.busy{color:#ffd98a}
+
+  /* ---------- stage ---------- */
+  .stagewrap{flex:1 1 auto;position:relative;min-height:0;background:#0e1020;overflow:hidden}
+  canvas#stage{display:block;width:100%;height:100%;touch-action:none}
+  .float{position:absolute;display:flex;gap:6px;z-index:5}
+  .float.tl{top:8px;left:8px}
+  .float.tr{top:8px;right:8px;flex-direction:column;align-items:flex-end}
+  .float .btn{min-height:44px;padding:6px 10px;font-size:.78rem;
+    background:rgba(28,30,50,.84);border-color:rgba(255,255,255,.26);color:#f2efe6}
+  .float .btn.on{background:var(--accent);border-color:#8fb4ff;color:#fff}
+  .hintcard{
+    position:absolute;left:50%;top:10px;transform:translateX(-50%);
+    background:rgba(18,20,36,.95);color:#f4f1ea;border:2px solid var(--gold);
+    border-radius:14px;padding:10px 14px;max-width:min(92%,520px);z-index:9;
+    font-size:.84rem;line-height:1.5;display:flex;gap:10px;align-items:flex-start;
+  }
+  .hintcard[hidden]{display:none}   /* a class with display:flex beats the hidden attribute */
+  .hintcard p{margin:0}
+  .hintcard .btn{flex:0 0 auto;min-height:40px;padding:6px 10px;font-size:.76rem}
+  .bigmsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    color:#8e8aa8;font-size:.95rem;text-align:center;padding:24px;pointer-events:none}
+
+  /* ---------- tool row ---------- */
+  .tools{
+    flex:0 0 auto;display:flex;gap:7px;padding:7px 9px;background:#2a2843;
+    overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+  }
+  .tools::-webkit-scrollbar{height:0}
+  .tools .sep{flex:0 0 auto;width:1px;background:rgba(255,255,255,.17);margin:4px 2px}
+
+  /* ---------- frame strip ---------- */
+  .strip{
+    flex:0 0 auto;background:var(--panel);border-top:3px solid #3a3658;
+    display:flex;align-items:stretch;gap:8px;padding:7px 8px;
+  }
+  .strip .grp{display:flex;gap:6px;align-items:center;flex:0 0 auto}
+  .frames{
+    flex:1 1 auto;min-width:0;display:flex;gap:7px;overflow-x:auto;overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;align-items:center;padding:2px;
+  }
+  .fr{
+    flex:0 0 auto;position:relative;width:92px;height:66px;border-radius:10px;
+    border:3px solid var(--line);background:#fff;overflow:hidden;cursor:pointer;padding:0;
+  }
+  .fr canvas{display:block;width:100%;height:100%}
+  .fr .no{position:absolute;left:3px;top:2px;background:rgba(20,18,36,.72);color:#fff;
+    font-size:.64rem;font-weight:bold;border-radius:6px;padding:1px 5px}
+  .fr.cur{border-color:var(--accent);box-shadow:0 0 0 3px rgba(74,125,224,.3)}
+  .fr.playing{border-color:var(--go)}
+  .fr .mv{position:absolute;bottom:2px;width:26px;height:24px;border:none;border-radius:6px;
+    background:rgba(20,18,36,.6);color:#fff;font-size:.8rem;cursor:pointer;padding:0}
+  .fr .mv.l{left:2px} .fr .mv.r{right:2px}
+
+  /* ---------- sheets (modal panels) ---------- */
+  .sheet{position:fixed;inset:0;background:rgba(10,8,20,.72);z-index:60;
+    display:none;align-items:center;justify-content:center;padding:14px}
+  .sheet.show{display:flex}
+  .sheetbox{background:var(--panel);border-radius:20px;width:100%;max-width:760px;
+    max-height:92vh;display:flex;flex-direction:column;box-shadow:0 22px 60px rgba(0,0,0,.6)}
+  .sheethd{display:flex;align-items:center;gap:8px;padding:11px 13px;border-bottom:2px solid var(--line)}
+  .sheethd h2{margin:0;font-size:1.05rem;flex:1}
+  .sheetbd{padding:13px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .sheetft{padding:11px 13px;border-top:2px solid var(--line);display:flex;gap:8px;
+    flex-wrap:wrap;justify-content:flex-end}
+
+  .cards{display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(118px,1fr))}
+  .card{
+    background:var(--white);border:3px solid var(--line);border-radius:14px;padding:8px 6px;
+    text-align:center;cursor:pointer;font-family:inherit;color:var(--ink);min-height:120px;
+    display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;
+  }
+  .card.sel{border-color:var(--accent);background:#eef3fd}
+  .card.locked{opacity:.62;cursor:default;background:#ece7dc}
+  .card canvas{display:block;border-radius:8px}
+  .card .cn{font-size:.78rem;font-weight:bold;line-height:1.15}
+  .card .lk{font-size:.64rem;color:#8d2f29;line-height:1.25;margin-top:1px}
+  .card .tick{position:absolute;top:3px;right:5px;font-size:.95rem}
+
+  .fieldlab{font-size:.74rem;font-weight:bold;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--ink2);margin:14px 0 6px}
+  .fieldlab:first-child{margin-top:0}
+  .pillrow{display:flex;flex-wrap:wrap;gap:7px}
+  .swatch{width:46px;height:46px;border-radius:12px;border:3px solid var(--line);cursor:pointer;padding:0}
+  .swatch.sel{border-color:var(--ink);box-shadow:0 0 0 3px rgba(35,32,58,.2)}
+
+  .prj{display:flex;gap:10px;align-items:center;background:var(--white);
+    border:2px solid var(--line);border-radius:14px;padding:8px;margin-bottom:9px}
+  .prj canvas{flex:0 0 auto;border-radius:9px;border:1px solid var(--line)}
+  .prj .meta{flex:1;min-width:0}
+  .prj .meta b{display:block;font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .prj .meta span{font-size:.72rem;color:var(--ink2)}
+  .prj .acts{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+  .prj .acts .btn{min-height:42px;padding:6px 9px;font-size:.76rem}
+  .prj.cur{border-color:var(--accent);background:#eef3fd}
+
+  .note{background:#fff6e0;border:2px solid var(--gold);border-radius:12px;
+    padding:9px 11px;font-size:.82rem;line-height:1.5;margin:10px 0}
+  .note.bad{background:#fae8e6;border-color:#d8a9a5}
+
+  .toast{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));
+    transform:translateX(-50%);background:rgba(16,14,30,.96);color:#fff;
+    border:2px solid var(--gold);border-radius:13px;padding:10px 16px;font-weight:bold;
+    font-size:.84rem;max-width:90vw;text-align:center;z-index:90;display:none;pointer-events:none}
+  .toast.show{display:block}
+
+  .unlock{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+    background:var(--panel);border:4px solid var(--gold);border-radius:22px;
+    padding:18px 22px;text-align:center;z-index:95;display:none;
+    box-shadow:0 20px 60px rgba(0,0,0,.6);max-width:92vw}
+  .unlock.show{display:block}
+  .unlock .big{font-size:2.6rem;line-height:1}
+  .unlock h3{margin:6px 0 4px;font-size:1.1rem}
+  .unlock p{margin:0 0 10px;font-size:.86rem;color:var(--ink2)}
+
+  .sronly{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+  /* Phone / portrait: keep everything reachable, shrink the furniture. */
+  @media (max-height:560px), (max-width:620px){
+    .fr{width:74px;height:54px}
+    .btn{font-size:.78rem;padding:7px 10px}
+    .strip{padding:5px 6px;gap:6px}
+  }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <a class="btn ghost" href="index.html" aria-label="Back to Dot Arcade">←</a>
+  <button class="ttl" id="tTitle" aria-label="Project name — tap to rename">
+    <span id="tName">Untitled cartoon</span>
+    <span class="sub" id="tSub">tap to rename</span>
+  </button>
+  <span class="saved" id="tSaved">saved</span>
+  <button class="btn ghost" id="bUndo" aria-label="Undo" title="Undo">↶</button>
+  <button class="btn ghost" id="bRedo" aria-label="Redo" title="Redo">↷</button>
+  <button class="btn ghost" id="bLib" aria-label="My cartoons">📁</button>
+</div>
+
+<div class="stagewrap" id="stagewrap">
+  <canvas id="stage"></canvas>
+  <div class="float tl">
+    <button class="btn" id="bFit" aria-label="Fit the whole stage on screen">⤢ Fit</button>
+  </div>
+  <div class="float tr">
+    <button class="btn" id="bGhost" aria-pressed="false" aria-label="Show a ghost of the frame before">👻 Ghost</button>
+    <button class="btn" id="bLock" aria-pressed="false" aria-label="Lock poses so limbs cannot move">🔓 Pose</button>
+  </div>
+  <div class="hintcard" id="hint" hidden>
+    <p id="hintText"></p>
+    <button class="btn" id="hintOk">Got it</button>
+  </div>
+</div>
+
+<div class="tools" id="tools"></div>
+
+<div class="strip">
+  <div class="grp">
+    <button class="btn go" id="bPlay" aria-label="Play the cartoon"><span class="ic">▶</span></button>
+    <button class="btn" id="bSpeed" aria-label="Playback speed">6<small>fps</small></button>
+  </div>
+  <div class="frames" id="frames" role="listbox" aria-label="Frames"></div>
+  <div class="grp">
+    <button class="btn go" id="bAddFrame" aria-label="Add a new frame">＋<small>frame</small></button>
+    <button class="btn" id="bDupFrame" aria-label="Duplicate this frame">⧉</button>
+    <button class="btn warn" id="bDelFrame" aria-label="Delete this frame">🗑</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="unlock" id="unlock" role="status" aria-live="polite">
+  <div class="big" id="ulE">🎁</div>
+  <h3 id="ulT"></h3>
+  <p id="ulP"></p>
+  <button class="btn go" id="ulOk">Nice!</button>
+</div>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shT">
+  <div class="sheetbox">
+    <div class="sheethd"><h2 id="shT"></h2>
+      <button class="btn" id="shX" aria-label="Close">✕</button></div>
+    <div class="sheetbd" id="shB"></div>
+    <div class="sheetft" id="shF"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ===========================================================================
+   MAKE A CARTOON
+   A stick-figure animation studio. Pose a character, add a frame, pose again,
+   press play.
+
+   Two decisions worth knowing about before reading on:
+
+   1. The rig is stored as LOCAL JOINT ANGLES, not joint positions. One number
+      per joint, in degrees, measured against the bone it hangs off. That means
+      limb lengths can never stretch, joint limits are a simple clamp, and
+      smooth playback is just "lerp the angles". Storing joint positions would
+      need inverse kinematics and would let arms grow.
+
+   2. Everything is drawn on a 2D canvas rather than SVG, because that is what
+      every other game in this hub uses, because one painter can then draw both
+      the stage and the little frame thumbnails (so they can never drift apart),
+      and because hit-testing fourteen crowded joint handles is more reliable as
+      "whichever handle is nearest the finger" than as overlapping DOM targets.
+   =========================================================================== */
+
+const STAGE_W = 1000, STAGE_H = 620;      // one fixed world, whatever the screen
+const DEG = Math.PI / 180;
+const $ = (id) => document.getElementById(id);
+
+/* ---------------------------------------------------------------------------
+   THE SKELETON
+   Bones in parent-before-child order. `from` is the bone whose far end this one
+   hangs off ("root" means the character's hip point). `off` nudges the join in
+   character space. `rest` is the angle it sits at before any posing, and
+   min/max are how far it is allowed to be bent from there.
+   --------------------------------------------------------------------------- */
+const BONES = [
+  { n:"torso",         from:"root",          off:{x:0,y:0},   len:86, rest:-90,  min:-55,  max:55,  w:7 },
+  { n:"neck",          from:"torso",         off:{x:0,y:0},   len:14, rest:0,    min:-35,  max:35,  w:6 },
+  { n:"head",          from:"neck",          off:{x:0,y:0},   len:40, rest:0,    min:-48,  max:48,  w:0 },
+  { n:"leftShoulder",  from:"torso",         off:{x:-12,y:3}, len:46, rest:-160, min:-200, max:200, w:6 },
+  { n:"leftElbow",     from:"leftShoulder",  off:{x:0,y:0},   len:42, rest:0,    min:-10,  max:160, w:5.5 },
+  { n:"leftWrist",     from:"leftElbow",     off:{x:0,y:0},   len:30, rest:0,    min:-75,  max:75,  w:5 },
+  { n:"rightShoulder", from:"torso",         off:{x:12,y:3},  len:46, rest:160,  min:-200, max:200, w:6 },
+  { n:"rightElbow",    from:"rightShoulder", off:{x:0,y:0},   len:42, rest:0,    min:-160, max:10,  w:5.5 },
+  { n:"rightWrist",    from:"rightElbow",    off:{x:0,y:0},   len:30, rest:0,    min:-75,  max:75,  w:5 },
+  { n:"leftHip",       from:"root",          off:{x:-9,y:0},  len:52, rest:100,  min:-200, max:200, w:6.5 },
+  { n:"leftKnee",      from:"leftHip",       off:{x:0,y:0},   len:48, rest:0,    min:-160, max:10,  w:6 },
+  { n:"leftAnkle",     from:"leftKnee",      off:{x:0,y:0},   len:30, rest:80,   min:-55,  max:55,  w:5.5 },
+  { n:"rightHip",      from:"root",          off:{x:9,y:0},   len:52, rest:80,   min:-200, max:200, w:6.5 },
+  { n:"rightKnee",     from:"rightHip",      off:{x:0,y:0},   len:48, rest:0,    min:-10,  max:160, w:6 },
+  { n:"rightAnkle",    from:"rightKnee",     off:{x:0,y:0},   len:30, rest:-80,  min:-55,  max:55,  w:5.5 }
+];
+const BONE = {};
+BONES.forEach((b) => { BONE[b.n] = b; });
+const JOINT_NAMES = BONES.map((b) => b.n);
+
+/* Handles the player can actually grab, in the order they are hit-tested.
+   Hands, feet and head come first so they win a tie against the limb above. */
+const HANDLES = ["head","leftWrist","rightWrist","leftAnkle","rightAnkle",
+                 "leftElbow","rightElbow","leftKnee","rightKnee",
+                 "leftShoulder","rightShoulder","leftHip","rightHip","neck","torso"];
+
+const HANDLE_LABEL = {
+  torso:"body lean", neck:"neck", head:"head",
+  leftShoulder:"left upper arm", leftElbow:"left forearm", leftWrist:"left hand",
+  rightShoulder:"right upper arm", rightElbow:"right forearm", rightWrist:"right hand",
+  leftHip:"left thigh", leftKnee:"left shin", leftAnkle:"left foot",
+  rightHip:"right thigh", rightKnee:"right shin", rightAnkle:"right foot"
+};
+
+function restPose() {
+  const j = {};
+  BONES.forEach((b) => { j[b.n] = 0; });
+  return j;
+}
+function clampJoint(name, deg) {
+  const b = BONE[name];
+  if (!b) return 0;
+  return Math.max(b.min, Math.min(b.max, deg));
+}
+/* Wrap to (-180, 180] so "turn a bit left" never becomes "spin all the way round". */
+function wrapDeg(d) {
+  d = ((d + 180) % 360 + 360) % 360 - 180;
+  return d;
+}
+
+/* ---------------------------------------------------------------------------
+   FORWARD KINEMATICS
+   Turn a character's angles into world-space line segments. Pure: give it the
+   same character and it gives the same bones back, which is what makes the
+   pose maths testable on its own.
+   --------------------------------------------------------------------------- */
+function skeleton(ch) {
+  const out = {};
+  const s = ch.scale || 1;
+  const rot = (ch.rotation || 0) * DEG;
+  const cr = Math.cos(rot), sr = Math.sin(rot);
+  const rx = ch.root.x, ry = ch.root.y;
+
+  for (let i = 0; i < BONES.length; i++) {
+    const b = BONES[i];
+    let px, py, pang;
+    if (b.from === "root") { px = rx; py = ry; pang = rot; }
+    else { const pa = out[b.from]; px = pa.bx; py = pa.by; pang = pa.ang; }
+    /* the join nudge is in character space, so it turns with the whole body
+       but not with the limb it hangs off */
+    const ox = b.off.x * s, oy = b.off.y * s;
+    const ax = px + (ox * cr - oy * sr);
+    const ay = py + (ox * sr + oy * cr);
+    const ang = pang + (b.rest + (ch.joints[b.n] || 0)) * DEG;
+    const len = b.len * s;
+    out[b.n] = { ax:ax, ay:ay, bx:ax + Math.cos(ang) * len, by:ay + Math.sin(ang) * len,
+                 ang:ang, len:len, w:b.w * s };
+  }
+  return out;
+}
+
+/* Where the head circle sits, and how big. Eyes and hats hang off this. */
+function headDisc(ch, sk) {
+  const h = sk.head, s = ch.scale || 1;
+  return { x:(h.ax + h.bx) / 2, y:(h.ay + h.by) / 2, r:25 * s, ang:h.ang };
+}
+
+/* The point you grab to swing a bone: its far end. The body handle is the hips. */
+function handlePos(ch, sk, name) {
+  if (name === "root") return { x:ch.root.x, y:ch.root.y };
+  const b = sk[name];
+  return { x:b.bx, y:b.by };
+}
+
+/* Point a bone at a world position, and give back the clamped local angle.
+   This is the whole of posing: everything below the bone comes along for free. */
+function aimBone(ch, name, wx, wy) {
+  const sk = skeleton(ch);
+  const b = sk[name], def = BONE[name];
+  const parentAng = b.ang - (def.rest + (ch.joints[name] || 0)) * DEG;
+  const want = Math.atan2(wy - b.ay, wx - b.ax);
+  return clampJoint(name, wrapDeg(want / DEG - parentAng / DEG - def.rest));
+}
+
+/* ---------------------------------------------------------------------------
+   WHO YOU CAN BE
+   Every design here is original. Types change colours and the extra bits drawn
+   over the rig; the skeleton underneath is identical for all of them, which is
+   what lets a character change costume mid-cartoon without losing its pose.
+   --------------------------------------------------------------------------- */
+const TYPES = [
+  { id:"regular", nm:"Stickman", ink:"#2b2a3d", skin:"#fff3dc", tint:"#4a7de0", start:true,
+    blurb:"A classic." },
+  { id:"ninja", nm:"Ninja", ink:"#232a44", skin:"#f3e4c6", tint:"#2f3a63", start:true,
+    blurb:"Hood and a long headband." },
+  { id:"girl-tutu", nm:"Tutu Girl", ink:"#3a2436", skin:"#fff0e2", tint:"#e2679b", start:true,
+    blurb:"A tutu and a top bun." },
+  { id:"robot", nm:"Robot", ink:"#3a4350", skin:"#d7e2ec", tint:"#7bc7d6", start:false,
+    blurb:"Square head and a bouncy antenna.", need:"frames3" },
+  { id:"astronaut", nm:"Astronaut", ink:"#4a4f63", skin:"#eef3fa", tint:"#e8e8ef", start:false,
+    blurb:"Helmet bubble and a air tank.", need:"projects3" },
+  { id:"hero", nm:"Super", ink:"#2b2a3d", skin:"#ffeeda", tint:"#d64545", start:false,
+    blurb:"Cape and a star on the chest.", need:"frames10" },
+  { id:"dino", nm:"Dino Suit", ink:"#27402c", skin:"#eaf6e4", tint:"#4e9d55", start:false,
+    blurb:"Spiky back and a swishy tail.", need:"crowd3" }
+];
+const TYPE = {};
+TYPES.forEach((t) => { TYPE[t.id] = t; });
+
+const EYES = [
+  { id:"none",   nm:"No eyes" },
+  { id:"dots",   nm:"Dots" },
+  { id:"round",  nm:"Round" },
+  { id:"googly", nm:"Googly" },
+  { id:"angry",  nm:"Angry" },
+  { id:"sleepy", nm:"Sleepy" },
+  { id:"one",    nm:"One eye" }
+];
+const EYE_IDS = EYES.map((e) => e.id);
+
+/* Accessories hang off a named bone and travel with it. No mouths, and
+   nothing weapon-shaped: these are hats, bows and a balloon. */
+const ACCS = [
+  { id:"glasses",   nm:"Glasses",    anchor:"head",  start:true },
+  { id:"bow",       nm:"Bow",        anchor:"head",  start:true },
+  { id:"hat",       nm:"Cap",        anchor:"head",  start:true },
+  { id:"headband",  nm:"Headband",   anchor:"head",  start:true },
+  { id:"headphones",nm:"Headphones", anchor:"head",  start:true },
+  { id:"crown",     nm:"Crown",      anchor:"head",  start:false, need:"played1" },
+  { id:"cape",      nm:"Cape",       anchor:"torso", start:false, need:"bg3" },
+  { id:"wizard",    nm:"Wizard hat", anchor:"head",  start:false, need:"frames20" },
+  { id:"wings",     nm:"Wings",      anchor:"torso", start:false, need:"smooth1" },
+  { id:"scarf",     nm:"Scarf",      anchor:"neck",  start:false, need:"bg3" },
+  { id:"balloon",   nm:"Balloon",    anchor:"leftWrist", start:false, need:"played1" }
+];
+const ACC = {};
+ACCS.forEach((a) => { ACC[a.id] = a; });
+
+const COLOURS = ["#4a7de0","#e2679b","#4e9d55","#e0a21c","#d64545","#7b5bd6",
+                 "#2f3a63","#20a6a6","#ef8a3c","#2b2a3d"];
+
+const BGS = [
+  { id:"blank",  nm:"Blank stage" },
+  { id:"park",   nm:"Outdoors" },
+  { id:"space",  nm:"Space" },
+  { id:"city",   nm:"City" },
+  { id:"room",   nm:"Room" },
+  { id:"beach",  nm:"Beach" }
+];
+const BG_IDS = BGS.map((b) => b.id);
+
+/* ---------------------------------------------------------------------------
+   BACKGROUNDS — original art, drawn with code so there are no image files.
+   Every one of them fills exactly the stage rectangle.
+   --------------------------------------------------------------------------- */
+const BG_W = 1200, BG_H = 750;          // the space the background art is drawn in
+function drawBg(g, id) {
+  g.save();
+  g.scale(STAGE_W / BG_W, STAGE_H / BG_H);
+  paintBg(g, id);
+  g.restore();
+}
+function paintBg(g, id) {
+  const W = BG_W, H = BG_H, ground = H * 0.78;
+  const sky = (a, b) => {
+    const gr = g.createLinearGradient(0, 0, 0, H);
+    gr.addColorStop(0, a); gr.addColorStop(1, b);
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  };
+  if (id === "park") {
+    sky("#9fd8f6", "#d9f0fb");
+    g.fillStyle = "#fff"; [[180,120,38],[260,100,26],[900,140,44],[990,122,30]]
+      .forEach((c) => { g.beginPath(); g.arc(c[0], c[1], c[2], 0, 7); g.fill(); });
+    g.fillStyle = "#86c76a"; g.fillRect(0, ground, W, H - ground);
+    g.fillStyle = "#73b659";
+    g.beginPath(); g.ellipse(W * 0.5, ground + 6, W * 0.62, 34, 0, 0, 7); g.fill();
+    [[150, 1], [1040, .86]].forEach((tr) => {
+      const x = tr[0], s = tr[1];
+      g.fillStyle = "#7a5433"; g.fillRect(x - 11 * s, ground - 120 * s, 22 * s, 122 * s);
+      g.fillStyle = "#4e9d55";
+      [[0,-130,56],[-34,-100,44],[34,-100,44]].forEach((c) => {
+        g.beginPath(); g.arc(x + c[0] * s, ground + c[1] * s, c[2] * s, 0, 7); g.fill(); });
+    });
+  } else if (id === "space") {
+    sky("#090d26", "#1d1740");
+    for (let i = 0; i < 150; i++) {
+      const sx = (i * 139.7) % W, sy = (i * 71.3) % (H * 0.95);
+      const r = (i % 7 === 0) ? 2.4 : 1.2;
+      g.fillStyle = "rgba(255,255,255," + (0.35 + (i % 5) * 0.14) + ")";
+      g.beginPath(); g.arc(sx, sy, r, 0, 7); g.fill();
+    }
+    g.fillStyle = "#c8c3dc"; g.beginPath(); g.arc(980, 150, 62, 0, 7); g.fill();
+    g.fillStyle = "#b1aac8";
+    [[962,132,13],[1004,166,9],[972,180,7]].forEach((c) => {
+      g.beginPath(); g.arc(c[0], c[1], c[2], 0, 7); g.fill(); });
+    g.fillStyle = "#2c2550"; g.beginPath();
+    g.ellipse(W * 0.5, H + 120, W * 0.8, 240, 0, 0, 7); g.fill();
+  } else if (id === "city") {
+    sky("#2d3d63", "#7d6a96");
+    const seedy = [120,200,90,170,240,140,210,110,190,160,230,100];
+    for (let i = 0; i < 12; i++) {
+      const bw = 92, bx = i * 102 - 20, bh = seedy[i] + 120;
+      g.fillStyle = i % 2 ? "#2b3350" : "#343d5e";
+      g.fillRect(bx, ground - bh, bw, bh);
+      g.fillStyle = "rgba(255,216,130,.72)";
+      for (let wy = ground - bh + 16; wy < ground - 22; wy += 26)
+        for (let wx = bx + 12; wx < bx + bw - 14; wx += 24)
+          if ((wx + wy + i) % 3) g.fillRect(wx, wy, 11, 13);
+    }
+    g.fillStyle = "#4a4a58"; g.fillRect(0, ground, W, H - ground);
+    g.strokeStyle = "#d9d4c4"; g.lineWidth = 5; g.setLineDash([34, 28]);
+    g.beginPath(); g.moveTo(0, ground + 78); g.lineTo(W, ground + 78); g.stroke();
+    g.setLineDash([]);
+  } else if (id === "room") {
+    g.fillStyle = "#e8d8c0"; g.fillRect(0, 0, W, ground);
+    g.strokeStyle = "rgba(170,145,112,.5)"; g.lineWidth = 3;
+    for (let x = 0; x < W; x += 80) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, ground); g.stroke(); }
+    g.fillStyle = "#a9794c"; g.fillRect(0, ground, W, H - ground);
+    g.strokeStyle = "rgba(90,60,34,.45)"; g.lineWidth = 3;
+    for (let y = ground + 20; y < H; y += 32) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+    g.fillStyle = "#6b4a2c"; g.fillRect(0, ground - 16, W, 16);
+    g.fillStyle = "#9fd0ea"; g.fillRect(820, 130, 220, 170);
+    g.strokeStyle = "#6b4a2c"; g.lineWidth = 11; g.strokeRect(820, 130, 220, 170);
+    g.beginPath(); g.moveTo(930, 130); g.lineTo(930, 300); g.moveTo(820, 215); g.lineTo(1040, 215); g.stroke();
+    g.fillStyle = "#c0533f"; g.fillRect(150, 150, 150, 110);
+    g.fillStyle = "#f0e2c4"; g.fillRect(162, 162, 126, 86);
+  } else if (id === "beach") {
+    sky("#8fd7f2", "#ffe0b0");
+    g.fillStyle = "#ffd36b"; g.beginPath(); g.arc(950, 168, 54, 0, 7); g.fill();
+    g.fillStyle = "#47a8d8"; g.fillRect(0, ground - 70, W, 74);
+    g.strokeStyle = "rgba(255,255,255,.6)"; g.lineWidth = 4;
+    for (let i = 0; i < 5; i++) { g.beginPath();
+      g.moveTo(0, ground - 58 + i * 15); g.bezierCurveTo(W * .33, ground - 68 + i * 15,
+        W * .66, ground - 48 + i * 15, W, ground - 60 + i * 15); g.stroke(); }
+    g.fillStyle = "#f3dfae"; g.fillRect(0, ground, W, H - ground);
+    g.fillStyle = "#e8cf98"; g.beginPath();
+    g.ellipse(W * .5, ground + 4, W * .6, 26, 0, 0, 7); g.fill();
+  } else {
+    sky("#f0eee6", "#dcd8cc");
+    g.fillStyle = "#cdc8b8"; g.fillRect(0, ground, W, H - ground);
+  }
+}
+
+
+/* ---------------------------------------------------------------------------
+   THE PAINTER
+   One function draws a character, and it is used for the big stage, the frame
+   thumbnails, the character picker and the workshop preview. They cannot drift
+   apart because there is only one of it.
+   --------------------------------------------------------------------------- */
+const HALO = "rgba(255,253,248,.92)";
+/* Limbs are drawn a chain at a time — a whole arm, a whole leg — and each
+   chain lays down its pale halo before any of its own ink. Doing it bone by
+   bone instead would let each bone's halo rub out the end of the one before
+   it, and the character comes out looking stitched together from dashes.
+   Between chains the halo is exactly what is wanted: it is what makes an arm
+   swung across the body read as being in front of it rather than vanishing
+   into it, since both are the same colour. */
+function chain(g, sk, names, colour) {
+  g.lineCap = "round";
+  g.strokeStyle = HALO;
+  names.forEach((n) => {
+    const b = sk[n]; if (!b) return;
+    g.lineWidth = b.w + 4.5;
+    g.beginPath(); g.moveTo(b.ax, b.ay); g.lineTo(b.bx, b.by); g.stroke();
+  });
+  g.strokeStyle = colour;
+  names.forEach((n) => {
+    const b = sk[n]; if (!b) return;
+    g.lineWidth = b.w;
+    g.beginPath(); g.moveTo(b.ax, b.ay); g.lineTo(b.bx, b.by); g.stroke();
+  });
+}
+const L_ARM = ["leftShoulder","leftElbow","leftWrist"];
+const R_ARM = ["rightShoulder","rightElbow","rightWrist"];
+const L_LEG = ["leftHip","leftKnee","leftAnkle"];
+const R_LEG = ["rightHip","rightKnee","rightAnkle"];
+
+function drawCharacter(g, ch, opts) {
+  opts = opts || {};
+  const sk = skeleton(ch);
+  const t = TYPE[ch.type] || TYPE.regular;
+  const s = ch.scale || 1;
+  const ink = ch.colour || t.ink;
+  const hd = headDisc(ch, sk);
+
+  g.save();
+  if (opts.alpha != null) g.globalAlpha = opts.alpha;
+
+  /* things that sit behind the body */
+  (ch.accessories || []).forEach((a) => { const d = ACC_DRAW[a.type]; if (d && d.back) d.back(g, sk, ch, hd, s); });
+  if (t.id === "hero" && !(ch.accessories || []).some((a) => a.type === "cape")) capeShape(g, sk, s, "#d64545");
+  if (t.id === "dino") dinoTail(g, sk, ch, s);
+
+  /* legs, then body, then arms — arms last so a pose reads from the front */
+  chain(g, sk, L_LEG, ink);
+  chain(g, sk, R_LEG, ink);
+  chain(g, sk, ["torso","neck"], ink);
+
+  if (t.id === "girl-tutu") tutu(g, sk, ch, s);
+  if (t.id === "ninja") ninjaSuit(g, sk, ch, s);
+  if (t.id === "astronaut") spaceSuit(g, sk, ch, s);
+  if (t.id === "robot") robotBody(g, sk, ch, s);
+  if (t.id === "dino") dinoBack(g, sk, ch, s);
+  if (t.id === "hero") heroChest(g, sk, ch, s);
+
+  chain(g, sk, L_ARM, ink);
+  chain(g, sk, R_ARM, ink);
+  /* hands and feet, so the ends of the limbs read as hands and feet */
+  [["leftWrist",5.2],["rightWrist",5.2]].forEach((p) => {
+    const b = sk[p[0]];
+    g.fillStyle = t.skin; g.strokeStyle = ink; g.lineWidth = 2.2 * s;
+    g.beginPath(); g.arc(b.bx, b.by, p[1] * s, 0, 7); g.fill(); g.stroke();
+  });
+
+  /* head */
+  drawHead(g, ch, sk, hd, t, ink, s);
+
+  /* things that sit in front */
+  (ch.accessories || []).forEach((a) => { const d = ACC_DRAW[a.type]; if (d && d.front) d.front(g, sk, ch, hd, s); });
+
+  g.restore();
+  return sk;
+}
+
+function drawHead(g, ch, sk, hd, t, ink, s) {
+  g.save();
+  g.translate(hd.x, hd.y);
+  g.rotate(hd.ang + Math.PI / 2);     /* head bone points "up" out of the neck */
+  const r = hd.r;
+
+  if (t.id === "robot") {
+    g.fillStyle = t.skin; g.strokeStyle = ink; g.lineWidth = 3 * s;
+    g.beginPath(); g.rect(-r * 0.95, -r * 0.95, r * 1.9, r * 1.9); g.fill(); g.stroke();
+    g.beginPath(); g.moveTo(0, -r * 0.95); g.lineTo(0, -r * 1.7); g.stroke();
+    g.fillStyle = t.tint; g.beginPath(); g.arc(0, -r * 1.85, r * 0.26, 0, 7); g.fill();
+  } else if (t.id === "astronaut") {
+    g.fillStyle = t.skin; g.strokeStyle = ink; g.lineWidth = 3 * s;
+    g.beginPath(); g.arc(0, 0, r, 0, 7); g.fill(); g.stroke();
+    g.strokeStyle = "rgba(150,200,240,.95)"; g.lineWidth = 5 * s;
+    g.beginPath(); g.arc(0, 0, r * 1.18, 0, 7); g.stroke();
+    g.fillStyle = "rgba(170,215,245,.3)";
+    g.beginPath(); g.arc(0, 0, r * 1.14, 0, 7); g.fill();
+  } else if (t.id === "ninja") {
+    g.fillStyle = t.tint; g.strokeStyle = ink; g.lineWidth = 3 * s;
+    g.beginPath(); g.arc(0, 0, r, 0, 7); g.fill(); g.stroke();
+    /* an eye slot cut out of the hood — a strip of face, nothing below it */
+    g.fillStyle = t.skin;
+    g.beginPath(); g.rect(-r * 0.92, -r * 0.34, r * 1.84, r * 0.5); g.fill();
+  } else {
+    g.fillStyle = t.skin; g.strokeStyle = ink; g.lineWidth = 3 * s;
+    g.beginPath(); g.arc(0, 0, r, 0, 7); g.fill(); g.stroke();
+  }
+  if (t.id === "girl-tutu") {
+    g.fillStyle = ch.colour || t.tint;
+    g.beginPath(); g.arc(0, -r * 1.02, r * 0.42, 0, 7); g.fill();
+  }
+  if (t.id === "dino") {
+    g.fillStyle = t.tint; g.strokeStyle = ink; g.lineWidth = 2.4 * s;
+    [-0.5, 0, 0.5].forEach((o) => {
+      g.beginPath(); g.moveTo(o * r - r * 0.2, -r * 0.92);
+      g.lineTo(o * r, -r * 1.42); g.lineTo(o * r + r * 0.2, -r * 0.92);
+      g.closePath(); g.fill(); g.stroke();
+    });
+  }
+  drawEyes(g, ch.eyeStyle, r, ink, s);
+  g.restore();
+}
+
+/* Eyes live in the head's own frame, so they turn with it for free.
+   There are no mouths in this game, anywhere, on purpose. */
+function drawEyes(g, style, r, ink, s) {
+  const ex = r * 0.40, ey = -r * 0.14;
+  const white = "#fffdf8";
+  if (!style || style === "none") return;
+  if (style === "dots") {
+    g.fillStyle = ink;
+    [-ex, ex].forEach((x) => { g.beginPath(); g.arc(x, ey, r * 0.12, 0, 7); g.fill(); });
+  } else if (style === "round") {
+    [-ex, ex].forEach((x) => {
+      g.fillStyle = white; g.strokeStyle = ink; g.lineWidth = 1.8 * s;
+      g.beginPath(); g.arc(x, ey, r * 0.23, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = ink; g.beginPath(); g.arc(x, ey, r * 0.1, 0, 7); g.fill();
+    });
+  } else if (style === "googly") {
+    [-ex * 1.08, ex * 1.08].forEach((x) => {
+      g.fillStyle = white; g.strokeStyle = ink; g.lineWidth = 2 * s;
+      g.beginPath(); g.arc(x, ey, r * 0.33, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = ink; g.beginPath(); g.arc(x, ey + r * 0.13, r * 0.14, 0, 7); g.fill();
+    });
+  } else if (style === "angry") {
+    [-ex, ex].forEach((x, i) => {
+      g.fillStyle = white; g.strokeStyle = ink; g.lineWidth = 1.8 * s;
+      g.beginPath(); g.arc(x, ey + r * 0.04, r * 0.22, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = ink; g.beginPath(); g.arc(x, ey + r * 0.06, r * 0.1, 0, 7); g.fill();
+      g.strokeStyle = ink; g.lineWidth = 3 * s; g.lineCap = "round";
+      g.beginPath();
+      g.moveTo(x - (i ? -1 : 1) * r * 0.3, ey - r * 0.42);
+      g.lineTo(x + (i ? -1 : 1) * r * 0.26, ey - r * 0.2);
+      g.stroke();
+    });
+  } else if (style === "sleepy") {
+    g.strokeStyle = ink; g.lineWidth = 2.6 * s; g.lineCap = "round";
+    [-ex, ex].forEach((x) => {
+      g.beginPath(); g.arc(x, ey, r * 0.24, Math.PI * 0.08, Math.PI * 0.92); g.stroke();
+    });
+  } else if (style === "one") {
+    g.fillStyle = white; g.strokeStyle = ink; g.lineWidth = 2.2 * s;
+    g.beginPath(); g.arc(0, ey, r * 0.38, 0, 7); g.fill(); g.stroke();
+    g.fillStyle = ink; g.beginPath(); g.arc(0, ey, r * 0.17, 0, 7); g.fill();
+  }
+}
+
+/* ---- costume extras ---- */
+function tutu(g, sk, ch, s) {
+  const hp = { x:ch.root.x, y:ch.root.y };
+  const col = ch.colour || TYPE["girl-tutu"].tint;
+  g.save(); g.translate(hp.x, hp.y); g.rotate((ch.rotation || 0) * DEG);
+  for (let i = 0; i < 3; i++) {
+    g.fillStyle = i % 2 ? col : "rgba(255,255,255,.85)";
+    g.beginPath();
+    g.moveTo(-6 * s, -6 * s); g.lineTo(-(34 - i * 4) * s, (16 + i * 7) * s);
+    g.lineTo((34 - i * 4) * s, (16 + i * 7) * s); g.lineTo(6 * s, -6 * s);
+    g.closePath(); g.fill();
+  }
+  g.restore();
+}
+function ninjaSuit(g, sk, ch, s) {
+  const t = sk.torso, col = ch.colour || TYPE.ninja.tint;
+  g.lineCap = "round";
+  g.strokeStyle = HALO; g.lineWidth = 12 * s + 4.5;
+  g.beginPath(); g.moveTo(t.ax, t.ay); g.lineTo(t.bx, t.by); g.stroke();
+  g.strokeStyle = col; g.lineWidth = 12 * s;
+  g.beginPath(); g.moveTo(t.ax, t.ay); g.lineTo(t.bx, t.by); g.stroke();
+  /* a long headband trailing off the back of the hood */
+  const h = sk.head;
+  g.strokeStyle = "#c0392b"; g.lineWidth = 4 * s;
+  g.beginPath(); g.moveTo(h.ax, h.ay);
+  g.quadraticCurveTo(h.ax - 34 * s, h.ay - 6 * s, h.ax - 54 * s, h.ay + 16 * s); g.stroke();
+}
+function spaceSuit(g, sk, ch, s) {
+  const t = sk.torso;
+  g.lineCap = "round";
+  g.strokeStyle = HALO; g.lineWidth = 15 * s + 4.5;
+  g.beginPath(); g.moveTo(t.ax, t.ay); g.lineTo(t.bx, t.by); g.stroke();
+  g.strokeStyle = ch.colour || "#e8e8ef"; g.lineWidth = 15 * s;
+  g.beginPath(); g.moveTo(t.ax, t.ay); g.lineTo(t.bx, t.by); g.stroke();
+  const mx = (t.ax + t.bx) / 2, my = (t.ay + t.by) / 2;
+  g.fillStyle = "#8fa6bd";
+  g.beginPath(); g.arc(mx, my, 6 * s, 0, 7); g.fill();
+}
+function robotBody(g, sk, ch, s) {
+  const t = sk.torso;
+  g.save();
+  g.translate((t.ax + t.bx) / 2, (t.ay + t.by) / 2);
+  g.rotate(t.ang + Math.PI / 2);
+  g.fillStyle = ch.colour || TYPE.robot.skin; g.strokeStyle = TYPE.robot.ink; g.lineWidth = 3 * s;
+  g.beginPath(); g.rect(-15 * s, -40 * s, 30 * s, 80 * s); g.fill(); g.stroke();
+  g.fillStyle = TYPE.robot.tint;
+  g.beginPath(); g.rect(-9 * s, -26 * s, 18 * s, 13 * s); g.fill();
+  g.restore();
+}
+function heroChest(g, sk, ch, s) {
+  const t = sk.torso;
+  g.lineCap = "round";
+  g.strokeStyle = HALO; g.lineWidth = 13 * s + 4.5;
+  g.beginPath(); g.moveTo(t.ax, t.ay); g.lineTo(t.bx, t.by); g.stroke();
+  g.strokeStyle = ch.colour || TYPE.hero.tint; g.lineWidth = 13 * s;
+  g.beginPath(); g.moveTo(t.ax, t.ay); g.lineTo(t.bx, t.by); g.stroke();
+  const mx = t.ax + (t.bx - t.ax) * 0.38, my = t.ay + (t.by - t.ay) * 0.38;
+  g.save(); g.translate(mx, my); g.rotate(t.ang + Math.PI / 2);
+  g.fillStyle = "#ffd964"; star(g, 0, 0, 10 * s, 4.6 * s, 5); g.fill();
+  g.restore();
+}
+function dinoBack(g, sk, ch, s) {
+  const t = sk.torso;
+  g.save(); g.translate(t.ax, t.ay); g.rotate(t.ang);
+  g.fillStyle = ch.colour || TYPE.dino.tint;
+  for (let i = 0; i < 4; i++) {
+    const d = 18 + i * 20;
+    g.beginPath(); g.moveTo(d * s, -3 * s); g.lineTo((d + 9) * s, -15 * s);
+    g.lineTo((d + 17) * s, -3 * s); g.closePath(); g.fill();
+  }
+  g.restore();
+}
+function dinoTail(g, sk, ch, s) {
+  const r = ch.root, rot = (ch.rotation || 0) * DEG;
+  g.save(); g.translate(r.x, r.y); g.rotate(rot);
+  g.fillStyle = ch.colour || TYPE.dino.tint;
+  g.beginPath(); g.moveTo(0, -8 * s);
+  g.quadraticCurveTo(-52 * s, -14 * s, -74 * s, 18 * s);
+  g.quadraticCurveTo(-46 * s, 4 * s, 0, 8 * s);
+  g.closePath(); g.fill();
+  g.restore();
+}
+function capeShape(g, sk, s, col) {
+  const t = sk.torso;
+  g.save(); g.translate(t.bx, t.by); g.rotate(t.ang + Math.PI / 2);
+  g.fillStyle = col;
+  g.beginPath(); g.moveTo(-13 * s, 0);
+  g.quadraticCurveTo(-40 * s, 54 * s, -26 * s, 96 * s);
+  g.lineTo(26 * s, 96 * s);
+  g.quadraticCurveTo(40 * s, 54 * s, 13 * s, 0);
+  g.closePath(); g.fill();
+  g.restore();
+}
+function star(g, cx, cy, ro, ri, pts) {
+  g.beginPath();
+  for (let i = 0; i < pts * 2; i++) {
+    const a = (i / (pts * 2)) * Math.PI * 2 - Math.PI / 2, r = i % 2 ? ri : ro;
+    if (i) g.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+    else g.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+  }
+  g.closePath();
+}
+
+/* ---- accessories: each draws in the frame of the bone it hangs off ---- */
+function onHead(g, hd, s, fn) {
+  g.save(); g.translate(hd.x, hd.y); g.rotate(hd.ang + Math.PI / 2);
+  fn(g, hd.r, s); g.restore();
+}
+const ACC_DRAW = {
+  glasses: { front:(g, sk, ch, hd, s) => onHead(g, hd, s, (g, r) => {
+    g.strokeStyle = "#2b2a3d"; g.lineWidth = 2.6 * s;
+    [-r * 0.4, r * 0.4].forEach((x) => { g.beginPath(); g.arc(x, -r * 0.14, r * 0.28, 0, 7); g.stroke(); });
+    g.beginPath(); g.moveTo(-r * 0.12, -r * 0.14); g.lineTo(r * 0.12, -r * 0.14);
+    g.moveTo(-r * 0.68, -r * 0.2); g.lineTo(-r * 0.98, -r * 0.3);
+    g.moveTo(r * 0.68, -r * 0.2); g.lineTo(r * 0.98, -r * 0.3); g.stroke();
+  }) },
+  bow: { front:(g, sk, ch, hd, s) => onHead(g, hd, s, (g, r) => {
+    g.fillStyle = "#e2679b";
+    [-1, 1].forEach((d) => { g.beginPath();
+      g.ellipse(d * r * 0.46, -r * 0.86, r * 0.3, r * 0.2, d * 0.5, 0, 7); g.fill(); });
+    g.fillStyle = "#c04f80"; g.beginPath(); g.arc(0, -r * 0.86, r * 0.14, 0, 7); g.fill();
+  }) },
+  hat: { front:(g, sk, ch, hd, s) => onHead(g, hd, s, (g, r) => {
+    g.fillStyle = "#3f7fd0";
+    g.beginPath(); g.arc(0, -r * 0.5, r * 0.95, Math.PI, 0); g.fill();
+    g.fillRect(-r * 0.95, -r * 0.56, r * 1.9, r * 0.1);
+    g.beginPath(); g.ellipse(r * 0.5, -r * 0.5, r * 0.78, r * 0.2, 0, 0, Math.PI); g.fill();
+  }) },
+  headband: { front:(g, sk, ch, hd, s) => onHead(g, hd, s, (g, r) => {
+    g.fillStyle = "#e0a21c"; g.fillRect(-r * 0.99, -r * 0.62, r * 1.98, r * 0.26);
+  }) },
+  headphones: { front:(g, sk, ch, hd, s) => onHead(g, hd, s, (g, r) => {
+    g.strokeStyle = "#2b2a3d"; g.lineWidth = 4.5 * s;
+    g.beginPath(); g.arc(0, 0, r * 1.06, Math.PI * 1.12, Math.PI * 1.88); g.stroke();
+    g.fillStyle = "#4a7de0";
+    [-1, 1].forEach((d) => { g.beginPath();
+      g.ellipse(d * r * 1.02, -r * 0.1, r * 0.2, r * 0.32, 0, 0, 7); g.fill(); });
+  }) },
+  crown: { front:(g, sk, ch, hd, s) => onHead(g, hd, s, (g, r) => {
+    g.fillStyle = "#e8c04a"; g.strokeStyle = "#a8872c"; g.lineWidth = 2 * s;
+    g.beginPath();
+    g.moveTo(-r * 0.8, -r * 0.6); g.lineTo(-r * 0.8, -r * 1.2); g.lineTo(-r * 0.4, -r * 0.86);
+    g.lineTo(0, -r * 1.34); g.lineTo(r * 0.4, -r * 0.86); g.lineTo(r * 0.8, -r * 1.2);
+    g.lineTo(r * 0.8, -r * 0.6); g.closePath(); g.fill(); g.stroke();
+  }) },
+  wizard: { front:(g, sk, ch, hd, s) => onHead(g, hd, s, (g, r) => {
+    g.fillStyle = "#5b4b9e";
+    g.beginPath(); g.moveTo(-r * 1.0, -r * 0.6); g.lineTo(r * 1.0, -r * 0.6);
+    g.lineTo(r * 0.18, -r * 2.0); g.closePath(); g.fill();
+    g.fillStyle = "#ffd964"; star(g, r * 0.26, -r * 1.3, r * 0.2, r * 0.09, 5); g.fill();
+    g.fillStyle = "#3f3474"; g.fillRect(-r * 1.04, -r * 0.68, r * 2.08, r * 0.2);
+  }) },
+  cape: { back:(g, sk, ch, hd, s) => capeShape(g, sk, s, ch.colour || "#c0392b") },
+  wings: { back:(g, sk, ch, hd, s) => {
+    const t = sk.torso;
+    g.save(); g.translate(t.bx, t.by); g.rotate(t.ang + Math.PI / 2);
+    g.fillStyle = "rgba(255,255,255,.93)"; g.strokeStyle = "#cfc6e0"; g.lineWidth = 2 * s;
+    [-1, 1].forEach((d) => {
+      g.beginPath(); g.moveTo(d * 8 * s, 4 * s);
+      g.quadraticCurveTo(d * 58 * s, -24 * s, d * 44 * s, 42 * s);
+      g.quadraticCurveTo(d * 28 * s, 22 * s, d * 8 * s, 20 * s);
+      g.closePath(); g.fill(); g.stroke();
+    });
+    g.restore();
+  } },
+  scarf: { front:(g, sk, ch, hd, s) => {
+    const n = sk.neck;
+    g.save(); g.translate(n.bx, n.by); g.rotate(n.ang + Math.PI / 2);
+    g.fillStyle = "#c0392b";
+    g.beginPath(); g.ellipse(0, 6 * s, 15 * s, 7 * s, 0, 0, 7); g.fill();
+    g.fillRect(4 * s, 4 * s, 9 * s, 30 * s);
+    g.restore();
+  } },
+  balloon: { front:(g, sk, ch, hd, s) => {
+    const w = sk.leftWrist;
+    g.strokeStyle = "#8a8296"; g.lineWidth = 1.8 * s;
+    g.beginPath(); g.moveTo(w.bx, w.by);
+    g.quadraticCurveTo(w.bx + 8 * s, w.by - 34 * s, w.bx - 4 * s, w.by - 62 * s); g.stroke();
+    g.fillStyle = "#e2679b";
+    g.beginPath(); g.ellipse(w.bx - 4 * s, w.by - 78 * s, 16 * s, 19 * s, 0, 0, 7); g.fill();
+    g.fillStyle = "rgba(255,255,255,.5)";
+    g.beginPath(); g.ellipse(w.bx - 10 * s, w.by - 85 * s, 5 * s, 7 * s, -0.4, 0, 7); g.fill();
+  } }
+};
+
+/* ===========================================================================
+   THE PROJECT: shape, cloning, saving, undo, unlocks
+   =========================================================================== */
+const SCHEMA = 1;
+const KEY = "cartoon-v1";              // the index, settings and unlocks
+const PKEY = "cartoon-v1-p-";          // one key per project, so saving one
+                                       // cartoon never rewrites the others
+let idSeq = 0;
+function newId(prefix) {
+  idSeq++;
+  return (prefix || "x") + "_" + Date.now().toString(36) + "_" +
+         idSeq.toString(36) + Math.floor(Math.random() * 1296).toString(36);
+}
+/* Plain data only, so a JSON round trip is a complete and dependable deep copy.
+   This is what keeps one frame's poses from leaking into another's. */
+function clone(v) { return JSON.parse(JSON.stringify(v)); }
+
+function makeCharacter(opts) {
+  opts = opts || {};
+  return {
+    id: opts.id || newId("c"),
+    type: opts.type || "regular",
+    root: { x: opts.x == null ? STAGE_W / 2 : opts.x, y: opts.y == null ? STAGE_H * 0.78 - 123 * (opts.scale || 1.25) : opts.y },
+    scale: opts.scale || 1.25,
+    rotation: 0,
+    joints: restPose(),
+    eyeStyle: opts.eyeStyle || "dots",
+    colour: opts.colour || null,
+    accessories: (opts.accessories || []).map((t) => ({ id: newId("a"), type: t, anchor: (ACC[t] || {}).anchor || "head" })),
+    zIndex: opts.zIndex || 0
+  };
+}
+function makeFrame(opts) {
+  opts = opts || {};
+  return {
+    id: newId("f"),
+    durationMs: opts.durationMs || Math.round(1000 / 6),
+    backgroundId: opts.backgroundId || "blank",
+    characters: opts.characters || []
+  };
+}
+function makeProject(title) {
+  const now = new Date().toISOString();
+  return {
+    schemaVersion: SCHEMA,
+    id: newId("p"),
+    title: title || "My cartoon",
+    createdAt: now, updatedAt: now,
+    fps: 6,
+    playbackMode: "step",
+    frames: [makeFrame({})]
+  };
+}
+
+/* A new frame is a complete copy of the one before it, with fresh frame id but
+   the SAME character ids — stable ids are what let playback and interpolation
+   know that this Ninja and that Ninja are the same Ninja. */
+function duplicateFrame(fr) {
+  const copy = clone(fr);
+  copy.id = newId("f");
+  return copy;
+}
+
+/* --------------------------------------------------------------------------
+   Reading a project back in. Anything missing, out of range or the wrong type
+   is replaced rather than trusted — a half-written save should open as a
+   slightly smaller cartoon, never as a crash.
+   -------------------------------------------------------------------------- */
+function num(v, d) { return (typeof v === "number" && isFinite(v)) ? v : d; }
+function sanitiseCharacter(c) {
+  if (!c || typeof c !== "object") return null;
+  const type = TYPE[c.type] ? c.type : "regular";
+  const out = {
+    id: typeof c.id === "string" && c.id ? c.id : newId("c"),
+    type: type,
+    root: { x: num(c.root && c.root.x, STAGE_W / 2), y: num(c.root && c.root.y, STAGE_H * 0.78 - 154) },
+    scale: Math.max(0.35, Math.min(2.6, num(c.scale, 1))),
+    rotation: num(c.rotation, 0),
+    joints: {},
+    eyeStyle: EYE_IDS.indexOf(c.eyeStyle) === -1 ? "dots" : c.eyeStyle,
+    colour: typeof c.colour === "string" && /^#[0-9a-f]{6}$/i.test(c.colour) ? c.colour : null,
+    accessories: [],
+    zIndex: num(c.zIndex, 0)
+  };
+  BONES.forEach((b) => {
+    out.joints[b.n] = clampJoint(b.n, num(c.joints && c.joints[b.n], 0));
+  });
+  if (Array.isArray(c.accessories)) {
+    const seen = {};
+    c.accessories.forEach((a) => {
+      const t = a && a.type;
+      if (!ACC[t] || seen[t]) return;
+      seen[t] = 1;
+      out.accessories.push({ id: (a && a.id) || newId("a"), type: t, anchor: ACC[t].anchor });
+    });
+  }
+  return out;
+}
+function sanitiseFrame(f) {
+  if (!f || typeof f !== "object") return null;
+  const chars = Array.isArray(f.characters)
+    ? f.characters.map(sanitiseCharacter).filter(Boolean) : [];
+  return {
+    id: typeof f.id === "string" && f.id ? f.id : newId("f"),
+    durationMs: Math.max(40, Math.min(5000, num(f.durationMs, 167))),
+    backgroundId: BG_IDS.indexOf(f.backgroundId) === -1 ? "blank" : f.backgroundId,
+    characters: chars
+  };
+}
+function sanitiseProject(p) {
+  if (!p || typeof p !== "object") return null;
+  const frames = Array.isArray(p.frames) ? p.frames.map(sanitiseFrame).filter(Boolean) : [];
+  if (!frames.length) frames.push(makeFrame({}));
+  const now = new Date().toISOString();
+  return {
+    schemaVersion: SCHEMA,
+    id: typeof p.id === "string" && p.id ? p.id : newId("p"),
+    title: (typeof p.title === "string" && p.title.trim()) ? p.title.trim().slice(0, 60) : "My cartoon",
+    createdAt: typeof p.createdAt === "string" ? p.createdAt : now,
+    updatedAt: typeof p.updatedAt === "string" ? p.updatedAt : now,
+    fps: Math.max(1, Math.min(24, Math.round(num(p.fps, 6)))),
+    playbackMode: p.playbackMode === "smooth" ? "smooth" : "step",
+    frames: frames
+  };
+}
+/* Future schema bumps land here; version 1 needs nothing doing to it. */
+function migrate(p) {
+  if (!p || typeof p !== "object") return null;
+  if (num(p.schemaVersion, 0) > SCHEMA) return null;   // written by a newer build
+  return sanitiseProject(p);
+}
+
+/* Angles and positions are rounded on the way out. A frame is ~15 numbers per
+   character and projects can run to hundreds of frames, so dropping six
+   meaningless decimal places roughly halves what we ask the browser to store. */
+function serialise(p) {
+  const r1 = (v) => Math.round(v * 10) / 10;
+  const out = clone(p);
+  out.frames.forEach((f) => f.characters.forEach((c) => {
+    c.root.x = r1(c.root.x); c.root.y = r1(c.root.y);
+    c.scale = Math.round(c.scale * 1000) / 1000;
+    c.rotation = r1(c.rotation);
+    Object.keys(c.joints).forEach((k) => { c.joints[k] = r1(c.joints[k]); });
+  }));
+  return JSON.stringify(out);
+}
+
+/* --------------------------------------------------------------------------
+   STORAGE
+   localStorage, the same as every other game here. One key per project plus a
+   small index, so a quota failure while saving one cartoon cannot take the
+   others down with it.
+   -------------------------------------------------------------------------- */
+const BLANK_STATS = { played:0, maxFrames:1, totalFrames:0, bgs:[], projects:0, smoothPlays:0, maxChars:0 };
+let DB = null;
+
+function readDB() {
+  let raw = null;
+  try { raw = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { raw = null; }
+  const d = { v:1, currentId:null, unlocks:[], stats:clone(BLANK_STATS), hintSeen:false, index:[] };
+  if (!raw || typeof raw !== "object") return d;
+  if (typeof raw.currentId === "string") d.currentId = raw.currentId;
+  if (Array.isArray(raw.unlocks)) d.unlocks = raw.unlocks.filter((u) => typeof u === "string");
+  if (raw.stats && typeof raw.stats === "object") {
+    Object.keys(BLANK_STATS).forEach((k) => {
+      if (k === "bgs") d.stats.bgs = Array.isArray(raw.stats.bgs)
+        ? raw.stats.bgs.filter((b) => BG_IDS.indexOf(b) !== -1) : [];
+      else d.stats[k] = Math.max(0, num(raw.stats[k], BLANK_STATS[k]));
+    });
+  }
+  d.hintSeen = !!raw.hintSeen;
+  if (Array.isArray(raw.index)) {
+    d.index = raw.index.filter((e) => e && typeof e.id === "string").map((e) => ({
+      id: e.id,
+      title: typeof e.title === "string" ? e.title : "My cartoon",
+      updatedAt: typeof e.updatedAt === "string" ? e.updatedAt : new Date().toISOString(),
+      frames: Math.max(1, num(e.frames, 1))
+    }));
+  }
+  return d;
+}
+function writeDB() {
+  try { localStorage.setItem(KEY, JSON.stringify(DB)); return true; }
+  catch (e) { return false; }
+}
+function projectKey(id) { return PKEY + id; }
+
+function loadProject(id) {
+  let raw = null;
+  try { raw = JSON.parse(localStorage.getItem(projectKey(id)) || "null"); } catch (e) { raw = null; }
+  return migrate(raw);
+}
+/* Save the cartoon first, then the index. If we are interrupted between the
+   two, the cartoon is on disk but unlisted — and recoverIndex() below finds it
+   again next time, rather than it quietly vanishing. */
+function saveProject(p, onQuota) {
+  p.updatedAt = new Date().toISOString();
+  let ok = true;
+  try { localStorage.setItem(projectKey(p.id), serialise(p)); }
+  catch (e) { ok = false; if (onQuota) onQuota(e); }
+  if (!ok) return false;
+  const e = DB.index.find((x) => x.id === p.id);
+  const row = { id:p.id, title:p.title, updatedAt:p.updatedAt, frames:p.frames.length };
+  if (e) Object.assign(e, row); else DB.index.unshift(row);
+  DB.index.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+  writeDB();
+  return true;
+}
+function deleteProject(id) {
+  try { localStorage.removeItem(projectKey(id)); } catch (e) {}
+  DB.index = DB.index.filter((x) => x.id !== id);
+  if (DB.currentId === id) DB.currentId = null;
+  writeDB();
+}
+/* Put the index back together from what is actually on disk: adds cartoons a
+   half-finished save left unlisted, and drops rows whose cartoon has gone. */
+function recoverIndex() {
+  const found = {}, added = [];
+  let n = 0;
+  try { n = localStorage.length; } catch (e) { return added; }
+  for (let i = 0; i < n; i++) {
+    let k = null;
+    try { k = localStorage.key(i); } catch (e) { continue; }
+    if (!k || k.indexOf(PKEY) !== 0) continue;
+    const id = k.slice(PKEY.length);
+    found[id] = true;
+    if (DB.index.some((x) => x.id === id)) continue;
+    const p = loadProject(id);
+    if (!p) continue;
+    DB.index.push({ id:p.id, title:p.title, updatedAt:p.updatedAt, frames:p.frames.length });
+    added.push(p.title);
+  }
+  const before = DB.index.length;
+  DB.index = DB.index.filter((x) => found[x.id]);
+  DB.index.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+  if (added.length || DB.index.length !== before) writeDB();
+  return added;
+}
+
+/* --------------------------------------------------------------------------
+   UNLOCKS
+   Earned by making cartoons, never bought and never ground out. The three
+   starter characters and every editing tool stay unlocked whatever happens.
+   -------------------------------------------------------------------------- */
+const UNLOCKS = {
+  played1:   { how:"Play a cartoon all the way through", test:(s) => s.played >= 1 },
+  frames3:   { how:"Make a cartoon with 3 frames",       test:(s) => s.maxFrames >= 3 },
+  bg3:       { how:"Try 3 different backgrounds",        test:(s) => s.bgs.length >= 3 },
+  projects3: { how:"Start 3 different cartoons",         test:(s) => s.projects >= 3 },
+  frames10:  { how:"Make a cartoon with 10 frames",      test:(s) => s.maxFrames >= 10 },
+  frames20:  { how:"Make 20 frames altogether",          test:(s) => s.totalFrames >= 20 },
+  crowd3:    { how:"Play a cartoon with 3 characters",   test:(s) => s.maxChars >= 3 },
+  smooth1:   { how:"Play a cartoon in Smooth mode",      test:(s) => s.smoothPlays >= 1 }
+};
+function isUnlocked(need) { return !need || DB.unlocks.indexOf(need) !== -1; }
+function typeAvailable(id) { const t = TYPE[id]; return !!t && (t.start || isUnlocked(t.need)); }
+function accAvailable(id) { const a = ACC[id]; return !!a && (a.start || isUnlocked(a.need)); }
+function howToGet(need) { return (UNLOCKS[need] || {}).how || "Keep making cartoons"; }
+
+/* Check every rule, award anything newly earned, and hand back what to crow
+   about. Counters only ever go up; nothing here can be lost or taken away. */
+function checkUnlocks() {
+  const won = [];
+  Object.keys(UNLOCKS).forEach((k) => {
+    if (DB.unlocks.indexOf(k) !== -1) return;
+    if (!UNLOCKS[k].test(DB.stats)) return;
+    DB.unlocks.push(k);
+    TYPES.forEach((t) => { if (t.need === k) won.push({ kind:"character", nm:t.nm, id:t.id }); });
+    ACCS.forEach((a) => { if (a.need === k) won.push({ kind:"accessory", nm:a.nm, id:a.id }); });
+  });
+  if (won.length) writeDB();
+  return won;
+}
+function noteStats(fn) { fn(DB.stats); writeDB(); }
+
+/* --------------------------------------------------------------------------
+   UNDO / REDO — whole-project snapshots. Simple, and it cannot half-apply.
+   -------------------------------------------------------------------------- */
+const HIST_MAX = 40, HIST_BYTES = 6e6;
+let undoStack = [], redoStack = [];
+function histReset() { undoStack = []; redoStack = []; }
+function histPush(p) {
+  undoStack.push(serialise(p));
+  redoStack.length = 0;
+  let bytes = undoStack.reduce((n, s) => n + s.length, 0);
+  while (undoStack.length > HIST_MAX || (bytes > HIST_BYTES && undoStack.length > 2)) {
+    bytes -= undoStack[0].length;
+    undoStack.shift();
+  }
+}
+function histUndo(cur) {
+  if (!undoStack.length) return null;
+  redoStack.push(serialise(cur));
+  return migrate(JSON.parse(undoStack.pop()));
+}
+function histRedo(cur) {
+  if (!redoStack.length) return null;
+  undoStack.push(serialise(cur));
+  return migrate(JSON.parse(redoStack.pop()));
+}
+
+/* --------------------------------------------------------------------------
+   INTERPOLATION for smooth playback. Characters are matched by their stable
+   id; one that appears or disappears simply pops, because a half-faded
+   character mid-leap looks like a bug rather than a choice.
+   -------------------------------------------------------------------------- */
+function lerp(a, b, t) { return a + (b - a) * t; }
+function lerpAngle(a, b, t) { return a + wrapDeg(b - a) * t; }
+function tweenCharacter(a, b, t) {
+  const out = clone(a);
+  out.root.x = lerp(a.root.x, b.root.x, t);
+  out.root.y = lerp(a.root.y, b.root.y, t);
+  out.scale = lerp(a.scale, b.scale, t);
+  out.rotation = lerpAngle(a.rotation, b.rotation, t);
+  JOINT_NAMES.forEach((n) => {
+    out.joints[n] = lerpAngle(a.joints[n] || 0, b.joints[n] || 0, t);
+  });
+  return out;                       // looks, eyes and accessories snap, not blend
+}
+function tweenFrame(f1, f2, t) {
+  if (!f2 || t <= 0) return f1;
+  const byId = {};
+  f2.characters.forEach((c) => { byId[c.id] = c; });
+  const chars = f1.characters.map((c) => (byId[c.id] ? tweenCharacter(c, byId[c.id], t) : c));
+  return { id:f1.id, durationMs:f1.durationMs, backgroundId:f1.backgroundId, characters:chars };
+}
+
+/* ===========================================================================
+   THE STAGE: camera, drawing, touch, playback
+   =========================================================================== */
+let P = null;                 // the open project
+let frameIx = 0;              // which frame is being edited
+let selId = null;             // which character is selected
+let locked = false;           // Lock Pose: limbs held still, body still movable
+let ghost = false;            // onion skin of the frame before
+let playing = false, playT0 = 0, playIx = 0, playSub = 0;
+let view = { x: STAGE_W / 2, y: STAGE_H / 2, z: 1 };
+let needsDraw = true, rafId = 0, fitted = false;
+
+const cv = $("stage"), g = cv.getContext("2d");
+let cw = 0, chh = 0, dpr = 1;
+
+function frame() { return P.frames[frameIx]; }
+function chars() { return frame().characters; }
+function selected() { return chars().find((c) => c.id === selId) || null; }
+function sortedChars(f) { return f.characters.slice().sort((a, b) => a.zIndex - b.zIndex); }
+
+function resize() {
+  const r = $("stagewrap").getBoundingClientRect();
+  dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  cw = Math.max(80, Math.round(r.width)); chh = Math.max(80, Math.round(r.height));
+  cv.width = Math.round(cw * dpr); cv.height = Math.round(chh * dpr);
+  /* the first resize is the first moment the canvas has a real size, so
+     that is when the camera can actually be fitted to the stage */
+  if (!fitted) fitView(); else draw();
+}
+function fitView() {
+  if (cw < 2 || chh < 2) return;
+  fitted = true;
+  view.z = Math.min(cw / STAGE_W, chh / STAGE_H) * 0.95;
+  view.x = STAGE_W / 2; view.y = STAGE_H / 2;
+  draw();
+}
+const toScreen = (wx, wy) => ({ x:(wx - view.x) * view.z + cw / 2, y:(wy - view.y) * view.z + chh / 2 });
+const toWorld = (sx, sy) => ({ x:(sx - cw / 2) / view.z + view.x, y:(sy - chh / 2) / view.z + view.y });
+
+function draw() { needsDraw = true; }
+function tick() {
+  rafId = requestAnimationFrame(tick);
+  if (playing) stepPlayback();
+  if (!needsDraw) return;
+  needsDraw = false;
+  paint();
+}
+function paint() {
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = "#0e1020"; g.fillRect(0, 0, cw, chh);
+  g.save();
+  g.translate(cw / 2, chh / 2); g.scale(view.z, view.z); g.translate(-view.x, -view.y);
+
+  const f = playing ? playbackFrame() : frame();
+  g.save(); g.beginPath(); g.rect(0, 0, STAGE_W, STAGE_H); g.clip();
+  drawBg(g, f.backgroundId);
+
+  if (!playing && ghost && frameIx > 0) {
+    sortedChars(P.frames[frameIx - 1]).forEach((c) => drawCharacter(g, c, { alpha:0.26 }));
+  }
+  sortedChars(f).forEach((c) => drawCharacter(g, c, {}));
+  g.restore();
+
+  /* a frame round the stage, so the edge of the cartoon is obvious */
+  g.strokeStyle = "rgba(255,255,255,.3)"; g.lineWidth = 3 / view.z;
+  g.strokeRect(0, 0, STAGE_W, STAGE_H);
+  g.restore();
+
+  if (!playing) drawHandles();
+}
+
+/* Handles are drawn in screen pixels, not world units, so they stay the same
+   comfortable size whatever the zoom. */
+const HANDLE_R = 11, HIT_R = 26, ROOT_R = 18;
+function drawHandles() {
+  const c = selected();
+  if (!c) return;
+  const sk = skeleton(c);
+
+  if (!locked) {
+    HANDLES.forEach((n) => {
+      if (n === "neck") return;                 // the head handle covers head tilt
+      const p = handlePos(c, sk, n), s = toScreen(p.x, p.y);
+      const live = dragging && dragging.joint === n;
+      g.fillStyle = live ? "#ffd964" : "rgba(255,255,255,.52)";
+      g.strokeStyle = live ? "#8a6a10" : "rgba(28,26,46,.85)";
+      g.lineWidth = live ? 3.5 : 2.5;
+      g.beginPath(); g.arc(s.x, s.y, HANDLE_R, 0, 7); g.fill(); g.stroke();
+    });
+  }
+  /* the body handle: bigger, a different shape and a different colour, so it
+     never gets confused with a limb */
+  const r = toScreen(c.root.x, c.root.y);
+  g.fillStyle = dragging && dragging.kind === "move" ? "#ffd964" : "#4a7de0";
+  g.strokeStyle = "#fff"; g.lineWidth = 3.5;
+  g.beginPath(); g.arc(r.x, r.y, ROOT_R, 0, 7); g.fill(); g.stroke();
+  g.fillStyle = "#fff"; g.font = "bold 15px system-ui,sans-serif";
+  g.textAlign = "center"; g.textBaseline = "middle";
+  g.fillText("✥", r.x, r.y + 1);
+}
+
+/* ---------------------------------------------------------------------------
+   HIT TESTING
+   Fourteen handles on a character a few hundred pixels tall will always
+   overlap, so rather than "the first one under the finger" we take the NEAREST
+   one. That is deterministic and it is what a person means.
+   --------------------------------------------------------------------------- */
+function pickHandle(c, sx, sy) {
+  const sk = skeleton(c);
+  let best = null, bestD = HIT_R;
+  const rp = toScreen(c.root.x, c.root.y);
+  const rd = Math.hypot(rp.x - sx, rp.y - sy);
+  if (rd <= ROOT_R + 10) return { kind:"move" };
+  if (locked) return null;
+  HANDLES.forEach((n) => {
+    if (n === "neck") return;
+    const p = handlePos(c, sk, n), s = toScreen(p.x, p.y);
+    const d = Math.hypot(s.x - sx, s.y - sy);
+    if (d < bestD) { bestD = d; best = n; }
+  });
+  return best ? { kind:"pose", joint:best } : null;
+}
+function distToSeg(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy;
+  let t = L ? ((px - ax) * dx + (py - ay) * dy) / L : 0;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (ax + dx * t), py - (ay + dy * t));
+}
+function pickCharacter(wx, wy) {
+  const list = sortedChars(frame()).slice().reverse();   // topmost first
+  for (let i = 0; i < list.length; i++) {
+    const c = list[i], sk = skeleton(c), pad = 16 * (c.scale || 1);
+    const hd = headDisc(c, sk);
+    if (Math.hypot(wx - hd.x, wy - hd.y) <= hd.r + pad) return c;
+    for (let k = 0; k < BONES.length; k++) {
+      const b = sk[BONES[k].n];
+      if (distToSeg(wx, wy, b.ax, b.ay, b.bx, b.by) <= pad) return c;
+    }
+  }
+  return null;
+}
+
+/* ---------------------------------------------------------------------------
+   POINTERS
+   One finger poses or moves; two fingers pinch and pan. The moment a second
+   finger lands, whatever the first was doing is undone — a pinch should never
+   leave a bent elbow behind.
+   --------------------------------------------------------------------------- */
+const pointers = new Map();
+let dragging = null, pinch = null, panning = null;
+
+function localXY(ev) {
+  const r = cv.getBoundingClientRect();
+  return { x: ev.clientX - r.left, y: ev.clientY - r.top };
+}
+function cancelDrag(restore) {
+  if (dragging && restore && dragging.before) {
+    const c = chars().find((x) => x.id === dragging.before.id);
+    if (c) { c.joints = clone(dragging.before.joints); c.root = clone(dragging.before.root); }
+  }
+  dragging = null; panning = null; draw();
+}
+
+cv.addEventListener("pointerdown", (ev) => {
+  ev.preventDefault();
+  cv.setPointerCapture(ev.pointerId);
+  pointers.set(ev.pointerId, localXY(ev));
+  if (playing) { stopPlayback(); return; }
+
+  if (pointers.size === 2) {
+    cancelDrag(true);                      // a pinch must not disturb a pose
+    const pts = [...pointers.values()];
+    pinch = {
+      d: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y),
+      mid: { x:(pts[0].x + pts[1].x) / 2, y:(pts[0].y + pts[1].y) / 2 },
+      z: view.z, vx: view.x, vy: view.y
+    };
+    return;
+  }
+  if (pointers.size !== 1) return;
+
+  const p = localXY(ev), w = toWorld(p.x, p.y);
+  const sel = selected();
+  if (sel) {
+    const h = pickHandle(sel, p.x, p.y);
+    if (h) {
+      dragging = { kind:h.kind, joint:h.joint, id:sel.id, moved:false,
+                   before:{ id:sel.id, joints:clone(sel.joints), root:clone(sel.root) },
+                   grab:{ x:w.x - sel.root.x, y:w.y - sel.root.y } };
+      draw(); return;
+    }
+  }
+  const hit = pickCharacter(w.x, w.y);
+  if (hit) {
+    selId = hit.id;
+    dragging = { kind:"move", id:hit.id, moved:false, pending:true,
+                 before:{ id:hit.id, joints:clone(hit.joints), root:clone(hit.root) },
+                 grab:{ x:w.x - hit.root.x, y:w.y - hit.root.y } };
+    refreshSelUI(); draw(); return;
+  }
+  panning = { sx:p.x, sy:p.y, vx:view.x, vy:view.y, moved:false };
+});
+
+cv.addEventListener("pointermove", (ev) => {
+  if (!pointers.has(ev.pointerId)) return;
+  pointers.set(ev.pointerId, localXY(ev));
+
+  if (pinch && pointers.size >= 2) {
+    const pts = [...pointers.values()];
+    const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    const mid = { x:(pts[0].x + pts[1].x) / 2, y:(pts[0].y + pts[1].y) / 2 };
+    const z = Math.max(0.18, Math.min(4, pinch.z * (d / Math.max(12, pinch.d))));
+    view.z = z;
+    view.x = pinch.vx - (mid.x - pinch.mid.x) / z;
+    view.y = pinch.vy - (mid.y - pinch.mid.y) / z;
+    draw(); return;
+  }
+  const p = localXY(ev);
+  if (panning) {
+    if (Math.hypot(p.x - panning.sx, p.y - panning.sy) > 5) panning.moved = true;
+    view.x = panning.vx - (p.x - panning.sx) / view.z;
+    view.y = panning.vy - (p.y - panning.sy) / view.z;
+    draw(); return;
+  }
+  if (!dragging) return;
+  const c = chars().find((x) => x.id === dragging.id);
+  if (!c) return;
+  const w = toWorld(p.x, p.y);
+  if (dragging.kind === "move") {
+    if (dragging.pending) {
+      const s0 = toScreen(dragging.before.root.x + dragging.grab.x, dragging.before.root.y + dragging.grab.y);
+      if (Math.hypot(s0.x - p.x, s0.y - p.y) < 6) return;   // a tap is not a drag
+      dragging.pending = false;
+    }
+    c.root.x = Math.max(-200, Math.min(STAGE_W + 200, w.x - dragging.grab.x));
+    c.root.y = Math.max(-200, Math.min(STAGE_H + 200, w.y - dragging.grab.y));
+    dragging.moved = true;
+  } else {
+    c.joints[dragging.joint] = aimBone(c, dragging.joint, w.x, w.y);
+    dragging.moved = true;
+  }
+  markFrameDirty(); draw();
+});
+
+function endPointer(ev) {
+  pointers.delete(ev.pointerId);
+  if (pointers.size < 2) pinch = null;
+  if (pointers.size > 0) return;
+
+  if (panning) {
+    if (!panning.moved) { selId = null; refreshSelUI(); }
+    panning = null; draw(); return;
+  }
+  if (dragging) {
+    if (dragging.moved) { pushHistoryFrom(dragging.before); refreshStrip(); autosave(); }
+    dragging = null; draw();
+  }
+}
+cv.addEventListener("pointerup", endPointer);
+cv.addEventListener("pointercancel", endPointer);
+cv.addEventListener("wheel", (ev) => {
+  ev.preventDefault();
+  const p = localXY(ev), before = toWorld(p.x, p.y);
+  view.z = Math.max(0.18, Math.min(4, view.z * (ev.deltaY > 0 ? 0.9 : 1.1)));
+  const after = toWorld(p.x, p.y);
+  view.x += before.x - after.x; view.y += before.y - after.y;
+  draw();
+}, { passive:false });
+
+/* The snapshot for undo is taken from BEFORE the drag began, so one undo puts
+   the whole gesture back rather than unpicking it a pixel at a time. */
+function pushHistoryFrom(before) {
+  const snap = clone(P);
+  const f = snap.frames[frameIx];
+  const c = f && f.characters.find((x) => x.id === before.id);
+  if (c) { c.joints = clone(before.joints); c.root = clone(before.root); }
+  undoStack.push(serialise(snap));
+  redoStack.length = 0;
+  while (undoStack.length > HIST_MAX) undoStack.shift();
+  refreshHistUI();
+}
+
+/* ---------------------------------------------------------------------------
+   PLAYBACK
+   --------------------------------------------------------------------------- */
+function playbackFrame() {
+  const f = P.frames[playIx] || P.frames[0];
+  if (P.playbackMode !== "smooth") return f;
+  const nx = P.frames[(playIx + 1) % P.frames.length];
+  return tweenFrame(f, nx, playSub);
+}
+function startPlayback() {
+  if (P.frames.length < 1) return;
+  playing = true; playIx = frameIx; playSub = 0; playT0 = performance.now();
+  selId = null;
+  $("bPlay").innerHTML = '<span class="ic">⏹</span>';
+  $("bPlay").setAttribute("aria-label", "Stop the cartoon");
+  refreshSelUI(); refreshStrip(); draw();
+}
+function stopPlayback() {
+  if (!playing) return;
+  playing = false;
+  frameIx = Math.min(playIx, P.frames.length - 1);
+  $("bPlay").innerHTML = '<span class="ic">▶</span>';
+  $("bPlay").setAttribute("aria-label", "Play the cartoon");
+  /* a full play-through is what earns the first unlock */
+  noteStats((s) => {
+    s.played++;
+    if (P.playbackMode === "smooth") s.smoothPlays++;
+    const most = P.frames.reduce((m, f) => Math.max(m, f.characters.length), 0);
+    s.maxChars = Math.max(s.maxChars, most);
+  });
+  celebrate(checkUnlocks());
+  refreshStrip(); refreshSelUI(); draw();
+}
+function stepPlayback() {
+  const now = performance.now();
+  const f = P.frames[playIx] || P.frames[0];
+  const dur = Math.max(40, f.durationMs);
+  const el = now - playT0;
+  if (P.playbackMode === "smooth") playSub = Math.max(0, Math.min(1, el / dur));
+  if (el >= dur) {
+    playT0 = now; playSub = 0;
+    playIx = (playIx + 1) % P.frames.length;
+    refreshStrip();
+  }
+  draw();
+}
+
+/* ---------------------------------------------------------------------------
+   THUMBNAILS — the same painter, shrunk. Cached per frame and redrawn only
+   when that frame actually changes, so a hundred-frame cartoon stays smooth.
+   --------------------------------------------------------------------------- */
+const thumbCache = new Map();
+function markFrameDirty(ix) {
+  const f = P.frames[ix == null ? frameIx : ix];
+  if (f) thumbCache.delete(f.id);
+  dirty = true;
+}
+/* A short description of everything in a frame that is visible. The cached
+   thumbnail is kept against this rather than against the frame's id alone,
+   so a thumbnail cannot go stale just because some edit forgot to say it had
+   changed one. Building it for a hundred-frame cartoon costs well under a
+   millisecond, which is far less than redrawing a hundred thumbnails. */
+function frameSig(f) {
+  let s = f.backgroundId + "|" + f.characters.length;
+  for (let i = 0; i < f.characters.length; i++) {
+    const c = f.characters[i];
+    s += "|" + c.id + c.type + c.eyeStyle + (c.colour || "-") + c.zIndex +
+         Math.round(c.root.x) + "," + Math.round(c.root.y) + "," +
+         Math.round(c.scale * 100) + "," + Math.round(c.rotation);
+    for (let k = 0; k < JOINT_NAMES.length; k++) s += "," + Math.round(c.joints[JOINT_NAMES[k]]);
+    for (let k = 0; k < c.accessories.length; k++) s += "+" + c.accessories[k].type;
+  }
+  return s;
+}
+function renderThumb(f, canvas) {
+  const w = canvas.width, h = canvas.height;
+  const t = canvas.getContext("2d");
+  t.setTransform(1, 0, 0, 1, 0, 0);
+  t.clearRect(0, 0, w, h);
+  const z = Math.min(w / STAGE_W, h / STAGE_H);
+  t.save();
+  t.translate((w - STAGE_W * z) / 2, (h - STAGE_H * z) / 2);
+  t.scale(z, z);
+  t.beginPath(); t.rect(0, 0, STAGE_W, STAGE_H); t.clip();
+  drawBg(t, f.backgroundId);
+  sortedChars(f).forEach((c) => drawCharacter(t, c, {}));
+  t.restore();
+}
+function thumbFor(f, w, h) {
+  const sig = frameSig(f);
+  const hit = thumbCache.get(f.id);
+  if (hit && hit.sig === sig && hit.cv.width === w && hit.cv.height === h) return hit.cv;
+  const c = (hit && hit.cv.width === w && hit.cv.height === h) ? hit.cv : document.createElement("canvas");
+  c.width = w; c.height = h;
+  renderThumb(f, c);
+  thumbCache.set(f.id, { sig: sig, cv: c });
+  if (thumbCache.size > 400) thumbCache.delete(thumbCache.keys().next().value);
+  return c;
+}
+
+/* ===========================================================================
+   THE CONTROLS
+   =========================================================================== */
+let dirty = false, saveTimer = 0, bigWarned = false;
+
+let toastT = 0;
+function toast(msg, ms) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), ms || 2200);
+}
+function setSaved(txt, busy) {
+  const e = $("tSaved");
+  e.textContent = txt;
+  e.classList.toggle("busy", !!busy);
+}
+function autosave() {
+  dirty = true;
+  setSaved("saving…", true);
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveNow, 700);
+}
+function saveNow() {
+  clearTimeout(saveTimer);
+  if (!P) return;
+  let quota = false;
+  const ok = saveProject(P, () => { quota = true; });
+  if (ok) { dirty = false; setSaved("saved"); }
+  else {
+    setSaved("not saved!", true);
+    sheetNote(quota
+      ? "This device has run out of room to save in. Nothing you have made has been thrown away — but to save again, delete a cartoon you have finished with from 📁 My cartoons."
+      : "That did not save. Your cartoon is still here on screen; try again in a moment.", true);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   SHEETS
+   --------------------------------------------------------------------------- */
+let sheetClose = null;
+function openSheet(title, bodyHTML, footer, onClose) {
+  $("shT").textContent = title;
+  $("shB").innerHTML = bodyHTML;
+  const ft = $("shF"); ft.innerHTML = "";
+  (footer || []).forEach((b) => {
+    const el = document.createElement("button");
+    el.className = "btn" + (b.cls ? " " + b.cls : "");
+    el.textContent = b.label;
+    if (b.id) el.id = b.id;
+    el.addEventListener("click", () => { if (b.go) b.go(); });
+    ft.appendChild(el);
+  });
+  sheetClose = onClose || null;
+  $("sheet").classList.add("show");
+}
+function closeSheet() {
+  $("sheet").classList.remove("show");
+  const f = sheetClose; sheetClose = null;
+  if (f) f();
+}
+$("shX").addEventListener("click", closeSheet);
+$("sheet").addEventListener("pointerdown", (e) => { if (e.target === $("sheet")) closeSheet(); });
+
+function sheetNote(text, bad) {
+  openSheet("Hang on", '<div class="note' + (bad ? " bad" : "") + '">' + esc(text) + "</div>",
+    [{ label:"OK", cls:"go", go:closeSheet }]);
+}
+function confirmSheet(title, text, okLabel, go) {
+  openSheet(title, '<div class="note bad">' + esc(text) + "</div>", [
+    { label:"Cancel", go:closeSheet },
+    { label:okLabel, cls:"warn", go:() => { closeSheet(); go(); } }
+  ]);
+}
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+
+/* ---------------------------------------------------------------------------
+   UNLOCK CELEBRATION — brief, cheerful, and it never interrupts a drag.
+   --------------------------------------------------------------------------- */
+let winQueue = [];
+function celebrate(won) {
+  if (!won || !won.length) return;
+  winQueue = winQueue.concat(won);
+  showNextWin();
+}
+function showNextWin() {
+  if (!winQueue.length) { $("unlock").classList.remove("show"); return; }
+  const w = winQueue[0];
+  $("ulE").textContent = w.kind === "character" ? "🧍" : "🎁";
+  $("ulT").textContent = "New " + w.kind + " unlocked!";
+  $("ulP").textContent = w.nm + " is yours. Find it in the workshop.";
+  $("unlock").classList.add("show");
+}
+$("ulOk").addEventListener("click", () => { winQueue.shift(); showNextWin(); });
+
+/* ---------------------------------------------------------------------------
+   TOOL ROW
+   --------------------------------------------------------------------------- */
+const TOOLS = [
+  { id:"tAdd",   label:"＋ Character", cls:"go",  aria:"Add a character" },
+  { id:"tEdit",  label:"🎨 Change",    aria:"Change the selected character", needSel:true },
+  { id:"tCopy",  label:"⧉ Copy",       aria:"Copy the selected character", needSel:true },
+  { id:"tUp",    label:"⬆ Front",      aria:"Bring the selected character to the front", needSel:true },
+  { id:"tDown",  label:"⬇ Back",       aria:"Send the selected character to the back", needSel:true },
+  { id:"tDel",   label:"🗑 Remove",    cls:"warn", aria:"Remove the selected character", needSel:true },
+  { id:"tJoint", label:"🦴 Joints",   aria:"Adjust joints with buttons instead of dragging", needSel:true },
+  { sep:true },
+  { id:"tScene", label:"🎬 Scene",     aria:"Choose where the cartoon happens" },
+  { id:"tMode",  label:"Play: Step",      aria:"Playback style: step or smooth" }
+];
+function buildTools() {
+  const box = $("tools"); box.innerHTML = "";
+  TOOLS.forEach((t) => {
+    if (t.sep) { const s = document.createElement("div"); s.className = "sep"; box.appendChild(s); return; }
+    const b = document.createElement("button");
+    b.className = "btn" + (t.cls ? " " + t.cls : "");
+    b.id = t.id; b.textContent = t.label;
+    b.setAttribute("aria-label", t.aria);
+    box.appendChild(b);
+  });
+  $("tAdd").addEventListener("click", () => openWorkshop("add"));
+  $("tEdit").addEventListener("click", () => { if (selected()) openWorkshop("edit"); });
+  $("tCopy").addEventListener("click", copyCharacter);
+  $("tUp").addEventListener("click", () => layer(1));
+  $("tDown").addEventListener("click", () => layer(-1));
+  $("tDel").addEventListener("click", removeCharacter);
+  $("tJoint").addEventListener("click", openJoints);
+  $("tScene").addEventListener("click", openScenes);
+  $("tMode").addEventListener("click", toggleMode);
+}
+function refreshSelUI() {
+  const has = !!selected();
+  TOOLS.forEach((t) => {
+    if (!t.needSel || !t.id) return;
+    const b = $(t.id); if (b) b.disabled = !has || playing;
+  });
+  $("tMode").textContent = P.playbackMode === "smooth" ? "Play: Smooth" : "Play: Step";
+  $("tMode").setAttribute("aria-label",
+    "Playback style: currently " + (P.playbackMode === "smooth" ? "smooth" : "step"));
+}
+function refreshHistUI() {
+  $("bUndo").disabled = !undoStack.length;
+  $("bRedo").disabled = !redoStack.length;
+}
+
+function commit(label) {            /* snapshot THEN change, for one-tap undo */
+  histPush(P);
+  if (label) toast(label);
+  refreshHistUI();
+}
+function afterEdit() {
+  markFrameDirty();
+  refreshStrip(); refreshSelUI(); draw(); autosave();
+}
+
+function copyCharacter() {
+  const c = selected(); if (!c) return;
+  commit();
+  const d = clone(c);
+  d.id = newId("c");
+  d.accessories.forEach((a) => { a.id = newId("a"); });
+  d.root.x += 70; d.zIndex = topZ() + 1;
+  chars().push(d); selId = d.id;
+  afterEdit();
+}
+function removeCharacter() {
+  const c = selected(); if (!c) return;
+  commit();
+  frame().characters = chars().filter((x) => x.id !== c.id);
+  selId = null;
+  toast("Removed — tap ↶ to put it back");
+  afterEdit();
+}
+function topZ() { return chars().reduce((m, c) => Math.max(m, c.zIndex), 0); }
+function layer(dir) {
+  const c = selected(); if (!c) return;
+  commit();
+  c.zIndex = dir > 0 ? topZ() + 1 : chars().reduce((m, x) => Math.min(m, x.zIndex), 0) - 1;
+  afterEdit();
+}
+function toggleMode() {
+  P.playbackMode = P.playbackMode === "smooth" ? "step" : "smooth";
+  refreshSelUI(); autosave();
+  toast(P.playbackMode === "smooth"
+    ? "Smooth: the poses slide into each other"
+    : "Step: one pose, then the next");
+}
+
+/* ---------------------------------------------------------------------------
+   FRAMES
+   --------------------------------------------------------------------------- */
+function refreshStrip() {
+  const box = $("frames");
+  box.innerHTML = "";
+  const TW = window.innerWidth < 620 ? 74 : 92, TH = Math.round(TW * STAGE_H / STAGE_W);
+  P.frames.forEach((f, i) => {
+    const b = document.createElement("button");
+    b.className = "fr" + (i === frameIx && !playing ? " cur" : "") + (playing && i === playIx ? " playing" : "");
+    b.setAttribute("role", "option");
+    b.setAttribute("aria-selected", String(i === frameIx));
+    b.setAttribute("aria-label", "Frame " + (i + 1) + " of " + P.frames.length);
+    const c = thumbFor(f, Math.round(TW * 2), Math.round(TH * 2));
+    const shown = document.createElement("canvas");
+    shown.width = c.width; shown.height = c.height;
+    shown.getContext("2d").drawImage(c, 0, 0);
+    b.appendChild(shown);
+    const no = document.createElement("span");
+    no.className = "no"; no.textContent = i + 1;
+    b.appendChild(no);
+    b.addEventListener("click", () => { if (playing) stopPlayback(); gotoFrame(i); });
+    if (i === frameIx && !playing && P.frames.length > 1) {
+      [["l", -1, "◀", "Move this frame earlier"], ["r", 1, "▶", "Move this frame later"]].forEach((m) => {
+        if ((m[1] < 0 && i === 0) || (m[1] > 0 && i === P.frames.length - 1)) return;
+        const mv = document.createElement("button");
+        mv.className = "mv " + m[0]; mv.textContent = m[2];
+        mv.setAttribute("aria-label", m[3]);
+        mv.addEventListener("click", (ev) => { ev.stopPropagation(); moveFrame(m[1]); });
+        b.appendChild(mv);
+      });
+    }
+    box.appendChild(b);
+  });
+  const cur = box.children[playing ? playIx : frameIx];
+  if (cur && cur.scrollIntoView) cur.scrollIntoView({ block:"nearest", inline:"nearest" });
+  $("bDelFrame").disabled = P.frames.length <= 1 || playing;
+  $("bSpeed").innerHTML = P.fps + "<small>fps</small>";
+}
+function gotoFrame(i) {
+  frameIx = Math.max(0, Math.min(P.frames.length - 1, i));
+  if (!chars().some((c) => c.id === selId)) selId = null;
+  refreshStrip(); refreshSelUI(); draw();
+}
+/* Both of these copy a whole frame — poses, costumes, background and all — so
+   that only the thing you want to change has to be touched. The copy keeps the
+   SAME character ids, because it is the same cast standing somewhere new.
+   `atEnd` is the difference: ＋ frame grows the cartoon, ⧉ slots a copy in
+   beside the frame you are looking at. */
+function addFrame(atEnd) {
+  commit();
+  const srcIx = atEnd ? P.frames.length - 1 : frameIx;
+  const at = atEnd ? P.frames.length : frameIx + 1;
+  const f = duplicateFrame(P.frames[srcIx]);
+  P.frames.splice(at, 0, f);
+  frameIx = at;
+  noteStats((s) => {
+    s.totalFrames++;
+    s.maxFrames = Math.max(s.maxFrames, P.frames.length);
+  });
+  celebrate(checkUnlocks());
+  warnIfHuge();
+  refreshStrip(); refreshSelUI(); draw(); autosave();
+}
+function deleteFrame() {
+  if (P.frames.length <= 1) return;
+  confirmSheet("Delete this frame?",
+    "Frame " + (frameIx + 1) + " will go. You can always tap ↶ Undo straight afterwards.",
+    "Delete it", () => {
+      commit();
+      const f = P.frames.splice(frameIx, 1)[0];
+      thumbCache.delete(f.id);
+      frameIx = Math.min(frameIx, P.frames.length - 1);
+      selId = null;
+      toast("Frame deleted — ↶ puts it back");
+      refreshStrip(); refreshSelUI(); draw(); autosave();
+    });
+}
+function moveFrame(dir) {
+  const j = frameIx + dir;
+  if (j < 0 || j >= P.frames.length) return;
+  commit();
+  const f = P.frames.splice(frameIx, 1)[0];
+  P.frames.splice(j, 0, f);
+  frameIx = j;
+  refreshStrip(); draw(); autosave();
+}
+function warnIfHuge() {
+  if (bigWarned) return;
+  const chars_ = P.frames.reduce((n, f) => n + f.characters.length, 0);
+  if (P.frames.length < 180 && chars_ < 700) return;
+  bigWarned = true;
+  sheetNote("This is a big cartoon now — " + P.frames.length + " frames. It will keep working, " +
+    "but it may start to feel slower, and some devices run out of saving room. " +
+    "Starting a second cartoon for the next scene is a good idea.");
+}
+
+const FPS_STEPS = [2, 3, 4, 6, 8, 12, 16, 24];
+$("bSpeed").addEventListener("click", () => {
+  const i = FPS_STEPS.indexOf(P.fps);
+  P.fps = FPS_STEPS[(i + 1) % FPS_STEPS.length];
+  const d = Math.round(1000 / P.fps);
+  P.frames.forEach((f) => { f.durationMs = d; });
+  refreshStrip(); autosave();
+  toast(P.fps + " frames a second");
+});
+$("bPlay").addEventListener("click", () => { playing ? stopPlayback() : startPlayback(); });
+$("bAddFrame").addEventListener("click", () => addFrame(true));
+$("bDupFrame").addEventListener("click", () => addFrame(false));
+$("bDelFrame").addEventListener("click", deleteFrame);
+
+$("bUndo").addEventListener("click", () => {
+  const p = histUndo(P); if (!p) return;
+  P = p; clampIx(); thumbCache.clear();
+  refreshStrip(); refreshSelUI(); refreshHistUI(); draw(); autosave();
+});
+$("bRedo").addEventListener("click", () => {
+  const p = histRedo(P); if (!p) return;
+  P = p; clampIx(); thumbCache.clear();
+  refreshStrip(); refreshSelUI(); refreshHistUI(); draw(); autosave();
+});
+function clampIx() {
+  frameIx = Math.max(0, Math.min(P.frames.length - 1, frameIx));
+  if (!chars().some((c) => c.id === selId)) selId = null;
+}
+
+$("bFit").addEventListener("click", fitView);
+$("bGhost").addEventListener("click", () => {
+  ghost = !ghost;
+  $("bGhost").classList.toggle("on", ghost);
+  $("bGhost").setAttribute("aria-pressed", String(ghost));
+  draw();
+});
+$("bLock").addEventListener("click", () => {
+  locked = !locked;
+  const b = $("bLock");
+  b.classList.toggle("on", locked);
+  b.setAttribute("aria-pressed", String(locked));
+  b.textContent = locked ? "🔒 Locked" : "🔓 Pose";
+  b.setAttribute("aria-label", locked
+    ? "Poses are locked. Tap to let limbs move again."
+    : "Poses can be changed. Tap to lock them.");
+  toast(locked ? "Limbs locked — you can still move the whole character" : "You can pose limbs again");
+  draw();
+});
+
+/* ---------------------------------------------------------------------------
+   JOINT INSPECTOR
+   Dragging a handle is the fun way, but hands and feet sit close together and
+   not everybody can land on a small target. Every joint can also be nudged a
+   few degrees at a time with a plain pair of buttons, which needs no aim at
+   all and is the only way some people will be able to use this at all.
+   --------------------------------------------------------------------------- */
+function openJoints() {
+  const c = selected(); if (!c) return;
+  openSheet("Nudge the joints", '<div id="jtList"></div>' +
+    '<div class="note">Every one of these can also be posed by dragging its white dot on the stage. ' +
+    "This way is for when that is fiddly.</div>", [
+    { label:"Straighten everything", go:() => {
+        commit(); c.joints = restPose(); renderJoints(); afterEdit(); } },
+    { label:"Done", cls:"go", go:closeSheet }
+  ]);
+  renderJoints();
+}
+function renderJoints() {
+  const c = selected(), box = $("jtList");
+  if (!c || !box) return;
+  box.innerHTML = "";
+  HANDLES.filter((n) => n !== "neck").forEach((n) => {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;gap:8px;margin-bottom:7px";
+    const lab = document.createElement("span");
+    lab.style.cssText = "flex:1;font-size:.86rem;font-weight:bold";
+    lab.textContent = HANDLE_LABEL[n];
+    const val = document.createElement("span");
+    val.style.cssText = "font-size:.76rem;color:var(--ink2);min-width:46px;text-align:right";
+    val.textContent = Math.round(c.joints[n]) + "\u00b0";
+    [["\u2212", -8, "Bend the " + HANDLE_LABEL[n] + " one way"],
+     ["+", 8, "Bend the " + HANDLE_LABEL[n] + " the other way"]].forEach((b) => {
+      const el = document.createElement("button");
+      el.className = "btn"; el.textContent = b[0];
+      el.setAttribute("aria-label", b[2]);
+      el.addEventListener("click", () => {
+        if (!nudging) { commit(); nudging = true; setTimeout(() => { nudging = false; }, 900); }
+        c.joints[n] = clampJoint(n, c.joints[n] + b[1]);
+        val.textContent = Math.round(c.joints[n]) + "\u00b0";
+        afterEdit();
+      });
+      row.appendChild(el);
+    });
+    row.insertBefore(val, row.firstChild);
+    row.insertBefore(lab, row.firstChild);
+    box.appendChild(row);
+  });
+}
+let nudging = false;
+
+/* ---------------------------------------------------------------------------
+   CHARACTER WORKSHOP
+   --------------------------------------------------------------------------- */
+let ws = null;
+function previewChar(draft) {
+  return makeCharacter({
+    type:draft.type, eyeStyle:draft.eyeStyle, colour:draft.colour,
+    accessories:draft.accessories.slice(), x:0, y:0
+  });
+}
+function miniCanvas(draft, w, h, zoom) {
+  const c = document.createElement("canvas");
+  c.width = w * 2; c.height = h * 2;
+  c.style.width = w + "px"; c.style.height = h + "px";
+  const t = c.getContext("2d");
+  const ch = previewChar(draft);
+  const z = (zoom || 0.3) * 2;
+  t.save();
+  t.translate(c.width / 2, c.height * 0.63);
+  t.scale(z, z);
+  drawCharacter(t, ch, {});
+  t.restore();
+  return c;
+}
+function openWorkshop(mode) {
+  const cur = mode === "edit" ? selected() : null;
+  ws = {
+    mode: mode,
+    id: cur ? cur.id : null,
+    type: cur ? cur.type : "regular",
+    eyeStyle: cur ? cur.eyeStyle : "dots",
+    colour: cur ? cur.colour : null,
+    accessories: cur ? cur.accessories.map((a) => a.type) : []
+  };
+  openSheet(mode === "edit" ? "Change this character" : "Add a character", "", [
+    { label:"Cancel", go:closeSheet },
+    { label: mode === "edit" ? "Save changes" : "Put it on stage", cls:"go", go:applyWorkshop }
+  ]);
+  renderWorkshop();
+}
+function renderWorkshop() {
+  const b = $("shB");
+  b.innerHTML =
+    '<div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">' +
+      '<div id="wsPrev" style="flex:0 0 auto;background:#fff;border:3px solid var(--line);border-radius:14px;padding:4px"></div>' +
+      '<div style="flex:1;min-width:190px"><div class="fieldlab">Who</div><div class="cards" id="wsTypes"></div></div>' +
+    "</div>" +
+    '<div class="fieldlab">Eyes <span style="font-weight:normal;text-transform:none;letter-spacing:0">(no mouths in this game)</span></div>' +
+    '<div class="cards" id="wsEyes"></div>' +
+    '<div class="fieldlab">Colour</div><div class="pillrow" id="wsCols"></div>' +
+    '<div class="fieldlab">Things to wear</div><div class="cards" id="wsAcc"></div>';
+
+  $("wsPrev").appendChild(miniCanvas(ws, 128, 172, 0.40));
+
+  const types = $("wsTypes");
+  TYPES.forEach((t) => {
+    const ok = typeAvailable(t.id);
+    const card = document.createElement("button");
+    card.className = "card" + (ws.type === t.id ? " sel" : "") + (ok ? "" : " locked");
+    card.disabled = !ok;
+    card.setAttribute("aria-label", t.nm + (ok ? "" : " — locked. " + howToGet(t.need)));
+    card.appendChild(miniCanvas({ type:t.id, eyeStyle:"dots", colour:null, accessories:[] }, 62, 80, 0.19));
+    const nm = document.createElement("span"); nm.className = "cn"; nm.textContent = t.nm;
+    card.appendChild(nm);
+    if (!ok) { const lk = document.createElement("span"); lk.className = "lk";
+      lk.textContent = "🔒 " + howToGet(t.need); card.appendChild(lk); }
+    else if (ws.type === t.id) { const tk = document.createElement("span");
+      tk.className = "tick"; tk.textContent = "✓"; card.appendChild(tk); }
+    if (ok) card.addEventListener("click", () => { ws.type = t.id; renderWorkshop(); });
+    types.appendChild(card);
+  });
+
+  const eyes = $("wsEyes");
+  EYES.forEach((e) => {
+    const card = document.createElement("button");
+    card.className = "card" + (ws.eyeStyle === e.id ? " sel" : "");
+    card.setAttribute("aria-label", "Eyes: " + e.nm);
+    card.appendChild(eyeSwatch(e.id, ws.colour));
+    const nm = document.createElement("span"); nm.className = "cn"; nm.textContent = e.nm;
+    card.appendChild(nm);
+    card.addEventListener("click", () => { ws.eyeStyle = e.id; renderWorkshop(); });
+    eyes.appendChild(card);
+  });
+
+  const cols = $("wsCols");
+  const none = document.createElement("button");
+  none.className = "swatch" + (ws.colour ? "" : " sel");
+  none.style.background = "repeating-linear-gradient(45deg,#fff,#fff 6px,#ddd 6px,#ddd 12px)";
+  none.setAttribute("aria-label", "Default colour");
+  none.addEventListener("click", () => { ws.colour = null; renderWorkshop(); });
+  cols.appendChild(none);
+  COLOURS.forEach((c) => {
+    const s = document.createElement("button");
+    s.className = "swatch" + (ws.colour === c ? " sel" : "");
+    s.style.background = c;
+    s.setAttribute("aria-label", "Colour " + c);
+    s.addEventListener("click", () => { ws.colour = c; renderWorkshop(); });
+    cols.appendChild(s);
+  });
+
+  const acc = $("wsAcc");
+  ACCS.forEach((a) => {
+    const ok = accAvailable(a.id);
+    const on = ws.accessories.indexOf(a.id) !== -1;
+    const card = document.createElement("button");
+    card.className = "card" + (on ? " sel" : "") + (ok ? "" : " locked");
+    card.disabled = !ok;
+    card.setAttribute("aria-label", a.nm + (ok ? (on ? " — on" : " — off") : " — locked. " + howToGet(a.need)));
+    card.appendChild(miniCanvas({ type:ws.type, eyeStyle:"dots", colour:ws.colour, accessories:[a.id] }, 62, 80, 0.19));
+    const nm = document.createElement("span"); nm.className = "cn"; nm.textContent = a.nm;
+    card.appendChild(nm);
+    if (!ok) { const lk = document.createElement("span"); lk.className = "lk";
+      lk.textContent = "🔒 " + howToGet(a.need); card.appendChild(lk); }
+    else if (on) { const tk = document.createElement("span");
+      tk.className = "tick"; tk.textContent = "✓"; card.appendChild(tk); }
+    if (ok) card.addEventListener("click", () => {
+      const i = ws.accessories.indexOf(a.id);
+      if (i === -1) ws.accessories.push(a.id); else ws.accessories.splice(i, 1);
+      renderWorkshop();
+    });
+    acc.appendChild(card);
+  });
+}
+function eyeSwatch(style, colour) {
+  const c = document.createElement("canvas");
+  c.width = 124; c.height = 124; c.style.width = "62px"; c.style.height = "62px";
+  const t = c.getContext("2d");
+  t.fillStyle = "#fff3dc"; t.strokeStyle = colour || "#2b2a3d"; t.lineWidth = 5;
+  t.beginPath(); t.arc(62, 62, 44, 0, 7); t.fill(); t.stroke();
+  t.save(); t.translate(62, 62);
+  drawEyes(t, style, 44, colour || "#2b2a3d", 1.7);
+  t.restore();
+  return c;
+}
+/* Changing a character applies to the character ON EVERY FRAME it appears in,
+   because a Ninja that turns into a Robot halfway through a cartoon is almost
+   never what anybody meant. The pose in each frame is left exactly as it was. */
+function applyWorkshop() {
+  commit();
+  if (ws.mode === "add") {
+    const c = makeCharacter({
+      type:ws.type, eyeStyle:ws.eyeStyle, colour:ws.colour, accessories:ws.accessories,
+      x: STAGE_W / 2 + (chars().length % 5 - 2) * 150, y: STAGE_H * 0.64,
+      zIndex: topZ() + 1
+    });
+    chars().push(c);
+    selId = c.id;
+  } else {
+    let touched = 0;
+    P.frames.forEach((f) => {
+      const c = f.characters.find((x) => x.id === ws.id);
+      if (!c) return;
+      touched++;
+      c.type = ws.type; c.eyeStyle = ws.eyeStyle; c.colour = ws.colour;
+      c.accessories = ws.accessories.map((t) => ({ id:newId("a"), type:t, anchor:ACC[t].anchor }));
+      thumbCache.delete(f.id);
+    });
+    if (touched > 1) toast("Changed in all " + touched + " frames");
+  }
+  closeSheet();
+  afterEdit();
+}
+
+/* ---------------------------------------------------------------------------
+   SCENE PICKER
+   --------------------------------------------------------------------------- */
+function openScenes() {
+  openSheet("Where does it happen?", '<div class="cards" id="bgCards"></div>' +
+    '<div class="note">The background is part of the frame, so you can change scene ' +
+    "partway through a cartoon and it will change as it plays.</div>", [
+    { label:"Done", cls:"go", go:closeSheet }]);
+  const box = $("bgCards");
+  BGS.forEach((b) => {
+    const card = document.createElement("button");
+    card.className = "card" + (frame().backgroundId === b.id ? " sel" : "");
+    card.setAttribute("aria-label", "Background: " + b.nm);
+    const c = document.createElement("canvas");
+    c.width = 192; c.height = 120; c.style.width = "96px"; c.style.height = "60px";
+    const t = c.getContext("2d");
+    t.save(); t.scale(192 / STAGE_W, 120 / STAGE_H); drawBg(t, b.id); t.restore();
+    card.appendChild(c);
+    const nm = document.createElement("span"); nm.className = "cn"; nm.textContent = b.nm;
+    card.appendChild(nm);
+    card.addEventListener("click", () => {
+      commit();
+      frame().backgroundId = b.id;
+      noteStats((s) => { if (s.bgs.indexOf(b.id) === -1) s.bgs.push(b.id); });
+      celebrate(checkUnlocks());
+      closeSheet(); afterEdit();
+    });
+    box.appendChild(card);
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   LIBRARY — many cartoons, each its own saved thing. Starting a new one never
+   touches an old one.
+   --------------------------------------------------------------------------- */
+function openLibrary() {
+  if (playing) stopPlayback();
+  saveNow();
+  openSheet("📁 My cartoons", '<div id="libList"></div>', [
+    { label:"Close", go:closeSheet },
+    { label:"＋ New cartoon", cls:"go", go:newCartoon }
+  ]);
+  renderLibrary();
+}
+function renderLibrary() {
+  const box = $("libList");
+  if (!box) return;
+  box.innerHTML = "";
+  if (!DB.index.length) {
+    box.innerHTML = '<div class="note">No cartoons saved yet.</div>';
+    return;
+  }
+  DB.index.forEach((row) => {
+    const d = document.createElement("div");
+    d.className = "prj" + (P && row.id === P.id ? " cur" : "");
+    const c = document.createElement("canvas");
+    c.width = 160; c.height = 100; c.style.width = "80px"; c.style.height = "50px";
+    const p = (P && row.id === P.id) ? P : loadProject(row.id);
+    if (p) renderThumb(p.frames[0], c);
+    d.appendChild(c);
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const when = new Date(row.updatedAt);
+    meta.innerHTML = "<b>" + esc(row.title) + "</b><span>" + row.frames +
+      (row.frames === 1 ? " frame" : " frames") + " · " +
+      (isNaN(when) ? "" : when.toLocaleDateString()) +
+      (P && row.id === P.id ? " · open now" : "") + "</span>";
+    d.appendChild(meta);
+    const acts = document.createElement("div");
+    acts.className = "acts";
+    [["Open", "go", () => openCartoon(row.id)],
+     ["⧉", "", () => dupCartoon(row.id)],
+     ["🗑", "warn", () => delCartoon(row)]].forEach((a) => {
+      const b = document.createElement("button");
+      b.className = "btn " + a[1]; b.textContent = a[0];
+      b.setAttribute("aria-label",
+        a[0] === "⧉" ? "Make a copy of " + row.title :
+        a[0] === "🗑" ? "Delete " + row.title : "Open " + row.title);
+      if (a[0] === "Open" && P && row.id === P.id) b.disabled = true;
+      b.addEventListener("click", a[2]);
+      acts.appendChild(b);
+    });
+    d.appendChild(acts);
+    box.appendChild(d);
+  });
+}
+function newCartoon() {
+  saveNow();
+  const n = DB.index.length + 1;
+  const p = makeProject("Cartoon " + n);
+  noteStats((s) => { s.projects++; });
+  celebrate(checkUnlocks());
+  saveProject(p, () => {});
+  DB.currentId = p.id; writeDB();
+  adopt(p);
+  closeSheet();
+  toast("New cartoon started — the old ones are safe in 📁");
+}
+function openCartoon(id) {
+  saveNow();
+  const p = loadProject(id);
+  if (!p) { sheetNote("That cartoon could not be opened. It may have been damaged.", true); return; }
+  DB.currentId = id; writeDB();
+  adopt(p);
+  closeSheet();
+}
+function dupCartoon(id) {
+  const src = (P && P.id === id) ? P : loadProject(id);
+  if (!src) return;
+  const copy = clone(src);
+  copy.id = newId("p");
+  copy.title = (src.title + " copy").slice(0, 60);
+  copy.createdAt = copy.updatedAt = new Date().toISOString();
+  copy.frames.forEach((f) => { f.id = newId("f"); });
+  noteStats((s) => { s.projects++; });
+  celebrate(checkUnlocks());
+  if (!saveProject(copy, () => {})) {
+    sheetNote("There was not enough room to copy that one.", true); return;
+  }
+  renderLibrary();
+  toast("Copied");
+}
+function delCartoon(row) {
+  confirmSheet("Delete “" + row.title + "”?",
+    "This one cannot be undone — the cartoon will be gone for good.", "Delete it", () => {
+      const wasCurrent = P && P.id === row.id;
+      deleteProject(row.id);
+      if (wasCurrent) {
+        const next = DB.index[0] ? loadProject(DB.index[0].id) : null;
+        adopt(next || makeProject("My cartoon"));
+        if (!next) saveProject(P, () => {});
+        DB.currentId = P.id; writeDB();
+      }
+      openLibrary();
+    });
+}
+function adopt(p) {
+  P = p;
+  frameIx = 0; selId = null; bigWarned = false;
+  histReset(); thumbCache.clear(); fitted = false;
+  $("tName").textContent = P.title;
+  $("tSub").textContent = "tap to rename";
+  fitView(); refreshStrip(); refreshSelUI(); refreshHistUI(); setSaved("saved"); draw();
+}
+$("bLib").addEventListener("click", openLibrary);
+
+/* rename */
+$("tTitle").addEventListener("click", () => {
+  openSheet("Name this cartoon",
+    '<input id="rnIn" type="text" maxlength="60" value="' + esc(P.title) + '" ' +
+    'style="width:100%;font:inherit;font-size:1rem;padding:12px;border:2px solid var(--line);' +
+    'border-radius:12px;min-height:48px" aria-label="Cartoon name">', [
+    { label:"Cancel", go:closeSheet },
+    { label:"Save name", cls:"go", go:() => {
+      const v = ($("rnIn").value || "").trim().slice(0, 60);
+      if (v) { P.title = v; $("tName").textContent = v; autosave(); }
+      closeSheet();
+    } }
+  ]);
+  const i = $("rnIn"); if (i) { i.focus(); i.select(); }
+});
+
+/* ---------------------------------------------------------------------------
+   FIRST-RUN HINT — one card, one obvious way to get rid of it, never again.
+   --------------------------------------------------------------------------- */
+function maybeHint() {
+  if (DB.hintSeen) return;
+  $("hintText").innerHTML =
+    "<b>Tap a character to pick it.</b> White dots are its joints — drag one to bend that bit. " +
+    "The big blue ✥ moves the whole body. Then press <b>＋ frame</b>, move it a little, and press ▶.";
+  $("hint").hidden = false;
+}
+$("hintOk").addEventListener("click", () => {
+  $("hint").hidden = true;
+  DB.hintSeen = true; writeDB();
+});
+
+/* ---------------------------------------------------------------------------
+   KEYBOARD — a convenience, never the only way to do anything.
+   --------------------------------------------------------------------------- */
+window.addEventListener("keydown", (e) => {
+  if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+  const k = e.key.toLowerCase();
+  if ((e.metaKey || e.ctrlKey) && k === "z") { e.preventDefault(); (e.shiftKey ? $("bRedo") : $("bUndo")).click(); }
+  else if (k === " ") { e.preventDefault(); $("bPlay").click(); }
+  else if (k === "arrowleft") { e.preventDefault(); gotoFrame(frameIx - 1); }
+  else if (k === "arrowright") { e.preventDefault(); gotoFrame(frameIx + 1); }
+  else if (k === "escape" && $("sheet").classList.contains("show")) closeSheet();
+});
+
+/* ---------------------------------------------------------------------------
+   START
+   --------------------------------------------------------------------------- */
+function boot() {
+  DB = readDB();
+  const recovered = recoverIndex();
+
+  let p = DB.currentId ? loadProject(DB.currentId) : null;
+  if (!p && DB.index.length) p = loadProject(DB.index[0].id);
+  if (!p) {
+    p = makeProject("My first cartoon");
+    p.frames[0].characters.push(makeCharacter({ type:"regular", x:STAGE_W / 2, y:STAGE_H * 0.64 }));
+    noteStats((s) => { s.projects++; });
+    saveProject(p, () => {});
+  }
+  DB.currentId = p.id; writeDB();
+
+  buildTools();
+  adopt(p);
+  maybeHint();
+  if (recovered.length) {
+    toast("Recovered " + recovered.length + (recovered.length === 1 ? " cartoon" : " cartoons"), 3200);
+  }
+
+  if (window.ResizeObserver) new ResizeObserver(resize).observe($("stagewrap"));
+  window.addEventListener("resize", resize);
+  window.addEventListener("orientationchange", () => setTimeout(resize, 220));
+  document.addEventListener("visibilitychange", () => { if (document.hidden) { stopPlayback(); saveNow(); } });
+  window.addEventListener("pagehide", saveNow);
+  resize();
+  tick();
+}
+
+/* Opened up so the pose maths, cloning, ids, saving and unlocks can be tested
+   on their own rather than only through the screen. */
+window.Cartoon = {
+  STAGE_W:STAGE_W, STAGE_H:STAGE_H, BONES:BONES, JOINT_NAMES:JOINT_NAMES, HANDLES:HANDLES,
+  TYPES:TYPES, EYES:EYES, ACCS:ACCS, BGS:BGS, UNLOCKS:UNLOCKS, SCHEMA:SCHEMA,
+  skeleton:skeleton, headDisc:headDisc, aimBone:aimBone, clampJoint:clampJoint, wrapDeg:wrapDeg,
+  restPose:restPose, makeCharacter:makeCharacter, makeFrame:makeFrame, makeProject:makeProject,
+  duplicateFrame:duplicateFrame, clone:clone, newId:newId,
+  serialise:serialise, migrate:migrate, sanitiseProject:sanitiseProject,
+  tweenCharacter:tweenCharacter, tweenFrame:tweenFrame,
+  saveProject:saveProject, loadProject:loadProject, recoverIndex:recoverIndex,
+  checkUnlocks:checkUnlocks, typeAvailable:typeAvailable, accAvailable:accAvailable,
+  get DB() { return DB; }, get P() { return P; },
+  get frameIx() { return frameIx; }, get selId() { return selId; },
+  set selId(v) { selId = v; refreshSelUI(); draw(); },
+  get playing() { return playing; },
+  addFrame:addFrame, gotoFrame:gotoFrame, deleteFrame:deleteFrame, moveFrame:moveFrame,
+  startPlayback:startPlayback, stopPlayback:stopPlayback,
+  openWorkshop:openWorkshop, openLibrary:openLibrary, newCartoon:newCartoon,
+  __draw:(g2, ch) => drawCharacter(g2, ch, {}),
+  toScreen:toScreen, toWorld:toWorld, fitView:fitView, pickCharacter:pickCharacter,
+  saveNow:saveNow, boot:boot
+};
+
+boot();
+
+</script>
+</body>
+</html>
