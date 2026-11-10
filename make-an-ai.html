@@ -337,7 +337,7 @@ function blankState() {
     v: 1,
     robot: makeRobot(),
     eye:   { examples: [], asked: 0, right: 0, bestScore: 0 },
-    voice: { sentences: [], rules: [], said: 0 },
+    voice: { sentences: [], rules: [], said: 0, packs: [] },
     legs:  legsBlank(),
     visited: {}
   };
@@ -387,6 +387,12 @@ function load() {
         .slice(0, 120);
     }
     d.voice.said = num(raw.voice.said, 0);
+    /* Only which head-start packs are switched on is stored, never their
+       sentences. Turning one off can therefore never disturb a word the
+       child typed in themselves. */
+    if (Array.isArray(raw.voice.packs)) {
+      d.voice.packs = raw.voice.packs.filter((p) => typeof p === "string" && PACKS[p]);
+    }
   }
   if (raw.legs && typeof raw.legs === "object") {
     const L = d.legs;
@@ -879,9 +885,11 @@ function runSelfTest() {
    that nobody ever typed — but every single word came from this child.
 
    Worth being clear about, because it is the whole safety story of this room:
-   this thing cannot invent vocabulary. It can only ever say words that have
-   been typed into it on this device. There is no model, no dictionary and no
-   network. If it says something surprising, it is because of what it was fed.
+   this thing cannot invent vocabulary. It can only ever say words that were
+   typed in — the child's own, or the ones in a head-start pack, which are
+   written out in full further down this file. There is no model, no
+   dictionary and no network. If it says something surprising, it is because
+   of what it was fed.
    =========================================================================== */
 
 const START = "\u0001start", END = "\u0001end";
@@ -948,13 +956,123 @@ function matchRule(rules, said) {
   });
   return bestScore >= 0.6 ? { rule: best, score: bestScore } : null;
 }
+
+/* ---------------------------------------------------------------------------
+   HEAD-START PACKS
+   Typing ten sentences before it says anything funny is a lot of work for a
+   pair of nine-year-old thumbs, and the payoff arrives long after the
+   patience has run out. So it can be given a bundle of words to begin with.
+
+   Only the NAME of a pack is saved, never its sentences: the words below are
+   rebuilt each time. That means switching a pack off is instant and cannot
+   possibly disturb a sentence the child typed in themselves.
+
+   This does not undo the point of the room. Being handed a pile of words to
+   start with, and then being taught your own on top, is exactly how the real
+   ones are built too — which is said plainly on the screen rather than
+   quietly glossed over. The sentences deliberately share words, because a
+   Markov chain is only funny where it has a choice about what comes next.
+   --------------------------------------------------------------------------- */
+const PACKS = {
+  silly: { nm:"Silly things", e:"🤪", lines:[
+    "my robot loves cheese",
+    "the cheese is extremely smelly",
+    "I put a hat on my dog",
+    "my dog can dance better than me",
+    "bananas are the best food in the world",
+    "never trust a talking banana",
+    "the floor is made of jelly today",
+    "my sock has gone missing again",
+    "the cat stole my sandwich",
+    "a sandwich with jam and cheese in it",
+    "my robot wants to dance all night",
+    "everything is better with sprinkles on top",
+    "I laughed so much I fell over",
+    "the best thing about Tuesday is nothing"
+  ]},
+  space: { nm:"Space", e:"🚀", lines:[
+    "the rocket is ready to launch",
+    "we are flying to the moon today",
+    "the moon is made of grey rock",
+    "Mars is the red planet",
+    "I can see a shooting star",
+    "space is very very big",
+    "the astronaut floats about in the air",
+    "Saturn has beautiful rings around it",
+    "a black hole eats absolutely everything",
+    "we found water on Mars",
+    "the rocket needs a lot more fuel",
+    "stars are enormous balls of fire",
+    "Jupiter is the biggest planet of all",
+    "I would like to walk on the moon"
+  ]},
+  animals: { nm:"Animals", e:"🐾", lines:[
+    "the cat sat on my bed",
+    "my dog likes to run very fast",
+    "penguins cannot fly at all",
+    "an octopus has eight arms",
+    "the elephant is extremely big",
+    "bees make honey in the summer",
+    "a snail carries its own house about",
+    "foxes come out at night",
+    "the owl can see in the dark",
+    "whales sing to each other",
+    "my cat sleeps all day long",
+    "dolphins are very clever indeed",
+    "a frog can jump really high",
+    "spiders have eight legs too"
+  ]},
+  dot: { nm:"Land of Dot", e:"🪐", lines:[
+    "Dot is the fifty second state",
+    "the mighty tower is the tallest tower in the world",
+    "Dot is nearly covered in grass",
+    "only two percent of Dot is forest",
+    "Dot was made by lava that turned into rock",
+    "Dot is small but it is not shaped like a dot",
+    "people in Dot write in Dottinish",
+    "the mighty tower can be seen from everywhere",
+    "I would like to visit Dot one day",
+    "the grass in Dot is extremely green",
+    "nobody gets lost in Dot because it is small",
+    "Dottinish has twenty six letters in it"
+  ]},
+  chatty: { nm:"Things to say back", e:"👋", rules:[
+    { when:"hello hi hey", say:"Hello! I am a robot." },
+    { when:"your name called", say:"I am your robot. You gave me my name." },
+    { when:"how are you", say:"I am full of electricity, thank you." },
+    { when:"what can you do", say:"I can see, talk and find my way. You taught me all of it." },
+    { when:"bye goodbye", say:"Bye! Come back and teach me more." },
+    { when:"tell me a joke", say:"Why did the robot cross the road? It was programmed to." },
+    { when:"love you", say:"I like you too." },
+    { when:"favourite thing", say:"My favourite thing is learning a new word." },
+    { when:"who made you", say:"You did. I knew nothing before you came along." }
+  ]}
+};
+const PACK_IDS = Object.keys(PACKS);
+function packOn(id) { return S.voice.packs.indexOf(id) !== -1; }
+/* Everything it can draw on: the packs that are switched on, plus their own. */
+function voiceSentences() {
+  let out = [];
+  S.voice.packs.forEach((p) => { if (PACKS[p] && PACKS[p].lines) out = out.concat(PACKS[p].lines); });
+  return out.concat(S.voice.sentences);
+}
+function voiceRules() {
+  let out = [];
+  S.voice.packs.forEach((p) => { if (PACKS[p] && PACKS[p].rules) out = out.concat(PACKS[p].rules); });
+  return out.concat(S.voice.rules);
+}
+function packSize(id) {
+  const p = PACKS[id];
+  return (p.lines ? p.lines.length : 0) + (p.rules ? p.rules.length : 0);
+}
+
 /* What the robot replies to one message. Rules first, then its own babble. */
-function reply(state, said) {
-  const m = matchRule(state.voice.rules, said);
+function reply(sentences, rules, said) {
+  const m = matchRule(rules, said);
   if (m) return { text: m.rule.say, why: "you taught it to say that" };
-  const next = buildChain(state.voice.sentences);
+  const next = buildChain(sentences);
   const s = speak(next);
-  if (s) return { text: s, why: "made up from the words you taught it" };
+  if (s) return { text: s, why: "made up from the words it knows" };
   return { text: null, why: "it has no words yet" };
 }
 
@@ -969,7 +1087,16 @@ function voiceRoom() {
       "<h2>💬 The Voice</h2>" +
       '<p class="lead">Teach it sentences. It works out which word tends to come after which, ' +
         "then makes up <b>brand new sentences</b> out of your words. " +
-        "It can only ever say words you have typed in — it has no dictionary of its own.</p>" +
+        "It can only ever say words that were typed in — yours, or the ones in a " +
+        "head start you chose. It has no dictionary of its own.</p>" +
+      '<div class="panel" id="vPackPanel"><h3>🎁 Give it a head start</h3>' +
+        '<p class="lead" style="margin:0 0 8px">Tap one to hand it a pile of words to begin with. ' +
+          "Tap again to take it back \u2014 your own sentences are never touched.</p>" +
+        '<div class="cards" id="vPacks"></div>' +
+        '<p class="lead" style="margin:8px 0 0;font-size:.82rem">The big real ones start this way too: ' +
+          "somebody gives them an enormous pile of words first, and then they get taught more. " +
+          "A head start is still only words somebody typed in.</p>" +
+      "</div>" +
       '<div class="split">' +
         '<div class="col">' +
           '<div class="panel"><h3>Teach it a sentence</h3>' +
@@ -1007,7 +1134,36 @@ function voiceRoom() {
   $("vSend").addEventListener("click", sendMsg);
   $("vMsg").addEventListener("keydown", (e) => { if (e.key === "Enter") sendMsg(); });
   $("vClearChat").addEventListener("click", () => { chatLog = []; renderChat(); });
+  renderPacks();
   renderChat(); renderVoiceKnows();
+}
+
+function renderPacks() {
+  const box = $("vPacks"); if (!box) return;
+  box.innerHTML = "";
+  PACK_IDS.forEach((id) => {
+    const pk = PACKS[id], on = packOn(id);
+    const card = document.createElement("button");
+    card.className = "card" + (on ? " sel" : "");
+    card.setAttribute("aria-pressed", String(on));
+    card.setAttribute("aria-label", pk.nm + (on ? " — on, tap to take it back" : " — tap to add it"));
+    card.innerHTML = '<span style="font-size:1.6rem" aria-hidden="true">' + pk.e + "</span>" +
+      '<span class="cn">' + esc(pk.nm) + "</span>" +
+      '<span class="cc">' + packSize(id) + (pk.rules ? " replies" : " sentences") + "</span>" +
+      '<span class="cc" style="font-weight:bold;color:' + (on ? "var(--mint)" : "var(--ink2)") + '">' +
+      (on ? "✓ added" : "+ add") + "</span>";
+    card.addEventListener("click", () => {
+      if (on) S.voice.packs = S.voice.packs.filter((x) => x !== id);
+      else S.voice.packs.push(id);
+      save(); renderPacks(); renderVoiceKnows();
+      if (!on) {
+        toast(pk.nm + " added \u2014 it knows a lot more now!");
+        /* show the payoff straight away rather than making them hunt for it */
+        if (pk.lines) makeItTalk();
+      } else toast(pk.nm + " taken back.");
+    });
+    box.appendChild(card);
+  });
 }
 
 function addSentence() {
@@ -1018,7 +1174,7 @@ function addSentence() {
   S.voice.sentences.push(v);
   save();
   $("vSent").value = "";
-  const st = chainStats(buildChain(S.voice.sentences));
+  const st = chainStats(buildChain(voiceSentences()));
   toast("Learnt. It knows " + st.words + " words now.");
   renderVoiceKnows();
 }
@@ -1034,7 +1190,7 @@ function addRule() {
   renderVoiceKnows();
 }
 function makeItTalk() {
-  const s = speak(buildChain(S.voice.sentences));
+  const s = speak(buildChain(voiceSentences()));
   const box = $("vSaid");
   if (!s) {
     box.innerHTML = '<div class="note">It has no words yet. Teach it a sentence first!</div>';
@@ -1048,7 +1204,7 @@ function sendMsg() {
   if (!v) return;
   $("vMsg").value = "";
   chatLog.push({ me: true, t: v });
-  const r = reply(S, v);
+  const r = reply(voiceSentences(), voiceRules(), v);
   if (!r.text) {
     chatLog.push({ me: false, t: "…", why: "I do not know any words yet. Teach me a sentence!" });
   } else {
@@ -1073,17 +1229,39 @@ function renderChat() {
 }
 function renderVoiceKnows() {
   const box = $("vKnows"); if (!box) return;
-  const st = chainStats(buildChain(S.voice.sentences));
+  const st = chainStats(buildChain(voiceSentences()));
   let h = '<div class="stat"><b>' + st.words + "</b><span>words it knows</span></div>" +
           '<div class="stat"><b>' + st.links + "</b><span>ways to join them up</span></div>" +
-          '<div class="stat"><b>' + S.voice.rules.length + "</b><span>replies you taught it</span></div>";
+          '<div class="stat"><b>' + voiceRules().length + "</b><span>replies it can give</span></div>";
+  const onPacks = S.voice.packs.filter((id) => PACKS[id]);
+  if (onPacks.length) {
+    h += '<div class="fieldlab">Head starts you gave it</div><div id="vPackList"></div>';
+  }
   if (S.voice.sentences.length) {
-    h += '<div class="fieldlab">Sentences you taught it</div><div id="vList"></div>';
+    h += '<div class="fieldlab">Sentences you taught it yourself</div><div id="vList"></div>';
+  }
+  if (!onPacks.length && !S.voice.sentences.length) {
+    h += '<div class="note">It knows <b>no words at all</b> yet. Teach it a sentence, ' +
+      "or tap a <b>head start</b> above to hand it some to begin with.</div>";
   }
   if (S.voice.rules.length) {
     h += '<div class="fieldlab">Replies</div><div id="vRules"></div>';
   }
   box.innerHTML = h;
+  const pl = $("vPackList");
+  if (pl) onPacks.forEach((id) => {
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = PACKS[id].e + " " + PACKS[id].nm + " ";
+    const x = document.createElement("button");
+    x.textContent = "✕";
+    x.setAttribute("aria-label", "Take back the " + PACKS[id].nm + " head start");
+    x.addEventListener("click", () => {
+      S.voice.packs = S.voice.packs.filter((q) => q !== id);
+      save(); renderPacks(); renderVoiceKnows();
+    });
+    tag.appendChild(x); pl.appendChild(tag);
+  });
   const list = $("vList");
   if (list) S.voice.sentences.slice().reverse().forEach((s, i) => {
     const real = S.voice.sentences.length - 1 - i;
@@ -1528,7 +1706,7 @@ function bigRobot() {
    --------------------------------------------------------------------------- */
 function reportRoom() {
   const labels = new Set(S.eye.examples.map((e) => e.label));
-  const vs = chainStats(buildChain(S.voice.sentences));
+  const vs = chainStats(buildChain(voiceSentences()));
   const L = S.legs;
   const canSee = labels.size >= 2, canTalk = vs.words > 0, canWalk = L.best !== null;
   const all = canSee && canTalk && canWalk;
@@ -1551,7 +1729,7 @@ function reportRoom() {
             (vs.words
               ? '<div class="stat"><b>' + vs.words + "</b><span>words it knows</span></div>" +
                 '<div class="stat"><b>' + vs.links + "</b><span>ways to join them</span></div>" +
-                '<div class="stat"><b>' + S.voice.rules.length + "</b><span>replies you taught it</span></div>" +
+                '<div class="stat"><b>' + voiceRules().length + "</b><span>replies it can give</span></div>" +
                 '<div class="stat"><b>' + S.voice.said + "</b><span>things it has said</span></div>"
               : '<p class="lead" style="margin:0">Not taught yet. Visit <b>The Voice</b>.</p>') +
           "</div>" +
@@ -1568,9 +1746,10 @@ function reportRoom() {
         ? '<div class="note cool" style="font-size:.94rem"><b>Your AI can see, talk, and find its way.</b> ' +
           "Nobody gave it any of that. You did, one example at a time.</div>"
         : "") +
-      '<div class="note"><b>It only knows what you taught it.</b> ' +
-        "Everything in here — every drawing, every word, every arrow on the floor — came from you, " +
-        "on this device. It has never been connected to anything. " +
+      '<div class="note"><b>It only knows what it was taught.</b> ' +
+        "Every drawing and every arrow on the floor is yours. Every word was typed in on this " +
+        "device too — by you, or in a head start you chose to give it. " +
+        "It has never been connected to anything. " +
         "That is true of every AI, really: whatever it was shown is what it knows, " +
         "and when it gets something wrong, that is usually why.</div>" +
       '<div class="row"><button class="btn" id="rpWipe">🧼 Start a whole new AI</button></div>' +
@@ -1634,7 +1813,7 @@ $("bHelp").addEventListener("click", () => {
     "That is why it can show you the one it was thinking of.</p>" +
     "<p><b>💬 The Voice.</b> It notes which word tends to come after which, in the sentences you " +
     "type. Then it starts with a word and keeps picking something that came next before. " +
-    "It can only use words you gave it.</p>" +
+    "It can only use words that were typed in \u2014 yours, or a head start you chose.</p>" +
     "<p><b>🦿 The Legs.</b> It tries a direction and sees how it goes. Reaching the battery is good, " +
     "every step costs a bit, bumping into a wall is worse. It keeps a score for every direction " +
     "from every square — those are the arrows you can see.</p>" +
@@ -1671,6 +1850,7 @@ window.AI = {
   GRID, CELLS, LEGS_N, ACTS,
   pxToArr, arrToPx, inkBounds, isBlank, centreArr, blurArr, features, dist2, classify, selfTest,
   words, key, buildChain, chainStats, speak, matchRule, reply,
+  PACKS, PACK_IDS, voiceSentences, voiceRules, packOn, packSize,
   sKey, qRow, isWall, bestA, maxQ, epsilon, runEpisode, reachable, legsBlank,
   blankState, makeRobot, load, saveNow,
   get S() { return S; }, set S(v) { S = v; },
