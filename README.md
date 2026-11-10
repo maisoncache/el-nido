@@ -1,4 +1,4 @@
-# Dot Arcade
+# Pixel Planet
 
 Dot now has a mini game collection with a shared landing page:
 
@@ -96,7 +96,7 @@ python3 -m http.server 8000
 
 Pages:
 
-- `index.html` → Dot Arcade (landing page)
+- `index.html` → Pixel Planet (landing page)
 - `playground-dash.html` → Playground Dash
 - `brain-quest.html` → Brain Quest
 - `dashboard.html` → What's Popular (play counts and reactions)

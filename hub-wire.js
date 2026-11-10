@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Dot Arcade — hub wiring
+   Pixel Planet — hub wiring
    Adds a reaction row to every game card and counts plays, without any of
    the cards having to be written out by hand. New games get it automatically.
    ========================================================================== */
@@ -12,10 +12,10 @@
     const wrap = document.createElement("div");
     wrap.className = "reacts";
     wrap.setAttribute("aria-label", "Reactions");
-    const mine = DotStats.mine(id);
-    const all = DotStats.all()[id] || {};
+    const mine = PixelStats.mine(id);
+    const all = PixelStats.all()[id] || {};
 
-    DotStats.KINDS.forEach((k) => {
+    PixelStats.KINDS.forEach((k) => {
       const b = document.createElement("button");
       b.type = "button";
       b.className = "react" + (mine[k.id] ? " on" : "");
@@ -25,7 +25,7 @@
       b.innerHTML = '<span class="e">' + k.e + '</span><span class="n">' + (all[k.id] || 0) + "</span>";
       b.addEventListener("click", (ev) => {
         ev.preventDefault();
-        const on = DotStats.react(id, k.id);
+        const on = PixelStats.react(id, k.id);
         b.classList.toggle("on", on);
         const n = b.querySelector(".n");
         n.textContent = Math.max(0, (parseInt(n.textContent, 10) || 0) + (on ? 1 : -1));
@@ -50,7 +50,7 @@
       if (!link) return;
       const id = gameIdOf(link);
       if (!id) return;
-      link.addEventListener("click", () => DotStats.recordPlay(id));
+      link.addEventListener("click", () => PixelStats.recordPlay(id));
       if (!card.querySelector(".reacts")) card.appendChild(reactionRow(id));
     });
   }
@@ -59,7 +59,7 @@
   else start();
 
   async function start() {
-    await DotStats.refresh();     // no-op until there is a server
+    await PixelStats.refresh();     // no-op until there is a server
     wire();
   }
 })();
