@@ -10,7 +10,7 @@
   <meta name="robots" content="noai, noimageai">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="favicon.png" type="image/png">
-<title>The Movie — Dot Arcade</title>
+<title>The Movie — Pixel Planet</title>
   <style>
     :root { --bg:#10131f; --text:#f2f5ff; --accent:#ff8a3d; }
     * { box-sizing:border-box; }
@@ -37,9 +37,9 @@
 </head>
 <body>
   <div class="wrap">
-    <a class="back" href="index.html">← Back to Dot Arcade</a>
+    <a class="back" href="index.html">← Back to Pixel Planet</a>
     <h1>🎬 The Movie</h1>
-    <p class="subtitle" id="sub">A mini movie, made at Dot Arcade.</p>
+    <p class="subtitle" id="sub">A mini movie, made at Pixel Planet.</p>
 
     <div class="screen" id="screen">
       <video id="vid" controls playsinline preload="metadata" hidden></video>
@@ -101,9 +101,9 @@
     /* Count a view the same anonymous way the games are counted. */
     let counted = false;
     vid.addEventListener("play", () => {
-      if (counted || !window.DotStats) return;
+      if (counted || !window.PixelStats) return;
       counted = true;
-      DotStats.recordPlay("movie");
+      PixelStats.recordPlay("movie");
     });
   })();
   </script>

@@ -10,7 +10,7 @@
   <meta name="robots" content="noai, noimageai">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="favicon.png" type="image/png">
-<title>What's Popular — Dot Arcade</title>
+<title>What's Popular — Pixel Planet</title>
   <style>
     :root { --bg:#f3f8ff; --card:#fff; --text:#1f2a3d; --accent:#2f6df3; --accent2:#00a7b3; --warm:#ff8a3d; }
     * { box-sizing:border-box; }
@@ -42,7 +42,7 @@
 </head>
 <body>
   <div class="wrap">
-    <a class="back" href="index.html">← Back to Dot Arcade</a>
+    <a class="back" href="index.html">← Back to Pixel Planet</a>
     <h1>📊 What's Popular</h1>
     <p class="subtitle" id="sub">Which games people are playing.</p>
 
@@ -115,8 +115,8 @@
 
     async function render() {
       await loadNames();
-      await DotStats.refresh();
-      const all = DotStats.all();
+      await PixelStats.refresh();
+      const all = PixelStats.all();
       const ids = ORDER.length ? ORDER : Object.keys(all);
 
       let plays = 0, love = 0, tricky = 0, again = 0, played = 0;
@@ -150,7 +150,7 @@
         '<span class="chip">🤯 ' + tricky + " tricky</span>" +
         '<span class="chip">🔁 ' + again + " played again</span>";
 
-      document.getElementById("where").innerHTML = DotStats.isRemote()
+      document.getElementById("where").innerHTML = PixelStats.isRemote()
         ? "🌍 These are the numbers from <b>everybody who has played</b>."
         : "📱 These numbers are from <b>this device only</b> — they are stored in this browser and sent nowhere. " +
           "Once the site is online properly, this page will show everyone's plays instead.";
@@ -159,7 +159,7 @@
 
     document.getElementById("bClear").addEventListener("click", () => {
       if (!confirm("Clear the play counts and reactions stored on this device?")) return;
-      DotStats.clear(); render();
+      PixelStats.clear(); render();
     });
     render();
   })();

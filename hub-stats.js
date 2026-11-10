@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Dot Arcade — stats layer
+   Pixel Planet — stats layer
    --------------------------------------------------------------------------
    Plays and reactions. Right now everything lives in THIS BROWSER ONLY, so
    the site needs no server and collects nothing about anybody.
@@ -24,7 +24,20 @@
   "use strict";
 
   const API = null;                      // <-- set to "https://…" when hosting is live
-  const KEY = "dot-arcade-stats-v1";
+  const KEY = "pixel-planet-stats-v1";
+  const OLD_KEY = "dot-arcade-stats-v1";     // what the hub was called before
+  /* The hub was renamed. Simply using a new key would have silently thrown
+     away every play count and reaction already recorded on this device, so
+     the old store is carried across once and then cleared away. */
+  (function carryOver() {
+    try {
+      if (localStorage.getItem(KEY) !== null) return;        // already moved
+      const old = localStorage.getItem(OLD_KEY);
+      if (old === null) return;                              // nothing to move
+      localStorage.setItem(KEY, old);
+      localStorage.removeItem(OLD_KEY);
+    } catch (e) { /* private mode: counts simply start fresh */ }
+  })();
 
   const KINDS = [
     { id: "love",   e: "❤️", label: "Loved it" },
@@ -68,7 +81,7 @@
 
   let remoteCache = null;
 
-  const DotStats = {
+  const PixelStats = {
     KINDS,
     isRemote: () => !!API,
 
@@ -138,5 +151,5 @@
     clear() { try { localStorage.removeItem(KEY); } catch (e) {} },
   };
 
-  global.DotStats = DotStats;
+  global.PixelStats = PixelStats;
 })(window);
