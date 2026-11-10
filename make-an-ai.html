@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Safety lock: this page can only load things from this site. It cannot
+       contact any outside server, load any third-party script, embed anything,
+       or submit a form anywhere. Nothing here can phone home.
+       This matters more here than anywhere else on the site: everything this
+       AI learns, it learns on this device, from this child, and it never
+       leaves. There is no model being called, nothing downloaded, and nothing
+       uploaded. Every algorithm in this file is written out in full below. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai, noimageai">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <link rel="icon" href="favicon.png" type="image/png">
+  <title>Make an AI</title>
+<style>
+  :root{
+    --bg:#131626; --panel:#f5f2ea; --card:#fffdf7; --ink:#1f2236; --ink2:#6b6684;
+    --line:#d8d0bf; --accent:#5b7fe0; --mint:#15937a; --warm:#e0922a; --rose:#c2504f;
+    --bar:#1c2036; --glow:#7fd8c6;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0;overscroll-behavior:none}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:"Trebuchet MS","Segoe UI",system-ui,Arial,sans-serif;
+    display:flex;flex-direction:column;overflow:hidden;
+    -webkit-user-select:none;user-select:none;
+    background-image:radial-gradient(circle at 15% 5%, rgba(127,216,198,.10), transparent 42%),
+                     radial-gradient(circle at 88% 92%, rgba(91,127,224,.14), transparent 46%);
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  .btn{font-family:inherit;font-size:.86rem;font-weight:bold;color:var(--ink);
+    background:var(--card);border:2px solid var(--line);border-radius:12px;
+    min-height:46px;min-width:46px;padding:9px 14px;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    white-space:nowrap;line-height:1.15}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn.go{background:var(--mint);border-color:#0d6d5a;color:#fff}
+  .btn.key{background:var(--accent);border-color:#3a5cb8;color:#fff}
+  .btn.warm{background:var(--warm);border-color:#b06f16;color:#2a1c05}
+  .btn.quiet{background:transparent;border-color:rgba(255,255,255,.26);color:#efece2}
+  .btn.on{background:var(--accent);border-color:#3a5cb8;color:#fff}
+  .btn small{display:block;font-size:.66rem;font-weight:normal;opacity:.78}
+
+  .top{flex:0 0 auto;background:var(--bar);color:#efece2;display:flex;align-items:center;
+    gap:8px;padding:6px 9px}
+  .top h1{flex:1;margin:0;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .top h1 span{display:block;font-size:.66rem;font-weight:normal;opacity:.6}
+
+  .rooms{flex:0 0 auto;display:flex;gap:6px;padding:7px 9px;background:#232741;
+    overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+  .rooms::-webkit-scrollbar{height:0}
+  .room{flex:0 0 auto;font-family:inherit;font-size:.82rem;font-weight:bold;cursor:pointer;
+    background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.18);color:#dcd8cc;
+    border-radius:13px;min-height:48px;padding:6px 13px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:1px;line-height:1.15}
+  .room .e{font-size:1.15rem}
+  .room.on{background:var(--panel);border-color:var(--glow);color:var(--ink)}
+  .room.on .sub{color:var(--ink2)}
+  .room .sub{font-size:.62rem;font-weight:normal;opacity:.72}
+
+  .main{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px}
+  .sheet{background:var(--panel);border-radius:18px;padding:13px;max-width:1000px;margin:0 auto}
+  .lead{margin:0 0 11px;font-size:.9rem;line-height:1.55;color:var(--ink2)}
+  .lead b{color:var(--ink)}
+  h2{margin:0 0 3px;font-size:1.12rem}
+
+  .split{display:flex;gap:13px;flex-wrap:wrap;align-items:flex-start}
+  .col{flex:1 1 280px;min-width:260px}
+  .panel{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:11px;margin-bottom:10px}
+  .panel h3{margin:0 0 7px;font-size:.92rem}
+  .row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+  .fieldlab{font-size:.72rem;font-weight:bold;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--ink2);margin:11px 0 5px}
+  .fieldlab:first-child{margin-top:0}
+
+  input[type=text]{font-family:inherit;font-size:.95rem;padding:11px;min-height:46px;
+    border:2px solid var(--line);border-radius:12px;width:100%;background:#fff;color:var(--ink)}
+
+  canvas{display:block;touch-action:none}
+  .gridwrap{background:#fff;border:3px solid var(--line);border-radius:14px;padding:6px;
+    display:inline-block}
+  #paint{width:min(76vw,330px);height:min(76vw,330px);cursor:crosshair}
+
+  .swatch{width:44px;height:44px;border-radius:11px;border:3px solid var(--line);cursor:pointer;padding:0}
+  .swatch.sel{border-color:var(--ink);box-shadow:0 0 0 3px rgba(31,34,54,.18)}
+
+  .cards{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}
+  .card{background:var(--card);border:3px solid var(--line);border-radius:13px;padding:7px 5px;
+    text-align:center;cursor:pointer;font-family:inherit;color:var(--ink);min-height:96px;
+    display:flex;flex-direction:column;align-items:center;gap:3px;position:relative}
+  .card.sel{border-color:var(--accent);background:#eef2fd}
+  .card .cn{font-size:.76rem;font-weight:bold;line-height:1.15}
+  .card .cc{font-size:.66rem;color:var(--ink2)}
+
+  .said{background:#eef7f4;border:2px solid #b6ddd2;border-radius:13px;padding:11px 13px;
+    margin:9px 0;font-size:.95rem;line-height:1.5}
+  /* only the little label above the speech is shouted; bold inside the
+     sentence itself must stay as written, or "6 out of 6" comes out as
+     "6 OUT OF 6" */
+  .said .lab{display:block;font-size:.76rem;color:var(--mint);margin-bottom:3px;
+    text-transform:uppercase;letter-spacing:.05em;font-weight:bold}
+  .note{background:#fff5e2;border:2px solid var(--warm);border-radius:12px;padding:9px 11px;
+    font-size:.84rem;line-height:1.5;margin:9px 0}
+  .note.cool{background:#eef2fd;border-color:#a9bdea}
+  .big{font-size:1.6rem;font-weight:bold;line-height:1.1}
+  .stat{display:flex;gap:9px;align-items:baseline;margin-bottom:5px;font-size:.86rem}
+  .stat b{font-size:1.25rem;min-width:52px;text-align:right}
+
+  .chat{max-height:230px;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-right:3px}
+  .bub{border-radius:13px;padding:9px 12px;margin-bottom:7px;font-size:.9rem;line-height:1.45;max-width:86%}
+  .bub.me{background:#e6ecfb;border:2px solid #b7c6ec;margin-left:auto}
+  .bub.it{background:#eef7f4;border:2px solid #b6ddd2}
+  .bub .who{display:block;font-size:.66rem;opacity:.65;margin-bottom:2px;font-weight:bold;
+    text-transform:uppercase;letter-spacing:.05em}
+
+  /* The little ✕ on each taught sentence is a real button a child has to hit
+     with a finger, so it gets a real 44px target rather than a 15px glyph. */
+  .tag{display:inline-flex;align-items:center;gap:4px;background:#eceadf;border:2px solid var(--line);
+    border-radius:999px;padding:3px 3px 3px 13px;font-size:.8rem;margin:0 6px 6px 0;min-height:50px}
+  .tag button{border:none;background:rgba(194,80,79,.1);font-family:inherit;font-size:1rem;
+    cursor:pointer;color:var(--rose);line-height:1;min-width:44px;min-height:44px;border-radius:999px;
+    display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+
+  .toast{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));
+    transform:translateX(-50%);background:rgba(16,18,32,.96);color:#fff;border:2px solid var(--glow);
+    border-radius:13px;padding:10px 16px;font-weight:bold;font-size:.84rem;max-width:90vw;
+    text-align:center;z-index:90;display:none;pointer-events:none}
+  .toast.show{display:block}
+
+  .ovr{position:fixed;inset:0;background:rgba(10,10,20,.76);z-index:60;display:none;
+    align-items:center;justify-content:center;padding:14px}
+  .ovr.show{display:flex}
+  .ovbox{background:var(--panel);border-radius:20px;padding:17px;max-width:460px;width:100%;
+    max-height:90vh;overflow-y:auto;box-shadow:0 20px 56px rgba(0,0,0,.6)}
+  .ovbox h3{margin:4px 0 8px;font-size:1.1rem}
+  .ovbox p{margin:7px 0;font-size:.9rem;line-height:1.55}
+
+  .sronly{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  @media(max-width:620px){ .sheet{padding:10px} .col{min-width:0} }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <a class="btn quiet" href="index.html" aria-label="Back to Pixel Planet">←</a>
+  <h1 id="hTitle">Make an AI<span id="hSub">build a robot brain and teach it things</span></h1>
+  <button class="btn quiet" id="bHelp" aria-label="How does this work?">?</button>
+</div>
+
+<div class="rooms" id="rooms"></div>
+<div class="main" id="main"></div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="ovr" id="ovr" role="dialog" aria-modal="true" aria-labelledby="ovT">
+  <div class="ovbox">
+    <div id="ovE" style="font-size:2.3rem;text-align:center" aria-hidden="true"></div>
+    <h3 id="ovT" style="text-align:center"></h3>
+    <div id="ovB"></div>
+    <div class="row" id="ovF" style="margin-top:12px;justify-content:center"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ===========================================================================
+   MAKE AN AI
+   Build a robot brain, then teach it three things: to see, to talk, and to
+   find its way.
+
+   Everything in here is a real algorithm, written out in full, running on
+   this device:
+     · The Eye  — a nearest-neighbour classifier over drawings
+     · The Voice — a Markov chain over words, plus matched reply rules
+     · The Legs — Q-learning on a grid
+
+   Nothing is faked, nothing is pre-trained, and nothing is fetched. The AI
+   starts knowing absolutely nothing and only ever knows what it is taught
+   here. That is the whole point of the game, so it had better be true.
+   =========================================================================== */
+
+const $ = (id) => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
+  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+
+let toastT = 0;
+function toast(msg, ms) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), ms || 2400);
+}
+function dialog(em, title, html, buttons) {
+  $("ovE").textContent = em || "";
+  $("ovT").textContent = title;
+  $("ovB").innerHTML = html;
+  const f = $("ovF"); f.innerHTML = "";
+  (buttons || [{ label:"OK", cls:"go" }]).forEach((b) => {
+    const el = document.createElement("button");
+    el.className = "btn " + (b.cls || "");
+    el.textContent = b.label;
+    el.addEventListener("click", () => { $("ovr").classList.remove("show"); if (b.go) b.go(); });
+    f.appendChild(el);
+  });
+  $("ovr").classList.add("show");
+}
+$("ovr").addEventListener("pointerdown", (e) => {
+  if (e.target === $("ovr")) $("ovr").classList.remove("show");
+});
+
+/* ---------------------------------------------------------------------------
+   THE ROBOT
+   --------------------------------------------------------------------------- */
+const BODY_COLOURS = ["#5b7fe0","#15937a","#e0922a","#c2504f","#7b5bd6","#2aa6c4","#d4568f","#6b7280"];
+const EYE_STYLES = ["dots","round","visor","one","happy","square"];
+const AERIALS = ["ball","bolt","dish","none"];
+
+function makeRobot() {
+  return { name:"Bolt", colour:"#5b7fe0", eye:"round", aerial:"ball" };
+}
+
+/* Drawn from scratch, centred on the origin, one unit tall-ish. The speaker is
+   on its chest rather than its face: this robot talks, but it has no mouth. */
+function drawRobot(g, r, s, blink) {
+  const col = r.colour || "#5b7fe0";
+  const dark = shade(col, 0.72), light = shade(col, 1.25);
+  g.save(); g.scale(s, s);
+  g.lineJoin = "round"; g.lineCap = "round";
+
+  /* aerial */
+  g.strokeStyle = dark; g.lineWidth = 3;
+  if (r.aerial !== "none") {
+    g.beginPath(); g.moveTo(0, -46); g.lineTo(0, -62); g.stroke();
+    g.fillStyle = "#ffd964";
+    if (r.aerial === "ball") { g.beginPath(); g.arc(0, -68, 7, 0, 7); g.fill(); }
+    else if (r.aerial === "bolt") {
+      g.beginPath(); g.moveTo(-6,-62); g.lineTo(3,-66); g.lineTo(-1,-70);
+      g.lineTo(8,-76); g.lineTo(-2,-71); g.lineTo(2,-67); g.closePath(); g.fill();
+    } else { g.beginPath(); g.arc(0, -66, 10, Math.PI, 0); g.fill(); }
+  }
+  /* head */
+  g.fillStyle = col; g.strokeStyle = dark; g.lineWidth = 3;
+  roundRect(g, -34, -46, 68, 54, 13); g.fill(); g.stroke();
+  /* face plate */
+  g.fillStyle = "#1b1f30";
+  roundRect(g, -27, -39, 54, 36, 9); g.fill();
+  drawRobotEyes(g, r.eye, blink);
+  /* ears */
+  g.fillStyle = dark;
+  roundRect(g, -41, -32, 8, 18, 4); g.fill();
+  roundRect(g, 33, -32, 8, 18, 4); g.fill();
+  /* body */
+  g.fillStyle = light; g.strokeStyle = dark;
+  roundRect(g, -29, 12, 58, 48, 11); g.fill(); g.stroke();
+  /* the speaker it talks through, on its chest */
+  g.fillStyle = "#1b1f30"; roundRect(g, -16, 22, 32, 24, 6); g.fill();
+  g.fillStyle = shade(col, 1.5);
+  for (let y = 0; y < 3; y++) for (let x = 0; x < 4; x++) {
+    g.beginPath(); g.arc(-10.5 + x * 7, 28 + y * 7, 1.9, 0, 7); g.fill();
+  }
+  /* arms and feet */
+  g.strokeStyle = dark; g.lineWidth = 7;
+  g.beginPath(); g.moveTo(-29, 22); g.lineTo(-43, 38); g.stroke();
+  g.beginPath(); g.moveTo(29, 22); g.lineTo(43, 38); g.stroke();
+  g.fillStyle = dark;
+  roundRect(g, -25, 60, 18, 9, 4); g.fill();
+  roundRect(g, 7, 60, 18, 9, 4); g.fill();
+  g.restore();
+}
+function drawRobotEyes(g, style, blink) {
+  const glow = "#7fd8c6";
+  g.fillStyle = glow; g.strokeStyle = glow; g.lineWidth = 3; g.lineCap = "round";
+  if (blink) {
+    g.beginPath(); g.moveTo(-18,-21); g.lineTo(-6,-21); g.moveTo(6,-21); g.lineTo(18,-21); g.stroke();
+    return;
+  }
+  if (style === "dots") {
+    [-12, 12].forEach((x) => { g.beginPath(); g.arc(x, -21, 4, 0, 7); g.fill(); });
+  } else if (style === "visor") {
+    roundRect(g, -21, -26, 42, 11, 5); g.fill();
+  } else if (style === "one") {
+    g.beginPath(); g.arc(0, -21, 11, 0, 7); g.fill();
+    g.fillStyle = "#1b1f30"; g.beginPath(); g.arc(0, -21, 4.5, 0, 7); g.fill();
+  } else if (style === "happy") {
+    [-12, 12].forEach((x) => { g.beginPath(); g.arc(x, -19, 8, Math.PI * 1.08, Math.PI * 1.92); g.stroke(); });
+  } else if (style === "square") {
+    [-13, 5].forEach((x) => { g.fillRect(x, -27, 9, 11); });
+  } else {
+    [-12, 12].forEach((x) => {
+      g.beginPath(); g.arc(x, -21, 8, 0, 7); g.fill();
+      g.fillStyle = "#1b1f30"; g.beginPath(); g.arc(x, -21, 3.4, 0, 7); g.fill();
+      g.fillStyle = glow;
+    });
+  }
+}
+function roundRect(g, x, y, w, h, r) {
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.arcTo(x + w, y, x + w, y + h, r);
+  g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r);
+  g.arcTo(x, y, x + w, y, r);
+  g.closePath();
+}
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  return "rgb(" + [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+    .map((v) => clamp(Math.round(v * f), 0, 255)).join(",") + ")";
+}
+/* a small canvas with the robot on it, for buttons and headers */
+function robotChip(r, w, h, s, blink) {
+  const c = document.createElement("canvas");
+  c.width = w * 2; c.height = h * 2;
+  c.style.width = w + "px"; c.style.height = h + "px";
+  const g = c.getContext("2d");
+  g.translate(c.width / 2, c.height * 0.62);
+  drawRobot(g, r, s * 2, blink);
+  return c;
+}
+
+/* ---------------------------------------------------------------------------
+   SAVING
+   One key, the same shape as every other game here. Everything is checked on
+   the way back in: a half-written or hand-edited save should open as an AI
+   that knows slightly less, never as a crash.
+   --------------------------------------------------------------------------- */
+const KEY = "make-an-ai-v1";
+const GRID = 12;                    /* the drawing grid is 12 x 12 */
+const CELLS = GRID * GRID;
+
+function blankState() {
+  return {
+    v: 1,
+    robot: makeRobot(),
+    eye:   { examples: [], asked: 0, right: 0, bestScore: 0 },
+    voice: { sentences: [], rules: [], said: 0 },
+    legs:  legsBlank(),
+    visited: {}
+  };
+}
+function legsBlank() {
+  return { q:{}, walls:[], goal:[6,0], start:[0,6], tries:0, best:null, solved:0, steps:0 };
+}
+
+let S = null;
+function load() {
+  let raw = null;
+  try { raw = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { raw = null; }
+  const d = blankState();
+  if (!raw || typeof raw !== "object") return d;
+  const num = (v, f) => (typeof v === "number" && isFinite(v) && v >= 0) ? Math.floor(v) : f;
+
+  if (raw.robot && typeof raw.robot === "object") {
+    const nm = typeof raw.robot.name === "string" ? raw.robot.name.trim().slice(0, 16) : "";
+    d.robot.name = nm || "Bolt";
+    if (BODY_COLOURS.indexOf(raw.robot.colour) !== -1) d.robot.colour = raw.robot.colour;
+    if (EYE_STYLES.indexOf(raw.robot.eye) !== -1) d.robot.eye = raw.robot.eye;
+    if (AERIALS.indexOf(raw.robot.aerial) !== -1) d.robot.aerial = raw.robot.aerial;
+  }
+  if (raw.eye && Array.isArray(raw.eye.examples)) {
+    raw.eye.examples.forEach((e) => {
+      if (!e || typeof e.label !== "string" || typeof e.px !== "string") return;
+      if (e.px.length !== CELLS || /[^01]/.test(e.px)) return;
+      const label = e.label.trim().slice(0, 16);
+      if (!label) return;
+      d.eye.examples.push({ label: label, px: e.px });
+    });
+    d.eye.examples = d.eye.examples.slice(0, 400);
+    d.eye.asked = num(raw.eye.asked, 0);
+    d.eye.right = Math.min(num(raw.eye.right, 0), d.eye.asked);
+    d.eye.bestScore = clamp(num(raw.eye.bestScore, 0), 0, 100);
+  }
+  if (raw.voice && typeof raw.voice === "object") {
+    if (Array.isArray(raw.voice.sentences)) {
+      d.voice.sentences = raw.voice.sentences
+        .filter((s) => typeof s === "string" && s.trim())
+        .map((s) => s.trim().slice(0, 140)).slice(0, 300);
+    }
+    if (Array.isArray(raw.voice.rules)) {
+      d.voice.rules = raw.voice.rules.filter((r) =>
+        r && typeof r.when === "string" && typeof r.say === "string" && r.when.trim() && r.say.trim())
+        .map((r) => ({ when: r.when.trim().slice(0, 60), say: r.say.trim().slice(0, 140) }))
+        .slice(0, 120);
+    }
+    d.voice.said = num(raw.voice.said, 0);
+  }
+  if (raw.legs && typeof raw.legs === "object") {
+    const L = d.legs;
+    if (raw.legs.q && typeof raw.legs.q === "object") {
+      Object.keys(raw.legs.q).forEach((k) => {
+        const row = raw.legs.q[k];
+        if (!/^\d+,\d+$/.test(k) || !Array.isArray(row) || row.length !== 4) return;
+        if (!row.every((v) => typeof v === "number" && isFinite(v))) return;
+        L.q[k] = row.map((v) => clamp(v, -50, 50));
+      });
+    }
+    if (Array.isArray(raw.legs.walls)) {
+      L.walls = raw.legs.walls.filter((w) => Array.isArray(w) && w.length === 2 &&
+        Number.isInteger(w[0]) && Number.isInteger(w[1]) &&
+        w[0] >= 0 && w[0] < LEGS_N && w[1] >= 0 && w[1] < LEGS_N).slice(0, 40);
+    }
+    ["goal", "start"].forEach((k) => {
+      const v = raw.legs[k];
+      if (Array.isArray(v) && v.length === 2 && Number.isInteger(v[0]) && Number.isInteger(v[1]) &&
+          v[0] >= 0 && v[0] < LEGS_N && v[1] >= 0 && v[1] < LEGS_N) L[k] = [v[0], v[1]];
+    });
+    if (L.goal[0] === L.start[0] && L.goal[1] === L.start[1]) { L.goal = [6, 0]; L.start = [0, 6]; }
+    L.tries = num(raw.legs.tries, 0);
+    L.solved = num(raw.legs.solved, 0);
+    L.steps = num(raw.legs.steps, 0);
+    L.best = (typeof raw.legs.best === "number" && isFinite(raw.legs.best) && raw.legs.best > 0)
+      ? Math.floor(raw.legs.best) : null;
+    /* a wall must never sit on the robot or the battery */
+    L.walls = L.walls.filter((w) =>
+      !(w[0] === L.goal[0] && w[1] === L.goal[1]) && !(w[0] === L.start[0] && w[1] === L.start[1]));
+  }
+  if (raw.visited && typeof raw.visited === "object") {
+    ["robot", "eye", "voice", "legs", "report"].forEach((k) => { if (raw.visited[k]) d.visited[k] = true; });
+  }
+  return d;
+}
+let saveT = 0;
+function save() {
+  clearTimeout(saveT);
+  saveT = setTimeout(() => {
+    try { localStorage.setItem(KEY, JSON.stringify(S)); }
+    catch (e) { toast("This device is out of saving room.", 3600); }
+  }, 250);
+}
+function saveNow() {
+  clearTimeout(saveT);
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+}
+
+/* ===========================================================================
+   ROOM 1 — THE EYE
+   A nearest-neighbour classifier over 12x12 drawings.
+
+   The whole idea: it remembers every drawing it has been shown, and when you
+   show it a new one it finds the drawing in its memory that looks most like
+   it, and answers with that drawing's name. That is genuinely how the
+   simplest real image classifiers work, and it has the lovely property that
+   it can explain itself — it can show you exactly which drawing it was
+   reminded of. So when it is wrong, you can see why.
+
+   Two bits of preparation before anything is compared, both of which real
+   systems do as well:
+     · the drawing is slid so its middle sits in the middle of the grid, so
+       it does not matter where on the paper it was drawn;
+     · it is blurred slightly, so a line one square out still counts as
+       nearly right instead of completely wrong.
+   =========================================================================== */
+
+function pxToArr(px) {
+  const a = new Uint8Array(CELLS);
+  for (let i = 0; i < CELLS; i++) a[i] = px.charCodeAt(i) === 49 ? 1 : 0;
+  return a;
+}
+function arrToPx(a) {
+  let s = "";
+  for (let i = 0; i < CELLS; i++) s += a[i] ? "1" : "0";
+  return s;
+}
+function inkBounds(a) {
+  let minX = GRID, minY = GRID, maxX = -1, maxY = -1;
+  for (let y = 0; y < GRID; y++) for (let x = 0; x < GRID; x++) {
+    if (!a[y * GRID + x]) continue;
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (y < minY) minY = y; if (y > maxY) maxY = y;
+  }
+  return maxX < 0 ? null : { minX, minY, maxX, maxY };
+}
+function isBlank(px) { return !inkBounds(pxToArr(px)); }
+
+/* Slide the drawing so the middle of its ink sits in the middle of the grid. */
+function centreArr(a) {
+  const b = inkBounds(a);
+  const out = new Uint8Array(CELLS);
+  if (!b) return out;
+  const dx = Math.round((GRID - 1) / 2 - (b.minX + b.maxX) / 2);
+  const dy = Math.round((GRID - 1) / 2 - (b.minY + b.maxY) / 2);
+  for (let y = 0; y < GRID; y++) for (let x = 0; x < GRID; x++) {
+    if (!a[y * GRID + x]) continue;
+    const nx = x + dx, ny = y + dy;
+    if (nx >= 0 && nx < GRID && ny >= 0 && ny < GRID) out[ny * GRID + nx] = 1;
+  }
+  return out;
+}
+/* Soften it, so being one square out is nearly right rather than entirely wrong. */
+function blurArr(a) {
+  const out = new Float32Array(CELLS);
+  for (let y = 0; y < GRID; y++) for (let x = 0; x < GRID; x++) {
+    let sum = 0, n = 0;
+    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
+      const nx = x + i, ny = y + j;
+      if (nx < 0 || nx >= GRID || ny < 0 || ny >= GRID) continue;
+      sum += a[ny * GRID + nx] * (i === 0 && j === 0 ? 2.2 : 1);
+      n += (i === 0 && j === 0 ? 2.2 : 1);
+    }
+    out[y * GRID + x] = sum / n;
+  }
+  return out;
+}
+const featCache = new Map();
+function features(px) {
+  const hit = featCache.get(px);
+  if (hit) return hit;
+  const f = blurArr(centreArr(pxToArr(px)));
+  featCache.set(px, f);
+  if (featCache.size > 900) featCache.delete(featCache.keys().next().value);
+  return f;
+}
+function dist2(a, b) {
+  let s = 0;
+  for (let i = 0; i < CELLS; i++) { const d = a[i] - b[i]; s += d * d; }
+  return s;
+}
+
+/* The classifier itself. Returns what it thinks, how sure it is, and — the
+   important part — which remembered drawing made it say so. */
+function classify(examples, px) {
+  if (!examples.length) return { kind: "nothing-learnt" };
+  if (isBlank(px)) return { kind: "blank" };
+  const f = features(px);
+  const scored = examples.map((e, i) => ({ i: i, label: e.label, d: dist2(f, features(e.px)) }))
+                         .sort((a, b) => a.d - b.d);
+
+  /* Vote among the nearest few, each vote weighted by how close it is.
+     Never ask more neighbours than the thinnest thing it knows actually has:
+     with two drawings of a cat and six of a dog, asking three neighbours is
+     rigged against the cat before it starts. */
+  const counts = {};
+  examples.forEach((e) => { counts[e.label] = (counts[e.label] || 0) + 1; });
+  const thinnest = Math.min.apply(null, Object.keys(counts).map((l) => counts[l]));
+  const k = Math.max(1, Math.min(3, thinnest, scored.length));
+  const votes = {};
+  for (let i = 0; i < k; i++) {
+    const w = 1 / (scored[i].d + 0.35);
+    votes[scored[i].label] = (votes[scored[i].label] || 0) + w;
+  }
+  const ranked = Object.keys(votes).map((l) => ({ label: l, w: votes[l] }))
+                       .sort((a, b) => b.w - a.w);
+  const label = ranked[0].label;
+  const nearest = scored.find((s) => s.label === label) || scored[0];
+
+  /* How sure: the gap between the best name and the next best one. With only
+     one name known there is nothing to compare against, and the honest answer
+     is to say so rather than to claim certainty. */
+  const labelsKnown = new Set(examples.map((e) => e.label)).size;
+  let sure, margin = 0;
+  if (labelsKnown < 2) sure = "only-one";
+  else {
+    const other = scored.find((s) => s.label !== label);
+    margin = other ? (other.d - nearest.d) / (other.d + nearest.d + 0.001) : 1;
+    sure = margin > 0.30 ? "sure" : margin > 0.11 ? "think" : "unsure";
+  }
+  return { kind:"guess", label, sure, margin, nearest: nearest.i, ranked, labelsKnown };
+}
+
+/* Marking its own homework, honestly. Each remembered drawing is hidden in
+   turn and the AI is asked to name it using only the others. That is called
+   leave-one-out testing and it is what people actually use to check a
+   classifier. The number it gives back is real: it goes up when there are
+   more examples to go on, and it goes down if two things are being taught
+   that genuinely look alike. */
+function selfTest(examples) {
+  const byLabel = {};
+  examples.forEach((e) => { byLabel[e.label] = (byLabel[e.label] || 0) + 1; });
+  const labels = Object.keys(byLabel);
+  if (labels.length < 2) return { kind:"need-two", labels: labels.length };
+  const thin = labels.filter((l) => byLabel[l] < 2);
+  if (thin.length === labels.length) return { kind:"need-more", thin: thin };
+
+  let right = 0, total = 0;
+  const per = {};
+  labels.forEach((l) => { per[l] = { right:0, total:0 }; });
+  for (let i = 0; i < examples.length; i++) {
+    const rest = examples.filter((_, j) => j !== i);
+    if (!rest.some((e) => e.label === examples[i].label)) continue;  // only one of these; nothing to go on
+    const g = classify(rest, examples[i].px);
+    total++; per[examples[i].label].total++;
+    if (g.kind === "guess" && g.label === examples[i].label) { right++; per[examples[i].label].right++; }
+  }
+  if (!total) return { kind:"need-more", thin: thin };
+  return { kind:"score", right, total, pct: Math.round(right / total * 100), per, thin };
+}
+
+/* ---------------------------------------------------------------------------
+   THE EYE — screen
+   --------------------------------------------------------------------------- */
+const SUGGEST = ["apple","tree","house","star","face","cat","fish","boat","flower","rocket","sun","heart"];
+let paint = new Uint8Array(CELLS);
+let painting = null, eraser = false, lastGuess = null;
+
+function eyeRoom() {
+  const known = labelCounts();
+  const names = Object.keys(known);
+  $("main").innerHTML =
+    '<div class="sheet">' +
+      "<h2>👁️ The Eye</h2>" +
+      '<p class="lead">Draw something, tell it what it is, and it remembers. ' +
+        "Do that a few times, then draw a <b>new</b> one and ask it. " +
+        "It will tell you which drawing it was reminded of — so you can always see <b>why</b>.</p>" +
+      '<div class="split">' +
+        '<div class="col" style="flex:0 0 auto">' +
+          '<div class="gridwrap"><canvas id="paint" width="360" height="360" ' +
+            'role="img" aria-label="Drawing grid. Drag to draw."></canvas></div>' +
+          '<div class="row" style="margin-top:8px">' +
+            '<button class="btn" id="eBrush" aria-pressed="true">✏️ Draw</button>' +
+            '<button class="btn" id="eErase" aria-pressed="false">🧽 Rub out</button>' +
+            '<button class="btn" id="eClear">🗑 Clear</button>' +
+          "</div>" +
+        "</div>" +
+        '<div class="col">' +
+          '<div class="panel"><h3>Teach it</h3>' +
+            '<input type="text" id="eLabel" maxlength="16" placeholder="What is this?" ' +
+              'aria-label="What is this drawing?">' +
+            '<div class="row" style="margin-top:7px" id="eSuggest"></div>' +
+            '<div class="row" style="margin-top:9px">' +
+              '<button class="btn go" id="eLearn">🧠 Learn this</button></div>' +
+          "</div>" +
+          '<div class="panel"><h3>Ask it</h3>' +
+            '<button class="btn key" id="eAsk" style="width:100%">🤔 What is it?</button>' +
+            '<div id="eResult"></div>' +
+          "</div>" +
+          '<div class="panel"><h3>How good is it?</h3>' +
+            '<p class="lead" style="margin:0 0 7px">It can mark its own homework: it hides each ' +
+              "drawing it knows and tries to name it from the others.</p>" +
+            '<button class="btn" id="eTest" style="width:100%">🎯 Test it</button>' +
+            '<div id="eScore"></div>' +
+          "</div>" +
+        "</div>" +
+      "</div>" +
+      '<div class="panel" style="margin-top:4px"><h3>What it knows</h3><div id="eKnows"></div></div>' +
+    "</div>";
+
+  const sug = $("eSuggest");
+  SUGGEST.forEach((w) => {
+    const b = document.createElement("button");
+    b.className = "btn"; b.style.fontSize = ".8rem"; b.style.padding = "6px 12px";
+    b.textContent = w;
+    b.setAttribute("aria-label", "Call it " + w);
+    b.addEventListener("click", () => { $("eLabel").value = w; });
+    sug.appendChild(b);
+  });
+  setupPaint();
+  ["eBrush","eErase"].forEach((id, i) => $(id).addEventListener("click", () => {
+    eraser = i === 1;
+    $("eBrush").classList.toggle("on", !eraser); $("eBrush").setAttribute("aria-pressed", String(!eraser));
+    $("eErase").classList.toggle("on", eraser);  $("eErase").setAttribute("aria-pressed", String(eraser));
+  }));
+  $("eBrush").classList.add("on");
+  $("eClear").addEventListener("click", () => { paint = new Uint8Array(CELLS); drawPaint(); clearResult(); });
+  $("eLearn").addEventListener("click", learnThis);
+  $("eAsk").addEventListener("click", askIt);
+  $("eTest").addEventListener("click", runSelfTest);
+  drawPaint(); renderKnows(); clearResult();
+  if (!names.length) {
+    $("eResult").innerHTML = '<div class="note">It knows <b>nothing at all</b> yet. ' +
+      "Draw something and press <b>Learn this</b> to give it its very first idea.</div>";
+  }
+}
+function labelCounts() {
+  const c = {};
+  S.eye.examples.forEach((e) => { c[e.label] = (c[e.label] || 0) + 1; });
+  return c;
+}
+function clearResult() { lastGuess = null; const r = $("eResult"); if (r) r.innerHTML = ""; }
+
+function setupPaint() {
+  const cv = $("paint");
+  const cell = () => cv.getBoundingClientRect().width / GRID;
+  const at = (ev) => {
+    const r = cv.getBoundingClientRect(), c = r.width / GRID;
+    return { x: Math.floor((ev.clientX - r.left) / c), y: Math.floor((ev.clientY - r.top) / c) };
+  };
+  const put = (p) => {
+    if (p.x < 0 || p.x >= GRID || p.y < 0 || p.y >= GRID) return;
+    const i = p.y * GRID + p.x, v = eraser ? 0 : 1;
+    if (paint[i] === v) return;
+    paint[i] = v; drawPaint();
+  };
+  cv.addEventListener("pointerdown", (ev) => {
+    ev.preventDefault(); cv.setPointerCapture(ev.pointerId);
+    painting = true; clearResult(); put(at(ev));
+  });
+  cv.addEventListener("pointermove", (ev) => { if (painting) put(at(ev)); });
+  const stop = () => { painting = false; };
+  cv.addEventListener("pointerup", stop);
+  cv.addEventListener("pointercancel", stop);
+  void cell;
+}
+function drawPaint() {
+  const cv = $("paint"); if (!cv) return;
+  const g = cv.getContext("2d"), n = cv.width / GRID;
+  g.fillStyle = "#fff"; g.fillRect(0, 0, cv.width, cv.height);
+  for (let y = 0; y < GRID; y++) for (let x = 0; x < GRID; x++) {
+    if (paint[y * GRID + x]) {
+      g.fillStyle = S.robot.colour;
+      g.fillRect(x * n + 1, y * n + 1, n - 2, n - 2);
+    }
+  }
+  g.strokeStyle = "rgba(31,34,54,.13)"; g.lineWidth = 1;
+  for (let i = 1; i < GRID; i++) {
+    g.beginPath(); g.moveTo(i * n, 0); g.lineTo(i * n, cv.height); g.stroke();
+    g.beginPath(); g.moveTo(0, i * n); g.lineTo(cv.width, i * n); g.stroke();
+  }
+}
+/* a little picture of a remembered drawing, for the gallery and the answer */
+function thumb(px, size, colour) {
+  const c = document.createElement("canvas");
+  c.width = size * 2; c.height = size * 2;
+  c.style.width = size + "px"; c.style.height = size + "px";
+  c.style.borderRadius = "7px"; c.style.border = "1px solid var(--line)";
+  const g = c.getContext("2d"), n = c.width / GRID;
+  g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+  g.fillStyle = colour || "#1f2236";
+  for (let y = 0; y < GRID; y++) for (let x = 0; x < GRID; x++) {
+    if (px.charCodeAt(y * GRID + x) === 49) g.fillRect(x * n, y * n, n, n);
+  }
+  return c;
+}
+
+function learnThis() {
+  const label = ($("eLabel").value || "").trim().slice(0, 16);
+  if (!label) { toast("Tell it what this is first ✏️"); $("eLabel").focus(); return; }
+  if (isBlank(arrToPx(paint))) { toast("Draw something first 🙂"); return; }
+  if (S.eye.examples.length >= 400) {
+    dialog("🧠", "Its memory is full", "<p>It is remembering 400 drawings, which is plenty. " +
+      "Rub out some old ones from <b>What it knows</b> to make room.</p>");
+    return;
+  }
+  S.eye.examples.push({ label: label, px: arrToPx(paint) });
+  save();
+  const n = labelCounts()[label];
+  toast("Learnt! It has seen " + n + " " + label + (n === 1 ? "" : "s"));
+  paint = new Uint8Array(CELLS); drawPaint(); clearResult(); renderKnows();
+}
+
+function askIt() {
+  const px = arrToPx(paint);
+  const r = classify(S.eye.examples, px);
+  const box = $("eResult");
+  if (r.kind === "nothing-learnt") {
+    box.innerHTML = '<div class="note">It does not know anything yet! Teach it one thing first.</div>';
+    return;
+  }
+  if (r.kind === "blank") { box.innerHTML = '<div class="note">Draw something first 🙂</div>'; return; }
+
+  lastGuess = { px: px, label: r.label };
+  S.eye.asked++;
+  const head = { sure:"I am sure", think:"I think", unsure:"Maybe", "only-one":"I only know one thing so far, so" }[r.sure];
+  const tail = r.sure === "only-one"
+    ? "everything looks like <b>" + esc(r.label) + "</b> to me. Teach me something different and I will be able to tell them apart!"
+    : "that is <b>" + esc(r.label) + "</b>.";
+  box.innerHTML =
+    '<div class="said"><span class="lab">' + esc(S.robot.name) + " says</span>" + head + " " + tail + "</div>" +
+    '<div class="row" style="align-items:center;gap:9px;margin-bottom:8px">' +
+      '<span style="font-size:.78rem;color:var(--ink2);flex:1">It reminded me of this one you taught me:</span>' +
+      '<span id="eNear"></span></div>' +
+    '<div class="row">' +
+      '<button class="btn go" id="eYes">✅ Yes! Right</button>' +
+      '<button class="btn" id="eNo">🙃 No, it is something else</button>' +
+    "</div>";
+  $("eNear").appendChild(thumb(S.eye.examples[r.nearest].px, 46, S.robot.colour));
+  $("eYes").addEventListener("click", () => {
+    S.eye.right++; save();
+    toast("It has got " + S.eye.right + " right so far 🎉");
+    box.innerHTML = '<div class="note cool">Brilliant. It learns a little more every time you teach it.</div>';
+    renderKnows();
+  });
+  $("eNo").addEventListener("click", () => {
+    box.innerHTML =
+      '<div class="note">No problem — <b>that is how it learns</b>. ' +
+      "Tell it what this really is and it will remember for next time.</div>" +
+      '<input type="text" id="eFix" maxlength="16" placeholder="What is it really?" ' +
+        'aria-label="What is it really?">' +
+      '<div class="row" style="margin-top:8px"><button class="btn go" id="eFixGo">🧠 Now you know</button></div>';
+    $("eFix").focus();
+    $("eFixGo").addEventListener("click", () => {
+      const l = ($("eFix").value || "").trim().slice(0, 16);
+      if (!l) { toast("Type what it really is"); return; }
+      S.eye.examples.push({ label: l, px: px });
+      save();
+      toast("Thank you! Now it knows this one is a " + l);
+      paint = new Uint8Array(CELLS); drawPaint(); clearResult(); renderKnows();
+    });
+  });
+  save();
+}
+
+function renderKnows() {
+  const box = $("eKnows"); if (!box) return;
+  const counts = labelCounts(), names = Object.keys(counts).sort();
+  if (!names.length) {
+    box.innerHTML = '<p class="lead" style="margin:0">Nothing yet. Everything it learns will appear here.</p>';
+    return;
+  }
+  box.innerHTML = '<p class="lead" style="margin:0 0 8px">It knows <b>' + names.length +
+    (names.length === 1 ? "</b> thing, from <b>" : "</b> things, from <b>") +
+    S.eye.examples.length + "</b> drawing" + (S.eye.examples.length === 1 ? "" : "s") +
+    (S.eye.right ? ". It has guessed right <b>" + S.eye.right + "</b> time" + (S.eye.right === 1 ? "" : "s") : "") +
+    ".</p><div class=\"cards\" id=\"eCards\"></div>";
+  const cards = $("eCards");
+  names.forEach((nm) => {
+    const first = S.eye.examples.find((e) => e.label === nm);
+    const card = document.createElement("div");
+    card.className = "card";
+    card.appendChild(thumb(first.px, 52, S.robot.colour));
+    const t = document.createElement("span"); t.className = "cn"; t.textContent = nm; card.appendChild(t);
+    const c = document.createElement("span"); c.className = "cc";
+    c.textContent = counts[nm] + " drawing" + (counts[nm] === 1 ? "" : "s"); card.appendChild(c);
+    const del = document.createElement("button");
+    del.className = "btn"; del.style.cssText = "min-height:44px;padding:4px 10px;font-size:.72rem;margin-top:4px";
+    del.textContent = "forget";
+    del.setAttribute("aria-label", "Make it forget " + nm);
+    del.addEventListener("click", () => {
+      dialog("🧠", "Forget " + nm + "?",
+        "<p>It will not know what a <b>" + esc(nm) + "</b> is any more. You can always teach it again.</p>",
+        [{ label:"Keep it" }, { label:"Forget it", cls:"warm", go:() => {
+          S.eye.examples = S.eye.examples.filter((e) => e.label !== nm);
+          save(); renderKnows(); clearResult();
+        } }]);
+    });
+    card.appendChild(del);
+    cards.appendChild(card);
+  });
+}
+
+function runSelfTest() {
+  const box = $("eScore");
+  const t = selfTest(S.eye.examples);
+  if (t.kind === "need-two") {
+    box.innerHTML = '<div class="note">It needs to know at least <b>two different things</b> ' +
+      "before a test means anything \u2014 otherwise it can only ever give one answer.</div>";
+    return;
+  }
+  if (t.kind === "need-more") {
+    box.innerHTML = '<div class="note">Teach it <b>two or more drawings</b> of each thing, ' +
+      "then it can hide one and try to work it out from the rest.</div>";
+    return;
+  }
+  const was = S.eye.bestScore;
+  if (t.pct > S.eye.bestScore) { S.eye.bestScore = t.pct; save(); }
+  const mood = t.pct >= 80 ? "That is really good." :
+               t.pct >= 55 ? "Not bad at all." :
+               "Early days \u2014 more drawings will push that up.";
+  let h = '<div class="said"><span class="lab">It marked its own work</span>It got <b>' + t.right + " out of " +
+    t.total + "</b> right (" + t.pct + "%). " + mood + "</div>";
+  if (t.pct > was && was > 0) h += '<div class="note cool">That is better than last time (' + was + "%).</div>";
+  h += '<div class="fieldlab">How it did on each thing</div>';
+  Object.keys(t.per).sort().forEach((l) => {
+    const q = t.per[l];
+    if (!q.total) return;
+    h += '<div class="stat"><b>' + q.right + "/" + q.total + "</b><span>" + esc(l) + "</span></div>";
+  });
+  const weak = Object.keys(t.per).filter((l) => t.per[l].total && t.per[l].right / t.per[l].total < 0.6);
+  if (weak.length) {
+    h += '<div class="note">It keeps muddling up <b>' + weak.map(esc).join("</b> and <b>") +
+      "</b>. Teach it a few more of those and they will come apart.</div>";
+  }
+  if (t.thin && t.thin.length) {
+    h += '<div class="note">These have only one drawing each, so they could not be tested: <b>' +
+      t.thin.map(esc).join("</b>, <b>") + "</b>.</div>";
+  }
+  box.innerHTML = h;
+}
+
+/* ===========================================================================
+   ROOM 2 — THE VOICE
+   A Markov chain over words, plus matched reply rules.
+
+   Teach it sentences. It notes which word tends to follow which, and then
+   builds brand new sentences by walking those links. It is making things up
+   that nobody ever typed — but every single word came from this child.
+
+   Worth being clear about, because it is the whole safety story of this room:
+   this thing cannot invent vocabulary. It can only ever say words that have
+   been typed into it on this device. There is no model, no dictionary and no
+   network. If it says something surprising, it is because of what it was fed.
+   =========================================================================== */
+
+const START = "\u0001start", END = "\u0001end";
+
+function words(s) {
+  return String(s).trim().split(/\s+/).filter(Boolean).slice(0, 40);
+}
+function key(w) { return w.toLowerCase().replace(/[^a-z0-9']/g, "") || w.toLowerCase(); }
+
+/* Read every taught sentence and note what follows what. */
+function buildChain(sentences) {
+  const next = Object.create(null);
+  const add = (a, b) => { (next[a] || (next[a] = [])).push(b); };
+  sentences.forEach((s) => {
+    const w = words(s);
+    if (!w.length) return;
+    add(START, w[0]);
+    for (let i = 0; i < w.length - 1; i++) add(key(w[i]), w[i + 1]);
+    add(key(w[w.length - 1]), END);
+  });
+  return next;
+}
+function chainStats(next) {
+  let links = 0;
+  const vocab = new Set();
+  Object.keys(next).forEach((k) => {
+    if (k !== START) vocab.add(k);
+    next[k].forEach((w) => { if (w !== END) vocab.add(key(w)); links++; });
+  });
+  return { words: vocab.size, links: links };
+}
+/* Walk the links to make a sentence nobody typed. */
+function speak(next, rnd) {
+  rnd = rnd || Math.random;
+  const starts = next[START];
+  if (!starts || !starts.length) return null;
+  const out = [];
+  let w = starts[Math.floor(rnd() * starts.length)];
+  for (let i = 0; i < 20 && w && w !== END; i++) {
+    out.push(w);
+    const opts = next[key(w)];
+    if (!opts || !opts.length) break;
+    w = opts[Math.floor(rnd() * opts.length)];
+  }
+  if (!out.length) return null;
+  let s = out.join(" ");
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+  if (!/[.!?]$/.test(s)) s += ".";
+  return s;
+}
+/* Which taught reply best fits what was just said? Words in common, as a
+   share of the rule's own words, so a short rule needs a close match. */
+function matchRule(rules, said) {
+  const heard = new Set(words(said).map(key));
+  if (!heard.size) return null;
+  let best = null, bestScore = 0;
+  rules.forEach((r) => {
+    const want = words(r.when).map(key).filter(Boolean);
+    if (!want.length) return;
+    let hit = 0;
+    want.forEach((w) => { if (heard.has(w)) hit++; });
+    const score = hit / want.length;
+    if (score > bestScore) { bestScore = score; best = r; }
+  });
+  return bestScore >= 0.6 ? { rule: best, score: bestScore } : null;
+}
+/* What the robot replies to one message. Rules first, then its own babble. */
+function reply(state, said) {
+  const m = matchRule(state.voice.rules, said);
+  if (m) return { text: m.rule.say, why: "you taught it to say that" };
+  const next = buildChain(state.voice.sentences);
+  const s = speak(next);
+  if (s) return { text: s, why: "made up from the words you taught it" };
+  return { text: null, why: "it has no words yet" };
+}
+
+/* ---------------------------------------------------------------------------
+   THE VOICE — screen
+   --------------------------------------------------------------------------- */
+let chatLog = [];
+
+function voiceRoom() {
+  $("main").innerHTML =
+    '<div class="sheet">' +
+      "<h2>💬 The Voice</h2>" +
+      '<p class="lead">Teach it sentences. It works out which word tends to come after which, ' +
+        "then makes up <b>brand new sentences</b> out of your words. " +
+        "It can only ever say words you have typed in — it has no dictionary of its own.</p>" +
+      '<div class="split">' +
+        '<div class="col">' +
+          '<div class="panel"><h3>Teach it a sentence</h3>' +
+            '<input type="text" id="vSent" maxlength="140" placeholder="My robot loves cheese" ' +
+              'aria-label="A sentence to teach it">' +
+            '<div class="row" style="margin-top:8px">' +
+              '<button class="btn go" id="vAdd">🧠 Teach it</button>' +
+              '<button class="btn" id="vSpeak">💬 Make it talk</button></div>' +
+            '<div id="vSaid"></div>' +
+          "</div>" +
+          '<div class="panel"><h3>Teach it a reply</h3>' +
+            '<p class="lead" style="margin:0 0 7px">If somebody says one thing, say another.</p>' +
+            '<input type="text" id="vWhen" maxlength="60" placeholder="if I say… hello" aria-label="If somebody says">' +
+            '<div style="height:7px"></div>' +
+            '<input type="text" id="vThen" maxlength="140" placeholder="…say: Hi! I am a robot." aria-label="Then say">' +
+            '<div class="row" style="margin-top:8px"><button class="btn go" id="vRule">🧠 Teach the reply</button></div>' +
+          "</div>" +
+        "</div>" +
+        '<div class="col">' +
+          '<div class="panel"><h3>Talk to it</h3>' +
+            '<div class="chat" id="vChat"></div>' +
+            '<input type="text" id="vMsg" maxlength="140" placeholder="Say something to it…" aria-label="Say something to it">' +
+            '<div class="row" style="margin-top:8px"><button class="btn key" id="vSend">Send</button>' +
+            '<button class="btn" id="vClearChat">Clear</button></div>' +
+          "</div>" +
+          '<div class="panel"><h3>What it knows</h3><div id="vKnows"></div></div>' +
+        "</div>" +
+      "</div>" +
+    "</div>";
+
+  $("vAdd").addEventListener("click", addSentence);
+  $("vSent").addEventListener("keydown", (e) => { if (e.key === "Enter") addSentence(); });
+  $("vSpeak").addEventListener("click", makeItTalk);
+  $("vRule").addEventListener("click", addRule);
+  $("vSend").addEventListener("click", sendMsg);
+  $("vMsg").addEventListener("keydown", (e) => { if (e.key === "Enter") sendMsg(); });
+  $("vClearChat").addEventListener("click", () => { chatLog = []; renderChat(); });
+  renderChat(); renderVoiceKnows();
+}
+
+function addSentence() {
+  const v = ($("vSent").value || "").trim().slice(0, 140);
+  if (!v) { toast("Type a sentence first ✏️"); return; }
+  if (!words(v).length) { toast("That needs some words in it"); return; }
+  if (S.voice.sentences.length >= 300) { toast("It has plenty of sentences now!"); return; }
+  S.voice.sentences.push(v);
+  save();
+  $("vSent").value = "";
+  const st = chainStats(buildChain(S.voice.sentences));
+  toast("Learnt. It knows " + st.words + " words now.");
+  renderVoiceKnows();
+}
+function addRule() {
+  const w = ($("vWhen").value || "").trim().slice(0, 60);
+  const t = ($("vThen").value || "").trim().slice(0, 140);
+  if (!w || !t) { toast("Fill in both boxes 🙂"); return; }
+  if (S.voice.rules.length >= 120) { toast("That is plenty of replies!"); return; }
+  S.voice.rules.push({ when: w, say: t });
+  save();
+  $("vWhen").value = ""; $("vThen").value = "";
+  toast("Reply learnt — try saying it in the chat!");
+  renderVoiceKnows();
+}
+function makeItTalk() {
+  const s = speak(buildChain(S.voice.sentences));
+  const box = $("vSaid");
+  if (!s) {
+    box.innerHTML = '<div class="note">It has no words yet. Teach it a sentence first!</div>';
+    return;
+  }
+  S.voice.said++; save();
+  box.innerHTML = '<div class="said"><span class="lab">' + esc(S.robot.name) + " made this up</span>" + esc(s) + "</div>";
+}
+function sendMsg() {
+  const v = ($("vMsg").value || "").trim().slice(0, 140);
+  if (!v) return;
+  $("vMsg").value = "";
+  chatLog.push({ me: true, t: v });
+  const r = reply(S, v);
+  if (!r.text) {
+    chatLog.push({ me: false, t: "…", why: "I do not know any words yet. Teach me a sentence!" });
+  } else {
+    S.voice.said++; save();
+    chatLog.push({ me: false, t: r.text, why: r.why });
+  }
+  renderChat();
+}
+function renderChat() {
+  const box = $("vChat"); if (!box) return;
+  if (!chatLog.length) {
+    box.innerHTML = '<p class="lead" style="margin:0">Say something to it and see what it says back.</p>';
+    return;
+  }
+  box.innerHTML = chatLog.map((m) =>
+    '<div class="bub ' + (m.me ? "me" : "it") + '">' +
+      '<span class="who">' + (m.me ? "You" : esc(S.robot.name)) + "</span>" + esc(m.t) +
+      (m.why ? '<span style="display:block;font-size:.68rem;opacity:.6;margin-top:3px">(' +
+        esc(m.why) + ")</span>" : "") +
+    "</div>").join("");
+  box.scrollTop = box.scrollHeight;
+}
+function renderVoiceKnows() {
+  const box = $("vKnows"); if (!box) return;
+  const st = chainStats(buildChain(S.voice.sentences));
+  let h = '<div class="stat"><b>' + st.words + "</b><span>words it knows</span></div>" +
+          '<div class="stat"><b>' + st.links + "</b><span>ways to join them up</span></div>" +
+          '<div class="stat"><b>' + S.voice.rules.length + "</b><span>replies you taught it</span></div>";
+  if (S.voice.sentences.length) {
+    h += '<div class="fieldlab">Sentences you taught it</div><div id="vList"></div>';
+  }
+  if (S.voice.rules.length) {
+    h += '<div class="fieldlab">Replies</div><div id="vRules"></div>';
+  }
+  box.innerHTML = h;
+  const list = $("vList");
+  if (list) S.voice.sentences.slice().reverse().forEach((s, i) => {
+    const real = S.voice.sentences.length - 1 - i;
+    const tag = document.createElement("span");
+    tag.className = "tag"; tag.textContent = s + " ";
+    const x = document.createElement("button");
+    x.textContent = "✕"; x.setAttribute("aria-label", "Make it forget: " + s);
+    x.addEventListener("click", () => {
+      S.voice.sentences.splice(real, 1); save(); renderVoiceKnows();
+    });
+    tag.appendChild(x); list.appendChild(tag);
+  });
+  const rules = $("vRules");
+  if (rules) S.voice.rules.slice().reverse().forEach((r, i) => {
+    const real = S.voice.rules.length - 1 - i;
+    const tag = document.createElement("span");
+    tag.className = "tag"; tag.textContent = "“" + r.when + "” → “" + r.say + "” ";
+    const x = document.createElement("button");
+    x.textContent = "✕"; x.setAttribute("aria-label", "Forget the reply to " + r.when);
+    x.addEventListener("click", () => { S.voice.rules.splice(real, 1); save(); renderVoiceKnows(); });
+    tag.appendChild(x); rules.appendChild(tag);
+  });
+}
+
+/* ===========================================================================
+   ROOM 3 — THE LEGS
+   Q-learning on a grid.
+
+   The robot knows nothing about the room. All it can do is try a direction
+   and find out whether that went well. Reaching the battery is worth
+   something; every step costs a little, so dawdling is discouraged. Over many
+   tries it builds up a number for "how good is going this way from here", and
+   those numbers are drawn straight onto the floor as arrows.
+
+   Watching the arrows fill in IS the lesson: nobody told it the way, and you
+   can see exactly what it has worked out so far and what it has not.
+   =========================================================================== */
+
+const LEGS_N = 7;
+const ACTS = [[0,-1],[1,0],[0,1],[-1,0]];      /* up, right, down, left */
+const ARROW = ["↑","→","↓","←"];
+const ALPHA = 0.35, GAMMA = 0.93, STEP_COST = -0.03, WIN = 1, BUMP = -0.12;
+const MAX_STEPS = 70;
+
+const sKey = (x, y) => x + "," + y;
+function qRow(L, x, y) {
+  const k = sKey(x, y);
+  return L.q[k] || (L.q[k] = [0, 0, 0, 0]);
+}
+function isWall(L, x, y) {
+  return L.walls.some((w) => w[0] === x && w[1] === y);
+}
+function bestA(row) {
+  let b = 0;
+  for (let i = 1; i < 4; i++) if (row[i] > row[b]) b = i;
+  return b;
+}
+function maxQ(row) { return Math.max(row[0], row[1], row[2], row[3]); }
+
+/* How adventurous it still is. It starts out trying things almost at random
+   and settles down as it gets the hang of the room — but never completely,
+   or it could never discover a better way. */
+function epsilon(tries) { return Math.max(0.05, 0.9 * Math.pow(0.97, tries)); }
+
+/* One attempt, start to finish. Returns the path so it can be watched. */
+function runEpisode(L, rnd, greedy) {
+  rnd = rnd || Math.random;
+  let x = L.start[0], y = L.start[1];
+  const path = [[x, y]];
+  const eps = greedy ? 0 : epsilon(L.tries);
+  let won = false, steps = 0;
+
+  for (steps = 0; steps < MAX_STEPS; steps++) {
+    const row = qRow(L, x, y);
+    const a = (rnd() < eps) ? Math.floor(rnd() * 4) : bestA(row);
+    let nx = x + ACTS[a][0], ny = y + ACTS[a][1];
+    let r = STEP_COST;
+    if (nx < 0 || nx >= LEGS_N || ny < 0 || ny >= LEGS_N || isWall(L, nx, ny)) {
+      nx = x; ny = y; r += BUMP;                   /* walked into something */
+    }
+    const atGoal = (nx === L.goal[0] && ny === L.goal[1]);
+    if (atGoal) r = WIN;
+    if (!greedy) {
+      const future = atGoal ? 0 : maxQ(qRow(L, nx, ny));
+      row[a] += ALPHA * (r + GAMMA * future - row[a]);
+    }
+    x = nx; y = ny;
+    path.push([x, y]);
+    if (atGoal) { won = true; steps++; break; }
+  }
+  if (!greedy) {
+    L.tries++;
+    if (won) {
+      L.solved++;
+      if (L.best === null || steps < L.best) L.best = steps;
+    }
+  }
+  return { path: path, won: won, steps: steps };
+}
+/* Is there even a way through? Used to stop a wall being dropped in a place
+   that makes the battery impossible to reach. */
+function reachable(L, walls) {
+  const w = walls || L.walls;
+  const blocked = (x, y) => w.some((q) => q[0] === x && q[1] === y);
+  const seen = {}, stack = [L.start.slice()];
+  while (stack.length) {
+    const [x, y] = stack.pop();
+    const k = sKey(x, y);
+    if (seen[k]) continue;
+    seen[k] = 1;
+    if (x === L.goal[0] && y === L.goal[1]) return true;
+    ACTS.forEach(([dx, dy]) => {
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || nx >= LEGS_N || ny < 0 || ny >= LEGS_N) return;
+      if (blocked(nx, ny) || seen[sKey(nx, ny)]) return;
+      stack.push([nx, ny]);
+    });
+  }
+  return false;
+}
+
+/* ---------------------------------------------------------------------------
+   THE LEGS — screen
+   --------------------------------------------------------------------------- */
+let legsMode = "wall", showBrain = true, walker = null, legsBusy = false, legsRaf = 0;
+
+function legsRoom() {
+  $("main").innerHTML =
+    '<div class="sheet">' +
+      "<h2>🦿 The Legs</h2>" +
+      '<p class="lead">The robot has no idea where the battery is. It just tries directions and ' +
+        "finds out how they go. Press <b>Practise</b> and watch — the <b>arrows are what it has " +
+        "worked out so far</b>. Nobody tells it the way.</p>" +
+      '<div class="split">' +
+        '<div class="col" style="flex:0 0 auto">' +
+          '<div class="gridwrap"><canvas id="legs" width="420" height="420" ' +
+            'role="img" aria-label="A grid the robot is learning to cross."></canvas></div>' +
+        "</div>" +
+        '<div class="col">' +
+          '<div class="panel"><h3>Practise</h3>' +
+            '<div class="row">' +
+              '<button class="btn go" id="lOne">▶ Watch one try</button>' +
+              '<button class="btn key" id="lMany">⏩ Practise 25 times</button></div>' +
+            '<div class="row" style="margin-top:7px">' +
+              '<button class="btn" id="lBest">🏁 Show its best way</button>' +
+              '<button class="btn" id="lBrain" aria-pressed="true">🧠 Arrows on</button></div>' +
+            '<div id="lSay"></div>' +
+          "</div>" +
+          '<div class="panel"><h3>How it is getting on</h3><div id="lStats"></div></div>' +
+          '<div class="panel"><h3>Change the room</h3>' +
+            '<p class="lead" style="margin:0 0 7px">Tap a square to put things down. ' +
+              "If you move things, it has to learn the new room from scratch — " +
+              "just like you would.</p>" +
+            '<div class="row">' +
+              '<button class="btn" id="mWall">🧱 Walls</button>' +
+              '<button class="btn" id="mGoal">🔋 Battery</button>' +
+              '<button class="btn" id="mStart">🤖 Robot</button></div>' +
+            '<div class="row" style="margin-top:7px">' +
+              '<button class="btn" id="lForget">🧠 Forget everything</button></div>' +
+          "</div>" +
+        "</div>" +
+      "</div>" +
+    "</div>";
+  $("lOne").addEventListener("click", () => watchOne(false));
+  $("lMany").addEventListener("click", practiseMany);
+  $("lBest").addEventListener("click", () => watchOne(true));
+  $("lBrain").addEventListener("click", () => {
+    showBrain = !showBrain;
+    $("lBrain").textContent = showBrain ? "🧠 Arrows on" : "🧠 Arrows off";
+    $("lBrain").setAttribute("aria-pressed", String(showBrain));
+    drawLegs();
+  });
+  [["mWall","wall"],["mGoal","goal"],["mStart","start"]].forEach(([id, m]) =>
+    $(id).addEventListener("click", () => { legsMode = m; syncModeBtns(); }));
+  $("lForget").addEventListener("click", () => {
+    dialog("🧠", "Forget the way?", "<p>It will go back to knowing nothing about this room " +
+      "and have to work it out all over again.</p>",
+      [{ label:"Keep what it knows" }, { label:"Forget it", cls:"warm", go:() => {
+        S.legs.q = {}; S.legs.tries = 0; S.legs.best = null; S.legs.solved = 0;
+        save(); walker = null; drawLegs(); renderLegsStats();
+        $("lSay").innerHTML = "";
+      } }]);
+  });
+  setupLegsTaps();
+  syncModeBtns(); drawLegs(); renderLegsStats();
+}
+function syncModeBtns() {
+  [["mWall","wall"],["mGoal","goal"],["mStart","start"]].forEach(([id, m]) => {
+    const b = $(id); if (!b) return;
+    b.classList.toggle("on", legsMode === m);
+    b.setAttribute("aria-pressed", String(legsMode === m));
+  });
+}
+function setupLegsTaps() {
+  const cv = $("legs");
+  cv.addEventListener("pointerdown", (ev) => {
+    if (legsBusy) return;
+    ev.preventDefault();
+    const r = cv.getBoundingClientRect(), n = r.width / LEGS_N;
+    const x = Math.floor((ev.clientX - r.left) / n), y = Math.floor((ev.clientY - r.top) / n);
+    if (x < 0 || x >= LEGS_N || y < 0 || y >= LEGS_N) return;
+    const L = S.legs;
+    const same = (p) => p[0] === x && p[1] === y;
+    if (legsMode === "wall") {
+      if (same(L.goal) || same(L.start)) { toast("Something is already there"); return; }
+      const had = isWall(L, x, y);
+      const next = had ? L.walls.filter((w) => !(w[0] === x && w[1] === y))
+                       : L.walls.concat([[x, y]]);
+      if (!had && !reachable(L, next)) {
+        toast("That would block the way completely 🧱");
+        return;
+      }
+      L.walls = next;
+    } else if (legsMode === "goal") {
+      if (same(L.start)) { toast("The robot is standing there"); return; }
+      const keep = L.walls.filter((w) => !(w[0] === x && w[1] === y));
+      const old = L.goal; L.goal = [x, y];
+      if (!reachable(L, keep)) { L.goal = old; toast("It could not get there"); return; }
+      L.walls = keep;
+    } else {
+      if (same(L.goal)) { toast("The battery is there"); return; }
+      const keep = L.walls.filter((w) => !(w[0] === x && w[1] === y));
+      const old = L.start; L.start = [x, y];
+      if (!reachable(L, keep)) { L.start = old; toast("It could not get out"); return; }
+      L.walls = keep;
+    }
+    /* the room changed, so what it learnt about the old room is no longer true */
+    const knew = Object.keys(L.q).length;
+    L.q = {}; L.tries = 0; L.best = null; L.solved = 0;
+    walker = null;
+    save(); drawLegs(); renderLegsStats();
+    if (knew) {
+      $("lSay").innerHTML = '<div class="note">You changed the room, so it has to learn ' +
+        "it again from the beginning. That is not a bug — what it knew was about the " +
+        "<i>old</i> room.</div>";
+    }
+  });
+}
+
+function watchOne(greedy) {
+  if (legsBusy) return;
+  const L = S.legs;
+  if (greedy && !L.tries) { toast("Let it practise first!"); return; }
+  const ep = runEpisode(L, Math.random, greedy);
+  save();
+  legsBusy = true;
+  let i = 0;
+  const tick = () => {
+    walker = ep.path[i];
+    drawLegs();
+    i++;
+    if (i < ep.path.length) { legsRaf = setTimeout(tick, greedy ? 110 : 70); return; }
+    legsBusy = false;
+    renderLegsStats();
+    const say = $("lSay");
+    if (!say) return;
+    if (greedy) {
+      say.innerHTML = ep.won
+        ? '<div class="note cool">Its best way took <b>' + ep.steps + "</b> steps.</div>"
+        : '<div class="note">It has not found a reliable way yet. Give it more practice!</div>';
+    } else if (ep.won) {
+      say.innerHTML = '<div class="said"><span class="lab">' + esc(S.robot.name) + " says</span>Got it in " +
+        ep.steps + " steps! That is try number " + L.tries + ".</div>";
+    } else {
+      say.innerHTML = '<div class="note">It wandered about and ran out of puff. ' +
+        "<b>That is still useful</b> — it now knows some of the ways that <i>do not</i> work.</div>";
+    }
+  };
+  tick();
+}
+function practiseMany() {
+  if (legsBusy) return;
+  const L = S.legs, before = L.best;
+  for (let i = 0; i < 25; i++) runEpisode(L, Math.random, false);
+  save(); walker = null; drawLegs(); renderLegsStats();
+  const say = $("lSay");
+  if (L.best === null) {
+    say.innerHTML = '<div class="note">Still working it out. Give it another 25 — ' +
+      "it is getting less random every time.</div>";
+  } else if (before === null) {
+    say.innerHTML = '<div class="note cool">It found the battery! Best so far: <b>' +
+      L.best + "</b> steps. Look at the arrows — that is what it has learnt.</div>";
+  } else if (L.best < before) {
+    say.innerHTML = '<div class="note cool">It found a <b>shorter</b> way: ' + L.best +
+      " steps, down from " + before + ".</div>";
+  } else {
+    say.innerHTML = '<div class="note cool">It is getting surer of the way. Best is still <b>' +
+      L.best + "</b> steps.</div>";
+  }
+}
+function renderLegsStats() {
+  const box = $("lStats"); if (!box) return;
+  const L = S.legs;
+  const learnt = Object.keys(L.q).filter((k) => maxQ(L.q[k]) !== 0 || Math.min.apply(null, L.q[k]) !== 0).length;
+  box.innerHTML =
+    '<div class="stat"><b>' + L.tries + "</b><span>tries</span></div>" +
+    '<div class="stat"><b>' + L.solved + "</b><span>times it got there</span></div>" +
+    '<div class="stat"><b>' + (L.best === null ? "–" : L.best) + "</b><span>best run, in steps</span></div>" +
+    '<div class="stat"><b>' + learnt + "</b><span>squares it has an opinion about</span></div>";
+}
+
+function drawLegs() {
+  const cv = $("legs"); if (!cv) return;
+  const g = cv.getContext("2d"), L = S.legs, n = cv.width / LEGS_N;
+  g.fillStyle = "#f3f1e8"; g.fillRect(0, 0, cv.width, cv.height);
+
+  /* what it has learnt, painted on the floor */
+  let top = 0;
+  Object.keys(L.q).forEach((k) => { top = Math.max(top, maxQ(L.q[k])); });
+  for (let y = 0; y < LEGS_N; y++) for (let x = 0; x < LEGS_N; x++) {
+    const px = x * n, py = y * n;
+    if (isWall(L, x, y)) {
+      g.fillStyle = "#6a6480"; g.fillRect(px + 2, py + 2, n - 4, n - 4);
+      g.strokeStyle = "#4f4a62"; g.lineWidth = 2;
+      for (let i = 1; i < 3; i++) {
+        g.beginPath(); g.moveTo(px + 4, py + i * n / 3); g.lineTo(px + n - 4, py + i * n / 3); g.stroke();
+      }
+      continue;
+    }
+    const row = L.q[sKey(x, y)];
+    if (showBrain && row && top > 0.001) {
+      const v = maxQ(row);
+      if (v > 0.001) {
+        g.fillStyle = "rgba(21,147,122," + (0.09 + 0.5 * Math.min(1, v / top)).toFixed(3) + ")";
+        g.fillRect(px + 2, py + 2, n - 4, n - 4);
+      }
+      if (Math.abs(v) > 0.001) {
+        g.fillStyle = "rgba(31,34,54," + (0.3 + 0.6 * Math.min(1, Math.abs(v) / top)).toFixed(3) + ")";
+        g.font = "bold " + Math.round(n * 0.46) + "px system-ui,sans-serif";
+        g.textAlign = "center"; g.textBaseline = "middle";
+        g.fillText(ARROW[bestA(row)], px + n / 2, py + n / 2 + 1);
+      }
+    }
+    g.strokeStyle = "rgba(31,34,54,.14)"; g.lineWidth = 1;
+    g.strokeRect(px + 0.5, py + 0.5, n - 1, n - 1);
+  }
+  /* the battery */
+  const [gx, gy] = L.goal;
+  g.fillStyle = "#15937a";
+  roundRect(g, gx * n + n * 0.26, gy * n + n * 0.18, n * 0.48, n * 0.62, 6); g.fill();
+  g.fillRect(gx * n + n * 0.40, gy * n + n * 0.11, n * 0.20, n * 0.09);
+  g.fillStyle = "#ffd964";
+  g.font = "bold " + Math.round(n * 0.3) + "px system-ui,sans-serif";
+  g.textAlign = "center"; g.textBaseline = "middle";
+  g.fillText("⚡", gx * n + n / 2, gy * n + n * 0.5);
+  /* where it starts */
+  const [sx, sy] = L.start;
+  g.strokeStyle = "rgba(91,127,224,.75)"; g.lineWidth = 3;
+  g.setLineDash([6, 5]);
+  g.strokeRect(sx * n + 4, sy * n + 4, n - 8, n - 8);
+  g.setLineDash([]);
+  /* the robot */
+  const w = walker || L.start;
+  g.save();
+  g.translate(w[0] * n + n / 2, w[1] * n + n * 0.62);
+  drawRobot(g, S.robot, n / 130);
+  g.restore();
+}
+
+/* ===========================================================================
+   THE ROBOT ROOM, THE REPORT CARD, AND PUTTING IT ALL TOGETHER
+   =========================================================================== */
+
+let blinkT = 0, blinkOn = false;
+
+function robotRoom() {
+  $("main").innerHTML =
+    '<div class="sheet">' +
+      "<h2>🤖 Your robot</h2>" +
+      '<p class="lead">This is the one you are building. It starts off knowing ' +
+        "<b>absolutely nothing</b>. Everything it ever knows, you will teach it.</p>" +
+      '<div class="split">' +
+        '<div class="col" style="flex:0 0 auto;text-align:center">' +
+          '<div class="panel" style="display:inline-block"><canvas id="rBig" width="320" height="380" ' +
+            'role="img" aria-label="Your robot"></canvas>' +
+            '<div class="big" id="rName" style="margin-top:4px"></div></div>' +
+        "</div>" +
+        '<div class="col">' +
+          '<div class="panel"><h3>Name</h3>' +
+            '<input type="text" id="rNameIn" maxlength="16" aria-label="Your robot\'s name"></div>' +
+          '<div class="panel"><h3>Colour</h3><div class="row" id="rCols"></div></div>' +
+          '<div class="panel"><h3>Eyes</h3><div class="cards" id="rEyes"></div></div>' +
+          '<div class="panel"><h3>Aerial</h3><div class="cards" id="rAer"></div></div>' +
+        "</div>" +
+      "</div>" +
+    "</div>";
+
+  const inp = $("rNameIn");
+  inp.value = S.robot.name;
+  inp.addEventListener("input", () => {
+    S.robot.name = (inp.value || "").slice(0, 16) || "Bolt";
+    $("rName").textContent = S.robot.name;
+    save();
+  });
+  const cols = $("rCols");
+  BODY_COLOURS.forEach((c) => {
+    const b = document.createElement("button");
+    b.className = "swatch" + (S.robot.colour === c ? " sel" : "");
+    b.style.background = c;
+    b.setAttribute("aria-label", "Colour " + c);
+    b.addEventListener("click", () => { S.robot.colour = c; save(); robotRoom(); });
+    cols.appendChild(b);
+  });
+  const variantCards = (boxId, list, field) => {
+    const box = $(boxId);
+    list.forEach((v) => {
+      const card = document.createElement("button");
+      card.className = "card" + (S.robot[field] === v ? " sel" : "");
+      card.setAttribute("aria-label", field + ": " + v);
+      const demo = Object.assign({}, S.robot); demo[field] = v;
+      card.appendChild(robotChip(demo, 70, 86, 0.5));
+      const t = document.createElement("span"); t.className = "cn"; t.textContent = v;
+      card.appendChild(t);
+      card.addEventListener("click", () => { S.robot[field] = v; save(); robotRoom(); });
+      box.appendChild(card);
+    });
+  };
+  variantCards("rEyes", EYE_STYLES, "eye");
+  variantCards("rAer", AERIALS, "aerial");
+  $("rName").textContent = S.robot.name;
+  bigRobot();
+  clearInterval(blinkT);
+  blinkT = setInterval(() => {
+    if (!$("rBig")) { clearInterval(blinkT); return; }
+    blinkOn = !blinkOn;
+    bigRobot();
+    if (blinkOn) setTimeout(() => { blinkOn = false; if ($("rBig")) bigRobot(); }, 170);
+  }, 3400);
+}
+function bigRobot() {
+  const cv = $("rBig"); if (!cv) return;
+  const g = cv.getContext("2d");
+  g.clearRect(0, 0, cv.width, cv.height);
+  g.save(); g.translate(cv.width / 2, cv.height * 0.6);
+  drawRobot(g, S.robot, 2.1, blinkOn);
+  g.restore();
+}
+
+/* ---------------------------------------------------------------------------
+   THE REPORT CARD
+   Numbers that only ever go up, and one honest sentence at the end.
+   --------------------------------------------------------------------------- */
+function reportRoom() {
+  const labels = new Set(S.eye.examples.map((e) => e.label));
+  const vs = chainStats(buildChain(S.voice.sentences));
+  const L = S.legs;
+  const canSee = labels.size >= 2, canTalk = vs.words > 0, canWalk = L.best !== null;
+  const all = canSee && canTalk && canWalk;
+
+  $("main").innerHTML =
+    '<div class="sheet">' +
+      "<h2>📋 What your AI can do</h2>" +
+      '<div class="split"><div class="col" style="flex:0 0 auto;text-align:center">' +
+        '<div class="panel" style="display:inline-block"><div id="rpBot"></div>' +
+        '<div class="big">' + esc(S.robot.name) + "</div></div></div>" +
+        '<div class="col">' +
+          '<div class="panel"><h3>👁️ Seeing</h3>' +
+            (labels.size
+              ? '<div class="stat"><b>' + labels.size + "</b><span>different things it can tell apart</span></div>" +
+                '<div class="stat"><b>' + S.eye.examples.length + "</b><span>drawings it remembers</span></div>" +
+                '<div class="stat"><b>' + S.eye.right + "</b><span>times it guessed right</span></div>"
+              : '<p class="lead" style="margin:0">Not taught yet. Visit <b>The Eye</b>.</p>') +
+          "</div>" +
+          '<div class="panel"><h3>💬 Talking</h3>' +
+            (vs.words
+              ? '<div class="stat"><b>' + vs.words + "</b><span>words it knows</span></div>" +
+                '<div class="stat"><b>' + vs.links + "</b><span>ways to join them</span></div>" +
+                '<div class="stat"><b>' + S.voice.rules.length + "</b><span>replies you taught it</span></div>" +
+                '<div class="stat"><b>' + S.voice.said + "</b><span>things it has said</span></div>"
+              : '<p class="lead" style="margin:0">Not taught yet. Visit <b>The Voice</b>.</p>') +
+          "</div>" +
+          '<div class="panel"><h3>🦿 Getting about</h3>' +
+            (L.tries
+              ? '<div class="stat"><b>' + L.tries + "</b><span>tries</span></div>" +
+                '<div class="stat"><b>' + (L.best === null ? "–" : L.best) + "</b><span>best run, in steps</span></div>" +
+                '<div class="stat"><b>' + L.solved + "</b><span>times it reached the battery</span></div>"
+              : '<p class="lead" style="margin:0">Not taught yet. Visit <b>The Legs</b>.</p>') +
+          "</div>" +
+        "</div>" +
+      "</div>" +
+      (all
+        ? '<div class="note cool" style="font-size:.94rem"><b>Your AI can see, talk, and find its way.</b> ' +
+          "Nobody gave it any of that. You did, one example at a time.</div>"
+        : "") +
+      '<div class="note"><b>It only knows what you taught it.</b> ' +
+        "Everything in here — every drawing, every word, every arrow on the floor — came from you, " +
+        "on this device. It has never been connected to anything. " +
+        "That is true of every AI, really: whatever it was shown is what it knows, " +
+        "and when it gets something wrong, that is usually why.</div>" +
+      '<div class="row"><button class="btn" id="rpWipe">🧼 Start a whole new AI</button></div>' +
+    "</div>";
+  $("rpBot").appendChild(robotChip(S.robot, 150, 180, 1.05));
+  $("rpWipe").addEventListener("click", () => {
+    dialog("🧼", "Start again from nothing?",
+      "<p>Your robot will forget <b>everything</b> — every drawing, every word and every arrow " +
+      "— and you will start a brand new one. This cannot be undone.</p>",
+      [{ label:"No, keep it" }, { label:"Start again", cls:"warm", go:() => {
+        S = blankState(); saveNow(); featCache.clear(); chatLog = [];
+        go("robot"); toast("A brand new robot, knowing nothing at all.");
+      } }]);
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   ROOMS
+   --------------------------------------------------------------------------- */
+const ROOMS = [
+  { id:"robot",  e:"🤖", nm:"Robot",  sub:"build it",   go:robotRoom },
+  { id:"eye",    e:"👁️", nm:"The Eye", sub:"teach it to see", go:eyeRoom },
+  { id:"voice",  e:"💬", nm:"The Voice", sub:"teach it to talk", go:voiceRoom },
+  { id:"legs",   e:"🦿", nm:"The Legs", sub:"teach it to move", go:legsRoom },
+  { id:"report", e:"📋", nm:"Report",  sub:"what it can do", go:reportRoom }
+];
+let room = "robot";
+
+function buildRooms() {
+  const box = $("rooms"); box.innerHTML = "";
+  ROOMS.forEach((r) => {
+    const b = document.createElement("button");
+    b.className = "room" + (room === r.id ? " on" : "");
+    b.id = "room-" + r.id;
+    b.setAttribute("aria-label", r.nm + " — " + r.sub);
+    b.setAttribute("aria-current", room === r.id ? "page" : "false");
+    b.innerHTML = '<span class="e" aria-hidden="true">' + r.e + "</span>" +
+                  "<span>" + r.nm + '</span><span class="sub">' + r.sub + "</span>";
+    b.addEventListener("click", () => go(r.id));
+    box.appendChild(b);
+  });
+}
+function go(id) {
+  const r = ROOMS.find((x) => x.id === id) || ROOMS[0];
+  clearInterval(blinkT); clearTimeout(legsRaf); legsBusy = false; walker = null;
+  room = r.id;
+  S.visited[r.id] = true;
+  save();
+  buildRooms();
+  $("main").scrollTop = 0;
+  r.go();
+}
+
+/* ---------------------------------------------------------------------------
+   HOW IT WORKS — the honest explanation, in his language
+   --------------------------------------------------------------------------- */
+$("bHelp").addEventListener("click", () => {
+  dialog("🔬", "How does it actually work?",
+    "<p><b>👁️ The Eye.</b> It keeps every drawing you give it. When you ask about a new one, " +
+    "it compares it to all of them and answers with the name of whichever one looks most alike. " +
+    "That is why it can show you the one it was thinking of.</p>" +
+    "<p><b>💬 The Voice.</b> It notes which word tends to come after which, in the sentences you " +
+    "type. Then it starts with a word and keeps picking something that came next before. " +
+    "It can only use words you gave it.</p>" +
+    "<p><b>🦿 The Legs.</b> It tries a direction and sees how it goes. Reaching the battery is good, " +
+    "every step costs a bit, bumping into a wall is worse. It keeps a score for every direction " +
+    "from every square — those are the arrows you can see.</p>" +
+    "<p style='opacity:.75'>All three of these are real, and all three run on this device. " +
+    "Nothing is downloaded and nothing is sent anywhere.</p>",
+    [{ label:"Got it", cls:"go" }]);
+});
+
+/* ---------------------------------------------------------------------------
+   GO
+   --------------------------------------------------------------------------- */
+window.addEventListener("pagehide", saveNow);
+document.addEventListener("visibilitychange", () => { if (document.hidden) saveNow(); });
+
+(function boot() {
+  S = load();
+  buildRooms();
+  const first = !Object.keys(S.visited).length;
+  go(first ? "robot" : (ROOMS.some((r) => r.id === room) ? room : "robot"));
+  if (first) {
+    setTimeout(() => dialog("🤖", "You are going to make an AI",
+      "<p>A real one. It starts off knowing <b>nothing whatsoever</b>.</p>" +
+      "<p>Build your robot first, then take it to the three rooms and teach it to " +
+      "<b>see</b>, to <b>talk</b>, and to <b>find its way</b>.</p>" +
+      "<p>It will get things wrong at first. That is not you getting it wrong — " +
+      "that is just what learning looks like, for robots and for everyone else.</p>",
+      [{ label:"Let's go", cls:"go" }]), 350);
+  }
+})();
+
+/* Opened up so the three algorithms can be tested on their own, away from the
+   screen — which is the only way to know they really work. */
+window.AI = {
+  GRID, CELLS, LEGS_N, ACTS,
+  pxToArr, arrToPx, inkBounds, isBlank, centreArr, blurArr, features, dist2, classify, selfTest,
+  words, key, buildChain, chainStats, speak, matchRule, reply,
+  sKey, qRow, isWall, bestA, maxQ, epsilon, runEpisode, reachable, legsBlank,
+  blankState, makeRobot, load, saveNow,
+  get S() { return S; }, set S(v) { S = v; },
+  go, get room() { return room; }
+};
+
+</script>
+</body>
+</html>
