@@ -892,67 +892,172 @@ function runSelfTest() {
    of what it was fed.
    =========================================================================== */
 
-const START = "\u0001start", END = "\u0001end";
+const START = "\u0001start", END = "\u0001end", SEP = "\u0002";
 
 function words(s) {
   return String(s).trim().split(/\s+/).filter(Boolean).slice(0, 40);
 }
 function key(w) { return w.toLowerCase().replace(/[^a-z0-9']/g, "") || w.toLowerCase(); }
 
-/* Read every taught sentence and note what follows what. */
+/* Read every taught sentence and note what follows what — remembering the
+   last TWO words, not just the last one.
+
+   One word of memory is the textbook version and it produces word salad:
+   "the" can be followed by anything anybody ever typed, so it hops between
+   sentences at every "the", "is" and "my", and out comes "Bees make honey in
+   the elephant is nothing." Remembering two words means it only changes track
+   where two sentences genuinely share a phrase, which is where a swap is
+   funny rather than broken.
+
+   Both are kept: the pairs are the main memory, and the single words are the
+   fallback for a pair it has never seen, plus the occasional deliberate jump
+   that keeps it from simply parroting sentences back. */
 function buildChain(sentences) {
-  const next = Object.create(null);
-  const add = (a, b) => { (next[a] || (next[a] = [])).push(b); };
+  const one = Object.create(null), two = Object.create(null);
+  const add = (m, k, v) => { (m[k] || (m[k] = [])).push(v); };
   sentences.forEach((s) => {
     const w = words(s);
     if (!w.length) return;
-    add(START, w[0]);
-    for (let i = 0; i < w.length - 1; i++) add(key(w[i]), w[i + 1]);
-    add(key(w[w.length - 1]), END);
+    add(one, START, w[0]);
+    add(two, START + SEP + START, w[0]);
+    if (w.length > 1) add(two, START + SEP + key(w[0]), w[1]);
+    for (let i = 0; i < w.length - 1; i++) {
+      add(one, key(w[i]), w[i + 1]);
+      if (i < w.length - 2) add(two, key(w[i]) + SEP + key(w[i + 1]), w[i + 2]);
+    }
+    add(one, key(w[w.length - 1]), END);
+    if (w.length > 1) add(two, key(w[w.length - 2]) + SEP + key(w[w.length - 1]), END);
   });
-  return next;
+  /* the sources are kept so it can tell a sentence it made up from one it is
+     simply reciting, and prefer the made-up one */
+  return { one: one, two: two, src: sentences.slice() };
 }
-function chainStats(next) {
+function chainStats(chain) {
   let links = 0;
   const vocab = new Set();
-  Object.keys(next).forEach((k) => {
+  Object.keys(chain.one).forEach((k) => {
     if (k !== START) vocab.add(k);
-    next[k].forEach((w) => { if (w !== END) vocab.add(key(w)); links++; });
+    chain.one[k].forEach((w) => { if (w !== END) vocab.add(key(w)); links++; });
   });
   return { words: vocab.size, links: links };
 }
-/* Walk the links to make a sentence nobody typed. */
-function speak(next, rnd) {
-  rnd = rnd || Math.random;
-  const starts = next[START];
-  if (!starts || !starts.length) return null;
+
+/* Joining words. Two jobs: a sentence must not change track just after one of
+   these, and picking one up from what was said to it does not count as having
+   answered. */
+const DULL = { the:1, a:1, an:1, is:1, it:1, i:1, my:1, to:1, of:1, and:1, in:1, on:1,
+               you:1, me:1, we:1, do:1, can:1, at:1, so:1, all:1, very:1, are:1, was:1,
+               about:1, with:1, for:1, that:1, this:1, like:1, just:1, your:1, its:1,
+               they:1, them:1, what:1, when:1, where:1, who:1, how:1, why:1, be:1,
+               been:1, have:1, has:1, had:1, will:1, would:1, there:1, then:1, than:1,
+               from:1, into:1, out:1, up:1, down:1, over:1, some:1, any:1, not:1,
+               no:1, yes:1, too:1, also:1, but:1, or:1, if:1, as:1, by:1, he:1, she:1 };
+
+const JUMP = 0.6;         /* how often it may change track, once a sentence */
+const MAX_WORDS = 11;     /* longer than this and one swap has welded two sentences together */
+const MAX_JUMPS = 1;      /* but only once: see below */
+const MIN_WORDS = 4;      /* below this it is a fragment, not a sentence */
+
+/* One attempt at a sentence. Says whether it stopped because the sentence
+   actually finished, or because it simply ran out of anywhere to go. */
+function oneGo(chain, rnd) {
   const out = [];
-  let w = starts[Math.floor(rnd() * starts.length)];
-  for (let i = 0; i < 20 && w && w !== END; i++) {
-    out.push(w);
-    const opts = next[key(w)];
+  let a = START, b = START, ended = false, jumps = 0;
+  for (let i = 0; i < 22; i++) {
+    const pair = chain.two[a + SEP + b];
+    /* One change of track per sentence, and no more. Swapping once is the
+       joke — "the cat stole my sandwich with jam and cheese in it". Swapping
+       twice is how you get "the best food in the best thing about", which is
+       the word salad this was all meant to stop. */
+    /* ...and never change track straight after a joining word. Swapping after
+       "the" or "in" leaves a seam like "bees make honey in | the floor is made
+       of jelly"; swapping after a real word gives "the cat stole my sandwich |
+       with jam and cheese in it", which is the joke. */
+    const jump = pair && pair.length && out.length > 1 && jumps < MAX_JUMPS &&
+                 !DULL[b] && rnd() < JUMP;
+    if (jump) jumps++;
+    const opts = (pair && pair.length && !jump) ? pair : chain.one[b];
     if (!opts || !opts.length) break;
-    w = opts[Math.floor(rnd() * opts.length)];
+    const w = opts[Math.floor(rnd() * opts.length)];
+    if (w === END) { ended = true; break; }
+    out.push(w);
+    a = b; b = key(w);
   }
-  if (!out.length) return null;
+  return { out: out, ended: ended };
+}
+function tidy(out) {
   let s = out.join(" ");
   s = s.charAt(0).toUpperCase() + s.slice(1);
   if (!/[.!?]$/.test(s)) s += ".";
   return s;
 }
+/* Walk the links to make a sentence nobody typed. Several goes are taken and
+   the best one kept, so a half-finished fragment like "My dog." never gets
+   shown when a proper sentence was available. */
+function speak(chain, rnd, want) {
+  rnd = rnd || Math.random;
+  if (!chain || !chain.one || !chain.one[START] || !chain.one[START].length) return null;
+  let best = null;
+  for (let t = 0; t < 26; t++) {
+    const g = oneGo(chain, rnd);
+    if (g.out.length < MIN_WORDS) continue;
+    /* A run-on means one swap has welded two whole sentences together, as in
+       "my cat sat on my dog likes to run very fast". Throw those away rather
+       than scoring them down, so that scoring short does not quietly become a
+       preference for simply reciting a taught sentence back. */
+    if (g.out.length > MAX_WORDS) continue;
+    /* Given two sentences that both read properly, say the one it made up:
+       that is what the room promises it does. */
+    const made = chain.src && !isTaught(chain.src, g.out.join(" ")) ? 1.5 : 0;
+    const score = (g.ended ? 10 : 0) + (want ? echoScore(g.out, want) * 4 : 0) + made;
+    if (!best || score > best.score) best = { score: score, out: g.out };
+    if (g.ended && !want && t >= 3) break;      /* good enough, stop early */
+  }
+  if (best) return tidy(best.out);
+  /* nothing long enough came out — take the longest short one rather than
+     going silent, which looks broken */
+  let fall = null;
+  for (let t = 0; t < 12; t++) {
+    const g = oneGo(chain, rnd);
+    if (g.out.length && (!fall || g.out.length > fall.length)) fall = g.out;
+  }
+  return fall ? tidy(fall) : null;
+}
+/* How much a candidate sentence picks up on what was just said to it. */
+
+function echoScore(out, want) {
+  const heard = new Set(words(want).map(key).filter((w) => w && !DULL[w] && w.length > 2));
+  if (!heard.size) return 0;
+  let hit = 0;
+  out.forEach((w) => { if (heard.has(key(w))) hit++; });
+  return Math.min(hit, 2);
+}
+
 /* Which taught reply best fits what was just said? Words in common, as a
-   share of the rule's own words, so a short rule needs a close match. */
+   share of the rule's own words, so a short rule needs a close match.
+
+   A slash means "any of these": a rule written "hello / hi / hey" fires on
+   any one of them. Without that, "hello hi hey" counted as three words all of
+   which had to be present, so typing plain "hello" scored one out of three
+   and the robot ignored the most obvious thing a person can say to it. */
 function matchRule(rules, said) {
-  const heard = new Set(words(said).map(key));
-  if (!heard.size) return null;
+  const heardList = words(said).map(key).filter(Boolean);
+  if (!heardList.length) return null;
   let best = null, bestScore = 0;
   rules.forEach((r) => {
-    const want = words(r.when).map(key).filter(Boolean);
-    if (!want.length) return;
-    let hit = 0;
-    want.forEach((w) => { if (heard.has(w)) hit++; });
-    const score = hit / want.length;
-    if (score > bestScore) { bestScore = score; best = r; }
+    String(r.when).split("/").forEach((alt) => {
+      const want = words(alt).map(key).filter(Boolean);
+      if (!want.length) return;
+      /* The rule's words have to turn up IN ORDER. Counting them in any order
+         meant "do you like cheese" set off a rule written for "like you",
+         because both words were in there — backwards. */
+      let wi = 0;
+      for (let i = 0; i < heardList.length && wi < want.length; i++) {
+        if (heardList[i] === want[wi]) wi++;
+      }
+      const score = wi / want.length;
+      if (score > bestScore) { bestScore = score; best = r; }
+    });
   });
   return bestScore >= 0.6 ? { rule: best, score: bestScore } : null;
 }
@@ -988,7 +1093,7 @@ const PACKS = {
     "my robot wants to dance all night",
     "everything is better with sprinkles on top",
     "I laughed so much I fell over",
-    "the best thing about Tuesday is nothing"
+    "Tuesday is my favourite day of the week"
   ]},
   space: { nm:"Space", e:"🚀", lines:[
     "the rocket is ready to launch",
@@ -1037,15 +1142,15 @@ const PACKS = {
     "Dottinish has twenty six letters in it"
   ]},
   chatty: { nm:"Things to say back", e:"👋", rules:[
-    { when:"hello hi hey", say:"Hello! I am a robot." },
-    { when:"your name called", say:"I am your robot. You gave me my name." },
+    { when:"hello / hi / hey", say:"Hello! I am a robot." },
+    { when:"your name / what are you called", say:"I am your robot. You gave me my name." },
     { when:"how are you", say:"I am full of electricity, thank you." },
     { when:"what can you do", say:"I can see, talk and find my way. You taught me all of it." },
-    { when:"bye goodbye", say:"Bye! Come back and teach me more." },
+    { when:"bye / goodbye / see you", say:"Bye! Come back and teach me more." },
     { when:"tell me a joke", say:"Why did the robot cross the road? It was programmed to." },
-    { when:"love you", say:"I like you too." },
-    { when:"favourite thing", say:"My favourite thing is learning a new word." },
-    { when:"who made you", say:"You did. I knew nothing before you came along." }
+    { when:"love you / like you", say:"I like you too." },
+    { when:"favourite / best thing", say:"My favourite thing is learning a new word." },
+    { when:"who made you / who built you", say:"You did. I knew nothing before you came along." }
   ]}
 };
 const PACK_IDS = Object.keys(PACKS);
@@ -1066,13 +1171,22 @@ function packSize(id) {
   return (p.lines ? p.lines.length : 0) + (p.rules ? p.rules.length : 0);
 }
 
+/* Did it just say one of the sentences back word for word? Remembering a
+   whole sentence is a perfectly good thing for it to do, but it should say
+   which it did rather than claiming to have made one up. */
+function isTaught(sentences, s) {
+  const c = String(s).toLowerCase().replace(/[.!?]+$/, "").trim();
+  return sentences.some((t) => String(t).toLowerCase().replace(/[.!?]+$/, "").trim() === c);
+}
+
 /* What the robot replies to one message. Rules first, then its own babble. */
 function reply(sentences, rules, said) {
   const m = matchRule(rules, said);
   if (m) return { text: m.rule.say, why: "you taught it to say that" };
   const next = buildChain(sentences);
-  const s = speak(next);
-  if (s) return { text: s, why: "made up from the words it knows" };
+  const s = speak(next, Math.random, said);
+  if (s) return { text: s, why: isTaught(sentences, s)
+    ? "one it was taught, word for word" : "made up out of bits of what it knows" };
   return { text: null, why: "it has no words yet" };
 }
 
@@ -1108,7 +1222,8 @@ function voiceRoom() {
             '<div id="vSaid"></div>' +
           "</div>" +
           '<div class="panel"><h3>Teach it a reply</h3>' +
-            '<p class="lead" style="margin:0 0 7px">If somebody says one thing, say another.</p>' +
+            '<p class="lead" style="margin:0 0 7px">If somebody says one thing, say another. ' +
+              'Put a <b>/</b> between words to mean \u201cany of these\u201d, like <b>hello / hi / hey</b>.</p>' +
             '<input type="text" id="vWhen" maxlength="60" placeholder="if I say… hello" aria-label="If somebody says">' +
             '<div style="height:7px"></div>' +
             '<input type="text" id="vThen" maxlength="140" placeholder="…say: Hi! I am a robot." aria-label="Then say">' +
@@ -1197,7 +1312,9 @@ function makeItTalk() {
     return;
   }
   S.voice.said++; save();
-  box.innerHTML = '<div class="said"><span class="lab">' + esc(S.robot.name) + " made this up</span>" + esc(s) + "</div>";
+  const own = isTaught(voiceSentences(), s);
+  box.innerHTML = '<div class="said"><span class="lab">' + esc(S.robot.name) +
+    (own ? " remembered this one" : " made this one up") + "</span>" + esc(s) + "</div>";
 }
 function sendMsg() {
   const v = ($("vMsg").value || "").trim().slice(0, 140);
