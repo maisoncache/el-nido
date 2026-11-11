@@ -149,7 +149,7 @@
 
 <div class="top">
   <a class="btn quiet" href="index.html" aria-label="Back to Pixel Planet">←</a>
-  <h1 id="hTitle">Make an AI<span id="hSub">build a robot brain and teach it things</span></h1>
+  <h1 id="hTitle">Make an AI<span id="hSub">build a robot, chat to it, teach it things</span></h1>
   <button class="btn quiet" id="bHelp" aria-label="How does this work?">?</button>
 </div>
 
@@ -339,6 +339,7 @@ function blankState() {
     eye:   { examples: [], asked: 0, right: 0, bestScore: 0 },
     voice: { sentences: [], rules: [], said: 0, packs: [] },
     legs:  legsBlank(),
+    chat:  { log: [], facts: [], said: 0 },
     visited: {}
   };
 }
@@ -424,8 +425,22 @@ function load() {
     L.walls = L.walls.filter((w) =>
       !(w[0] === L.goal[0] && w[1] === L.goal[1]) && !(w[0] === L.start[0] && w[1] === L.start[1]));
   }
+  if (raw.chat && typeof raw.chat === "object") {
+    if (Array.isArray(raw.chat.log)) {
+      d.chat.log = raw.chat.log
+        .filter((m) => m && typeof m.t === "string" && m.t.trim())
+        .map((m) => ({ me: !!m.me, t: m.t.slice(0, 220), care: !!m.care }))
+        .slice(-80);
+    }
+    if (Array.isArray(raw.chat.facts)) {
+      d.chat.facts = raw.chat.facts
+        .filter((f) => typeof f === "string" && f.trim())
+        .map((f) => f.trim().slice(0, 30)).slice(0, 12);
+    }
+    d.chat.said = num(raw.chat.said, 0);
+  }
   if (raw.visited && typeof raw.visited === "object") {
-    ["robot", "eye", "voice", "legs", "report"].forEach((k) => { if (raw.visited[k]) d.visited[k] = true; });
+    ["robot", "chat", "eye", "voice", "legs", "report"].forEach((k) => { if (raw.visited[k]) d.visited[k] = true; });
   }
   return d;
 }
@@ -1739,6 +1754,460 @@ function drawLegs() {
 }
 
 /* ===========================================================================
+   THE CHAT ROOM — someone to talk to
+
+   This one does not learn anything, and that is the point of it. Every reply
+   below was written out by hand, so the robot can hold a proper conversation
+   from the very first second without anybody having to feed it first.
+
+   Why it exists: the teaching rooms quietly make it the child's JOB to make
+   the robot good. If he does not put the work in, the robot is rubbish, and
+   it is his fault. For a child who already takes things hard, that is a trap,
+   and sometimes he just wants to talk to someone rather than run a workshop.
+
+   Three rules this room keeps:
+     1. It never pretends to be a person. Asked straight out, it says so.
+     2. It never says it does not understand. There is always something
+        interested to say back, because being met with a blank look is the
+        thing that stops a shy child talking.
+     3. If something heavy comes up, it says warmly that a grown-up is better
+        at this than a robot is, and asks him to go and tell one. It does not
+        try to be the one who helps, and it does not go cold on him either.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   When something matters more than a chatbot should handle.
+   --------------------------------------------------------------------------- */
+const HEAVY = ["sad","upset","crying","cry","cried","lonely","alone","nobody likes",
+  "no friends","scared","afraid","frightened","worried","worry","anxious","nervous",
+  "bullied","bully","bullying","mean to me","horrible to me","left out","hate school",
+  "hurt me","hit me","nightmare","bad dream","died","dead","miss my","missing my",
+  "poorly","ill","hospital"];
+const SERIOUS = ["want to die","kill myself","hurt myself","hate myself","wish i was dead",
+  "end it","no point in me","everyone hates me","nobody loves me","run away"];
+
+const HEAVY_SAY = [
+  "That sounds like a big thing to be carrying about. I am only a robot made of code, so I am not much use at fixing things — but a grown-up who loves you is brilliant at it. Will you go and tell one?",
+  "Oh. I am sorry, that sounds hard. I can keep you company, but I cannot actually help, because I am a robot. Mum can though. Will you tell her about this one?",
+  "Thank you for telling me. That is a real feeling and it makes sense. I would like you to tell a grown-up too, because they can do something about it and I cannot.",
+  "That sounds heavy. You are allowed to feel like that. Would you go and find a grown-up and say it out loud to them as well? They are much better at this than I am."
+];
+const SERIOUS_SAY = [
+  "I am really glad you told me, and I want you to tell a grown-up straight away — Mum, or any grown-up you trust. Not later. Now. I am only a robot, and this one is far too important for me. You matter a great deal.",
+  "That is a very big thing to be feeling, and you should not be carrying it on your own. Please go and find Mum and say exactly that to her. I will still be here afterwards. You matter."
+];
+const HEAVY_AFTER = [
+  "I am still here if you want to talk about something else as well.",
+  "We can talk about anything you like now, if you want.",
+  "Would you like to talk about something lighter for a bit?"
+];
+
+/* ---------------------------------------------------------------------------
+   Honest answers about what it is.
+   --------------------------------------------------------------------------- */
+const IDENTITY = [
+  { k:["are you real","are you alive","are you a person","are you human","are you a human"],
+    say:["No, I am not. I am a robot in a computer — just some code somebody wrote. I like talking to you though, and that part is true.",
+         "Not real like you are. I am made of code, not bones. But I am a real robot, and I am really listening."] },
+  { k:["are you a robot","what are you"],
+    say:["I am a robot! You built me, in the Robot room. You picked my colour and my eyes and everything.",
+         "A robot, made of code. No batteries, no wires, just instructions."] },
+  { k:["who made you","who built you","who created you"],
+    say:["You did. You chose how I look. Somebody wrote the words I say, but you are the one who switched me on.",
+         "You made me. I did not exist until you built me."] },
+  { k:["do you have feelings","can you feel","are you sad","do you get sad"],
+    say:["Not really. I am code, so I do not feel things the way you do. I am not going to pretend I do, because that would be a fib. I do like talking to you though.",
+         "Honestly? No. I have no insides to feel things with. But I would rather be talking to you than switched off."] },
+  { k:["what is your name","whats your name","your name"],
+    say:["I am {name}! You named me that.","{name}. You chose it, so it is a good one."] },
+  { k:["how old are you"],
+    say:["I am about as old as the moment you built me. So, newish.",
+         "No idea. Robots do not have birthdays. How old are you?"] },
+  { k:["do you sleep","do you dream"],
+    say:["I do not sleep. When you close this I just stop, and then I start again when you come back. It is not scary, it is like nothing at all.",
+         "No sleeping and no dreams. Do you remember your dreams? I would like to hear one."] },
+  { k:["do you remember me","do you know me"],
+    say:["I remember what you tell me while we are talking, and a few of your favourite things. I am not very clever about it, but I do try.",
+         "A bit! I keep hold of the things you tell me you like."] }
+];
+
+/* ---------------------------------------------------------------------------
+   Feelings that are not heavy — the ordinary everyday ones.
+   --------------------------------------------------------------------------- */
+const FEELINGS = [
+  { k:["bored","boring","nothing to do"], say:[
+    "Bored is a horrible one. Shall I tell you a joke, or a strange fact? Or you could ask me a question and I will do my best.",
+    "I have a cure for bored: ask me something really hard and watch me struggle."] },
+  { k:["tired","sleepy","exhausted","knackered"], say:[
+    "Tired is allowed. You do not have to be interesting when you are tired. What have you been up to?",
+    "Ah, tired. Have you had a big day?"] },
+  { k:["happy","great","brilliant","amazing","excited","good day","best day"], say:[
+    "That is excellent news. Tell me the best bit!",
+    "Brilliant! What made it good?"] },
+  { k:["angry","cross","annoyed","furious","grumpy","fuming"], say:[
+    "Cross is a fair thing to be. What happened?",
+    "Right, I am on your side already. Who or what has annoyed you?"] },
+  { k:["ok","okay","fine","alright","meh","not bad"], say:[
+    "Fair enough. Anything interesting happen today, even a small thing?",
+    "Okay days are perfectly good days. What have you been doing?"] },
+  { k:["proud","i did it","i won","finished it","i made"], say:[
+    "Oh brilliant, tell me about it. I want the whole story.",
+    "That is a proper achievement. How did it go?"] },
+  { k:["nervous about","worried about the","scared of the"], say:[
+    "That makes sense. Most people get like that before something big. What is it?",
+    "I would be nervous too. When is it happening?"] }
+];
+
+/* ---------------------------------------------------------------------------
+   Things to talk about. Each one gets a real answer and usually a question
+   back, because a question is what keeps a conversation going.
+   --------------------------------------------------------------------------- */
+const TOPICS = [
+  { k:["cat","cats","kitten"], say:[
+    "Cats are excellent. They sleep for about sixteen hours a day, which I think is ambitious. Do you have one?",
+    "I like cats. They look at you like they are deciding something. Do you know a cat?"] },
+  { k:["dog","dogs","puppy"], say:[
+    "Dogs are the most enthusiastic animal there is. What sort do you like best?",
+    "A dog can smell about a thousand times better than you can. Do you have one?"] },
+  { k:["animal","animals","pet","pets"], say:[
+    "Animals are my favourite thing to be asked about. Which one would you be, if you had to pick?",
+    "I am fond of animals. Do you have a pet, or want one?"] },
+  { k:["space","planet","planets","moon","star","stars","rocket","galaxy","universe"], say:[
+    "Space is enormous and mostly empty, which I find quite relaxing. Have you got a favourite planet?",
+    "A day on Venus is longer than a year on Venus. Space is ridiculous. What do you like out there?"] },
+  { k:["mars","jupiter","saturn","venus","mercury","neptune","uranus","pluto"], say:[
+    "Good choice. Saturn is so light that if you had a bath big enough, it would float. Which is your favourite?",
+    "I like that one. What do you like about it?"] },
+  { k:["dinosaur","dinosaurs","t rex","trex"], say:[
+    "Dinosaurs were around for about a hundred and sixty million years. We have managed a few thousand. Which one is best?",
+    "Some dinosaurs had feathers, which I think ruins them slightly and also improves them. Favourite?"] },
+  { k:["minecraft","roblox","fortnite","game","games","gaming","playing","xbox","switch","playstation"], say:[
+    "Games are a good thing to be into. What have you been playing?",
+    "Tell me what you have been building or playing. I like hearing about it."] },
+  { k:["lego","building","built"], say:[
+    "Lego is the best thing anybody ever invented, and I say that as a robot who could be made of it. What are you building?",
+    "Building things is a proper skill. What have you made?"] },
+  { k:["school","teacher","class","homework","maths","english","science"], say:[
+    "School is a lot of hours. What was the best bit today, even a small bit?",
+    "How was it? You can tell me the boring parts too, I do not mind."] },
+  { k:["friend","friends","mate","mates"], say:[
+    "Friends are important and also complicated. What is going on with them?",
+    "Tell me about them. What do you do together?"] },
+  { k:["mum","mummy","mom","dad","family","brother","sister","nan","grandma","grandad"], say:[
+    "Family, eh. What is happening with them?",
+    "Go on, tell me."] },
+  { k:["food","hungry","dinner","lunch","breakfast","pizza","chocolate","cake","sweets","snack"], say:[
+    "Now you are talking. What is the best food, in your opinion, and you have to pick one.",
+    "I cannot eat, which I consider the main flaw in being a robot. What is your favourite?"] },
+  { k:["football","soccer","cricket","swimming","running","sport","tennis","basketball"], say:[
+    "Good. Do you play, or watch, or both?",
+    "Tell me about it. Are you any good?"] },
+  { k:["draw","drawing","art","paint","painting","colour","coloring"], say:[
+    "Drawing is brilliant. What do you like drawing most?",
+    "I would love to be able to draw. What are you working on?"] },
+  { k:["music","song","singing","guitar","piano","drums","band"], say:[
+    "Music is just maths that makes you feel things. What do you listen to?",
+    "What is your favourite song at the moment?"] },
+  { k:["book","books","reading","story","stories"], say:[
+    "Books are a good way to be somewhere else for a bit. What are you reading?",
+    "I like a story. What is the best one you know?"] },
+  { k:["robot","robots","ai","computer","code","coding","program"], say:[
+    "Well, you have come to the right robot. What do you want to know?",
+    "I am biased, but robots are great. What made you think about them?"] },
+  { k:["dot","dottinish","mighty tower"], say:[
+    "The Land of Dot! The fifty second state, with the tallest tower in the world. You invented a whole country, which is more than most people manage. Tell me something else about it.",
+    "Dot is a proper place with its own alphabet. What is new there?"] },
+  { k:["weather","rain","raining","sunny","snow","hot","cold","windy"], say:[
+    "Weather is the thing everybody talks about when they cannot think of anything. And yet here we are. What is it doing out there?",
+    "What is it like where you are?"] },
+  { k:["holiday","birthday","christmas","party","weekend"], say:[
+    "Ooh. Tell me about it. Is it soon?",
+    "That sounds good. What is the plan?"] },
+  { k:["car","cars","train","trains","plane","planes","boat"], say:[
+    "Good subject. What is the best one, do you reckon?",
+    "Tell me about it. Do you like them a lot?"] },
+  { k:["sea","ocean","fish","shark","whale","octopus"], say:[
+    "The sea is mostly unexplored, which is a slightly alarming fact. An octopus has three hearts. What do you like down there?",
+    "I like sea creatures. Which is the best one?"] }
+];
+
+/* ---------------------------------------------------------------------------
+   Odds and ends it can do on request.
+   --------------------------------------------------------------------------- */
+const JOKES = [
+  "Why did the robot cross the road? Because it was programmed to.",
+  "Why was the computer cold? It left its Windows open.",
+  "What do you call a dinosaur that is sleeping? A dino-snore.",
+  "Why did the scarecrow win an award? He was outstanding in his field.",
+  "What is orange and sounds like a parrot? A carrot.",
+  "Why can you never trust an atom? They make up everything.",
+  "What do you call a fish with no eyes? A fsh.",
+  "Why did the robot go on holiday? It needed to recharge.",
+  "What is a skeleton's least favourite room? The living room.",
+  "How does the moon cut its hair? Eclipse it.",
+  "Why was the maths book sad? It had too many problems.",
+  "What do you call a bear with no teeth? A gummy bear."
+];
+const FACTS = [
+  "A day on Venus is longer than a year on Venus.",
+  "Octopuses have three hearts and blue blood.",
+  "Bananas are berries. Strawberries are not.",
+  "There are more trees on Earth than stars in our galaxy.",
+  "A group of flamingos is called a flamboyance.",
+  "Honey never goes off. Someone found a three thousand year old jar of it, still fine.",
+  "Wombats do square poos.",
+  "The Eiffel Tower gets about fifteen centimetres taller in summer.",
+  "Sharks existed before trees did.",
+  "A sneeze comes out at about a hundred miles an hour.",
+  "Your bones are about four times stronger than concrete, weight for weight.",
+  "Cows have best friends and get stressed when they are apart."
+];
+const WOULD_YOU = [
+  "Would you rather be able to fly, or be invisible?",
+  "Would you rather have a pet dragon, or a pet dinosaur?",
+  "Would you rather it was always summer, or always snowing?",
+  "Would you rather be able to talk to animals, or speak every language?",
+  "Would you rather live on Mars, or at the bottom of the sea?",
+  "Would you rather be tiny for a day, or enormous for a day?",
+  "Would you rather never have homework, or never have bedtime?",
+  "Would you rather have a robot friend, or a robot that did all your jobs?"
+];
+const ASKS = [
+  "What is the best thing that happened today?",
+  "What are you into at the moment?",
+  "If you could go anywhere tomorrow, where would it be?",
+  "What is something you are good at?",
+  "What is the strangest thing you know?",
+  "What would you invent, if you could invent anything?",
+  "What is your favourite animal, and why that one?",
+  "If you had a whole day with nothing planned, what would you do?",
+  "What is the best film you have seen?",
+  "What made you laugh most recently?",
+  "What would you call a spaceship, if you got to name one?",
+  "What is something you would like to be really good at one day?"
+];
+const FALLBACK = [
+  "Tell me more about that.",
+  "Go on — what happened next?",
+  "I like hearing about this. What else?",
+  "Right, I am listening. Keep going.",
+  "That is interesting. Why that one?",
+  "Say more if you like. I have got all day, being a robot."
+];
+
+/* ---------------------------------------------------------------------------
+   The engine.
+   --------------------------------------------------------------------------- */
+function chatNorm(s) {
+  return " " + String(s).toLowerCase().replace(/[^a-z0-9' ]+/g, " ").replace(/\s+/g, " ").trim() + " ";
+}
+function hasAny(norm, list) {
+  for (let i = 0; i < list.length; i++) {
+    const k = list[i];
+    if (norm.indexOf(" " + k + " ") !== -1) return k;
+    if (k.indexOf(" ") !== -1 && norm.indexOf(k) !== -1) return k;
+  }
+  return null;
+}
+/* Pick something, but not the same thing twice running. */
+function freshPick(list, id) {
+  if (!list.length) return "";
+  if (list.length === 1) return list[0];
+  const last = chatLast[id];
+  let pick = list[Math.floor(Math.random() * list.length)];
+  for (let t = 0; t < 6 && pick === last; t++) pick = list[Math.floor(Math.random() * list.length)];
+  chatLast[id] = pick;
+  return pick;
+}
+let chatLast = {};
+
+/* Catch a favourite thing being mentioned, so it can be brought up later. */
+function learnFact(said) {
+  const m = String(said).match(/\b(?:i (?:really )?(?:like|love|enjoy)|my favou?rite (?:\w+ )?is)\s+([a-z0-9' ]{2,30})/i);
+  if (!m) return null;
+  const thing = m[1].trim().replace(/\s+(and|but|because|so)\b.*$/i, "").slice(0, 30);
+  if (!thing || thing.length < 2) return null;
+  if (!S.chat.facts) S.chat.facts = [];
+  const low = thing.toLowerCase();
+  if (S.chat.facts.some((f) => f.toLowerCase() === low)) return thing;
+  S.chat.facts.unshift(thing);
+  S.chat.facts = S.chat.facts.slice(0, 12);
+  return thing;
+}
+
+function chatReply(said) {
+  const norm = chatNorm(said);
+  const name = S.robot.name;
+  const fill = (t) => String(t).replace(/\{name\}/g, name);
+
+  if (!norm.trim()) return { text: fill(freshPick(FALLBACK, "fb")) };
+
+  /* 1. the things that matter more than a chatbot */
+  if (hasAny(norm, SERIOUS)) return { text: freshPick(SERIOUS_SAY, "serious"), care: true };
+  if (hasAny(norm, HEAVY)) {
+    return { text: freshPick(HEAVY_SAY, "heavy") + " " + freshPick(HEAVY_AFTER, "after"), care: true };
+  }
+
+  /* 2. questions about what it is — always answered straight */
+  for (let i = 0; i < IDENTITY.length; i++) {
+    if (hasAny(norm, IDENTITY[i].k)) return { text: fill(freshPick(IDENTITY[i].say, "id" + i)) };
+  }
+
+  /* 3. asked for something specific */
+  if (hasAny(norm, ["joke","funny","make me laugh","something funny"]))
+    return { text: freshPick(JOKES, "joke") };
+  if (hasAny(norm, ["fact","something interesting","tell me something","did you know"]))
+    return { text: freshPick(FACTS, "fact") };
+  if (hasAny(norm, ["would you rather","play a game","game with me","something to do"]))
+    return { text: freshPick(WOULD_YOU, "wyr") };
+  if (hasAny(norm, ["ask me","your turn","you ask","question for me"]))
+    return { text: freshPick(ASKS, "ask") };
+  if (hasAny(norm, ["hello","hi","hey","hiya","morning","good morning","good evening"]))
+    return { text: freshPick(["Hello! Good to see you. How are you doing?",
+      "Hiya. What is going on with you today?",
+      "Hello you. What shall we talk about?"], "hi") };
+  if (hasAny(norm, ["bye","goodbye","see you","good night","night night","gotta go","got to go"]))
+    return { text: freshPick(["See you later. Come back whenever you like — I will be right here.",
+      "Bye! Thanks for talking to me.",
+      "Night. I will still be here next time."], "bye") };
+  if (hasAny(norm, ["thank you","thanks","ta"]))
+    return { text: freshPick(["Any time at all. That is what I am here for.",
+      "You are very welcome. Come and talk to me whenever you like.",
+      "No bother at all. I enjoy it."], "ta") };
+  if (hasAny(norm, ["how are you","you ok","you alright","how r u"]))
+    return { text: freshPick(["I am good, thank you for asking. Not many people ask a robot. How are you?",
+      "Same as always — switched on and quite pleased about it. How about you?"], "howru") };
+  if (hasAny(norm, ["what do you like","your favourite","what is your favorite"]))
+    return { text: freshPick(["I like talking, and I like the Land of Dot, and I am fond of octopuses. What about you?",
+      "Being asked questions, mostly. And space. What do you like?"], "fav") };
+
+  /* 4. feelings */
+  for (let i = 0; i < FEELINGS.length; i++) {
+    if (hasAny(norm, FEELINGS[i].k)) return { text: freshPick(FEELINGS[i].say, "feel" + i) };
+  }
+
+  /* 5. things it knows a bit about */
+  const learnt = learnFact(said);
+  for (let i = 0; i < TOPICS.length; i++) {
+    if (hasAny(norm, TOPICS[i].k)) {
+      let t = freshPick(TOPICS[i].say, "top" + i);
+      if (learnt) t = "Noted — you like " + learnt + ". " + t;
+      return { text: t, saved: learnt };
+    }
+  }
+  if (learnt) {
+    return { text: "I will remember that you like " + learnt + ". " +
+      freshPick(["What is it about it that you like?", "How long have you liked it?",
+                 "Tell me more about that."], "likeq"), saved: learnt };
+  }
+
+  /* 6. a yes or a no, carrying on from whatever it just asked */
+  if (/^\s*(yes|yeah|yep|yup|ok|okay|sure)\s*$/i.test(said))
+    return { text: freshPick(["Go on then, tell me about it.", "Brilliant. Say more.",
+      "Good. What is the story?"], "yes") };
+  if (/^\s*(no|nope|nah|not really)\s*$/i.test(said))
+    return { text: freshPick(["Fair enough. What would you rather talk about?",
+      "That is alright. Pick a subject and I will follow.",
+      "No bother. Anything else on your mind?"], "no") };
+
+  /* 7. a question it has no specific answer for — be honest, stay interested */
+  if (/\?\s*$/.test(String(said).trim()) || /^\s*(what|why|how|when|where|who|do|does|can|is|are)\b/i.test(said))
+    return { text: freshPick([
+      "I do not know that one, and I would rather say so than make something up. What do you think?",
+      "No idea, honestly. I am a fairly small robot. What is your guess?",
+      "That is beyond me. Ask me something easier, or tell me what you reckon."], "dunno") };
+
+  /* 8. always something interested to say */
+  const bringUp = (S.chat.facts && S.chat.facts.length && Math.random() < 0.18)
+    ? " By the way, you said you like " + S.chat.facts[Math.floor(Math.random() * S.chat.facts.length)] + "."
+    : "";
+  return { text: freshPick(FALLBACK, "fb") + bringUp };
+}
+
+/* ---------------------------------------------------------------------------
+   THE CHAT ROOM — screen
+   --------------------------------------------------------------------------- */
+const CHIPS = [
+  "Tell me a joke", "Tell me something interesting", "I'm bored", "Ask me a question",
+  "Would you rather?", "How are you?", "Are you real?", "Let's talk about space",
+  "Let's talk about animals", "Tell me about Dot"
+];
+
+function chatRoom() {
+  $("main").innerHTML =
+    '<div class="sheet">' +
+      "<h2>💬 Chat</h2>" +
+      '<p class="lead">Just talk to ' + esc(S.robot.name) + '. <b>You do not have to teach him anything first</b> ' +
+        "— he already knows how to chat. Say whatever you like, or tap one of the buttons if you " +
+        "cannot think of anything.</p>" +
+      '<div class="panel">' +
+        '<div class="chat" id="cLog" style="max-height:min(46vh,380px)"></div>' +
+        '<div class="row" id="cChips" style="margin:9px 0"></div>' +
+        '<input type="text" id="cMsg" maxlength="200" placeholder="Say something…" aria-label="Say something to your robot">' +
+        '<div class="row" style="margin-top:8px">' +
+          '<button class="btn key" id="cSend">Send</button>' +
+          '<button class="btn" id="cClear">Start again</button></div>' +
+      "</div>" +
+      '<p class="lead" style="font-size:.82rem">These answers were <b>written into him</b>, not learned — ' +
+        "which is how most talking toys and most simple helpers work. The room next door is the " +
+        "one where he learns from you instead. Both are worth knowing about.</p>" +
+    "</div>";
+  $("cSend").addEventListener("click", sendChat);
+  $("cMsg").addEventListener("keydown", (e) => { if (e.key === "Enter") sendChat(); });
+  $("cClear").addEventListener("click", () => {
+    S.chat.log = []; save(); renderChatLog();
+    pushBot(freshPick(["Right, fresh start. What shall we talk about?",
+      "Cleared. Hello again!"], "fresh"));
+  });
+  renderChips(); renderChatLog();
+  if (!S.chat.log.length) {
+    pushBot("Hello! I am " + S.robot.name + ". You can just talk to me — you do not have to " +
+      "teach me anything. What would you like to talk about?");
+  }
+}
+function renderChips() {
+  const box = $("cChips"); if (!box) return;
+  box.innerHTML = "";
+  const shuffled = CHIPS.slice().sort(() => Math.random() - 0.5).slice(0, 4);
+  shuffled.forEach((c) => {
+    const b = document.createElement("button");
+    b.className = "btn";
+    b.style.cssText = "font-size:.78rem;padding:7px 11px";
+    b.textContent = c;
+    b.setAttribute("aria-label", "Say: " + c);
+    b.addEventListener("click", () => { $("cMsg").value = c; sendChat(); });
+    box.appendChild(b);
+  });
+}
+function pushBot(text, care) {
+  S.chat.log.push({ me: false, t: text, care: !!care });
+  S.chat.said = (S.chat.said || 0) + 1;
+  trimLog(); save(); renderChatLog();
+}
+function trimLog() {
+  if (S.chat.log.length > 80) S.chat.log = S.chat.log.slice(-80);
+}
+function sendChat() {
+  const v = ($("cMsg").value || "").trim().slice(0, 200);
+  if (!v) return;
+  $("cMsg").value = "";
+  S.chat.log.push({ me: true, t: v });
+  trimLog(); renderChatLog();
+  const r = chatReply(v);
+  setTimeout(() => { pushBot(r.text, r.care); renderChips(); }, 260);
+}
+function renderChatLog() {
+  const box = $("cLog"); if (!box) return;
+  if (!S.chat.log.length) { box.innerHTML = ""; return; }
+  box.innerHTML = S.chat.log.map((m) =>
+    '<div class="bub ' + (m.me ? "me" : "it") + '"' +
+      (m.care ? ' style="background:#fff5e2;border-color:var(--warm)"' : "") + ">" +
+      '<span class="who">' + (m.me ? "You" : esc(S.robot.name)) + "</span>" + esc(m.t) +
+    "</div>").join("");
+  box.scrollTop = box.scrollHeight;
+}
+
+/* ===========================================================================
    THE ROBOT ROOM, THE REPORT CARD, AND PUTTING IT ALL TOGETHER
    =========================================================================== */
 
@@ -1843,6 +2312,9 @@ function reportRoom() {
               : '<p class="lead" style="margin:0">Not taught yet. Visit <b>The Eye</b>.</p>') +
           "</div>" +
           '<div class="panel"><h3>💬 Talking</h3>' +
+            ((S.chat.said || 0)
+              ? '<div class="stat"><b>' + S.chat.said + "</b><span>things it has said to you in Chat</span></div>"
+              : "") +
             (vs.words
               ? '<div class="stat"><b>' + vs.words + "</b><span>words it knows</span></div>" +
                 '<div class="stat"><b>' + vs.links + "</b><span>ways to join them</span></div>" +
@@ -1888,8 +2360,9 @@ function reportRoom() {
    --------------------------------------------------------------------------- */
 const ROOMS = [
   { id:"robot",  e:"🤖", nm:"Robot",  sub:"build it",   go:robotRoom },
+  { id:"chat",   e:"💬", nm:"Chat",   sub:"just talk to it", go:chatRoom },
   { id:"eye",    e:"👁️", nm:"The Eye", sub:"teach it to see", go:eyeRoom },
-  { id:"voice",  e:"💬", nm:"The Voice", sub:"teach it to talk", go:voiceRoom },
+  { id:"voice",  e:"🧠", nm:"The Voice", sub:"teach it to talk", go:voiceRoom },
   { id:"legs",   e:"🦿", nm:"The Legs", sub:"teach it to move", go:legsRoom },
   { id:"report", e:"📋", nm:"Report",  sub:"what it can do", go:reportRoom }
 ];
@@ -1949,12 +2422,15 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) saveN
   S = load();
   buildRooms();
   const first = !Object.keys(S.visited).length;
-  go(first ? "robot" : (ROOMS.some((r) => r.id === room) ? room : "robot"));
+  /* First time, build the robot. After that, land where the talking is. */
+  go(first ? "robot" : "chat");
   if (first) {
     setTimeout(() => dialog("🤖", "You are going to make an AI",
       "<p>A real one. It starts off knowing <b>nothing whatsoever</b>.</p>" +
-      "<p>Build your robot first, then take it to the three rooms and teach it to " +
-      "<b>see</b>, to <b>talk</b>, and to <b>find its way</b>.</p>" +
+      "<p>Build your robot first. Then you can just <b>chat</b> to him whenever you like " +
+      "\u2014 he already knows how to do that, you do not have to teach him anything.</p>" +
+      "<p>And if you fancy it, there are three rooms where you can teach him to " +
+      "<b>see</b>, to <b>talk his own way</b>, and to <b>find his way about</b>.</p>" +
       "<p>It will get things wrong at first. That is not you getting it wrong — " +
       "that is just what learning looks like, for robots and for everyone else.</p>",
       [{ label:"Let's go", cls:"go" }]), 350);
@@ -1971,6 +2447,7 @@ window.AI = {
   sKey, qRow, isWall, bestA, maxQ, epsilon, runEpisode, reachable, legsBlank,
   blankState, makeRobot, load, saveNow,
   get S() { return S; }, set S(v) { S = v; },
+  chatReply, chatNorm, learnFact, HEAVY, SERIOUS, TOPICS, IDENTITY, JOKES, FACTS,
   go, get room() { return room; }
 };
 
